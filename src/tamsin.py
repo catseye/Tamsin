@@ -52,9 +52,12 @@ class Variable(Term):
 
 class ScannerMixin(object):
     def set_buffer(self, buffer):
+        """Calls scan() for you!"""
+        debug("setting buffer to '%s'" % buffer)
         self.buffer = buffer
         self.position = 0
         self.token = None
+        self.scan()
 
     def eof(self):
         return self.position >= len(self.buffer)
@@ -92,10 +95,11 @@ class ScannerMixin(object):
         you can pass it to rewind().
 
         """
-        return (self.token, self.position)
+        return (self.buffer, self.token, self.position)
 
     def rewind(self, told):
-        (token, position) = told
+        (buffer_, token, position) = told
+        self.buffer = buffer_
         self.token = token
         self.position = position
         debug("rewound to %s, token now '%s', buffer now '%s'" %
@@ -116,7 +120,7 @@ class ScannerMixin(object):
             return
         
         if self.startswith(('=', '(', ')', '[', ']', '{', '}',
-                            '|', '&', u'→', ',', '.')):
+                            '|', '&', u'→', ',', '.', '@')):
             self.token = self.chop(1)
             return
 
@@ -155,7 +159,6 @@ class ScannerMixin(object):
 class Parser(ScannerMixin):
     def __init__(self, buffer):
         self.set_buffer(buffer)
-        self.scan()
 
     def grammar(self):
         prods = [self.production()]
@@ -228,7 +231,7 @@ class Parser(ScannerMixin):
         elif self.consume('fail'):
             return ('FAIL',)
         else:
-            t = self.token
+            name = self.token
             self.scan()
             args = []
             if self.consume('('):
@@ -237,7 +240,10 @@ class Parser(ScannerMixin):
                     while self.consume(','):
                         args.append(self.term())
                 self.expect(')')
-            return ('CALL', t, args)
+            ibuf = None
+            if self.consume('@'):
+                ibuf = self.term()
+            return ('CALL', name, args, ibuf)
 
     def variable(self):
         if self.token[0].isupper():
@@ -306,7 +312,6 @@ class Interpreter(ScannerMixin, ContextMixin):
     def __init__(self, ast, buffer):
         self.program = ast
         self.set_buffer(buffer)
-        self.scan()
         self.init_contexts()
 
     ### grammar stuff ---------------------------------------- ###
@@ -372,18 +377,28 @@ class Interpreter(ScannerMixin, ContextMixin):
             self.pop_context(ast[1])
             return x
         elif ast[0] == 'CALL':
-            prods = self.find_productions(ast[1])
+            name = ast[1]
+            args = ast[2]
+            ibuf = ast[3]
+            prods = self.find_productions(name)
             debug("candidate productions: %r" % prods)
-            args = [x.expand(self) for x in ast[2]]
+            args = [x.expand(self) for x in args]
             for prod in prods:
                 formals = prod[2]
                 debug("formals: %r, args: %r" % (formals, args))
-                if not formals:
-                    return self.interpret(prod)
                 bindings = self.match_all(formals, args)
                 debug("bindings: %r" % bindings)
                 if bindings != False:
-                    return self.interpret(prod, bindings=bindings)            
+                    saved_scanner_state = None
+                    if ibuf is not None:
+                        ibuf = ibuf.expand(self)
+                        debug("expanded ibuf: %r" % ibuf)
+                        saved_scanner_state = self.tell()
+                        self.set_buffer(str(ibuf))
+                    x = self.interpret(prod, bindings=bindings)
+                    if ibuf is not None:
+                        self.rewind(saved_scanner_state)
+                    return x
         elif ast[0] == 'SEND':
             result = self.interpret(ast[1])
             assert isinstance(ast[2], Variable), ast

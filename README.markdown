@@ -35,7 +35,7 @@ Grammar
            | "return" Term
            | "fail"
            | LitToken
-           | ProdName ["(" [Term {"," Term} ")"].
+           | ProdName ["(" [Term {"," Term} ")"] ["@" Term].
     Term := Atom
           | Variable
           | "(" {Term} ")".
@@ -54,7 +54,7 @@ double quotes.
 
     | main = blerp.
     | blerp = "blerp".
-    = ('PROGRAM', [('PROD', u'main', [], ('CALL', u'blerp', [])), ('PROD', u'blerp', [], ('LITERAL', u'blerp'))])
+    = ('PROGRAM', [('PROD', u'main', [], ('CALL', u'blerp', [], None)), ('PROD', u'blerp', [], ('LITERAL', u'blerp'))])
 
 A rule may consist of two rules joined by `&`.
 
@@ -76,12 +76,9 @@ to `&&` and `||`.  Note also that `&` has a higher precedence than `|`.
 
 A rule may consist of a bunch of other stuff.
 
-    @| main = zeroes.
-    @| zeroes(X) = ("0" & zeroes → E & return zero(E)) | return nil.
-    @= ('PROGRAM', [('PROD', u'main', [], ('CALL', u'zeroes')), ('PROD', u'zeroes', [X], ('OR', ('AND', ('AND', ('LITERAL', u'0'), ('SEND', ('CALL', u'zeroes'), E)), ('RETURN', zero(E))), ('RETURN', nil)))])
-
-    @| main = "0" & return one | "1" & return zero.
-    @= ('PROGRAM', [('PROD', u'main', [], ('OR', ('AND', ('LITERAL', u'0'), ('RETURN', one)), ('AND', ('LITERAL', u'1'), ('RETURN', zero))))])
+    | main = zeroes.
+    | zeroes(X) = ("0" & zeroes → E & return zero(E)) | return nil.
+    = ('PROGRAM', [('PROD', u'main', [], ('CALL', u'zeroes', [], None)), ('PROD', u'zeroes', [X], ('OR', ('AND', ('AND', ('LITERAL', u'0'), ('SEND', ('CALL', u'zeroes', [], None), E)), ('RETURN', zero(E))), ('RETURN', nil)))])
 
     -> Tests for functionality "Intepret Tamsin program"
     
@@ -390,3 +387,35 @@ What does this get us?  I DON'T KNOW.  Oh, heck.  Let's parse a tree.
     | rightmost(X) = return X.
     + tree(tree(0,1),tree(0,tree(1,2)))
     = 2
+
+Implicit Buffer
+---------------
+
+OK, this section is mostly thoughts, until I come up with something.
+
+Object-oriented languages sometimes have an "implicit self".  That means
+when you say "foo", it's assumed (at least, to begin with,) to be a
+method on the current object that is in context.
+
+Tamsin, clearly, has an implicit buffer.  This is the buffer on which
+scanning/parsing operations like `"tree"` operate.  When you call another
+production from a production, that production you call gets the same
+implicit buffer you were working on.  And `main` gets standard input as
+its implicit buffer.
+
+So, also clearly, there should be some way to alter the implicit buffer
+when you call another production.
+
+Here's a "problem": the implicit buffer is a string, and we don't have
+strings in the data domain, we have terms.  This "problem" is easily
+"solvable": we can stringify the term.  This is a terrible "solution",
+but it lets us experiment further.
+
+What's the syntax for this?  How about postfix `@`, because you're
+pointing the production "at" some other text...
+
+    | main = set T = tree(a,tree(b,c)) & tree @ T.
+    | tree = "tree" & "(" & tree → L & "," & tree → R & ")" & return fwee(L, R)
+    |      | "a" | "b" | "c".
+    + doesn't matter
+    = fwee(a, fwee(b, c))
