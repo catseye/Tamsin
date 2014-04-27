@@ -15,10 +15,46 @@ class TamsinParseError(ValueError):
     pass
 
 
+class Term(object):
+    def __init__(self, name, contents=None):
+        self.name = name
+        if contents is None:
+            contents = []
+        self.contents = contents
+
+    def expand(self, context):
+        """Expands this term, returning a new term where replacing all
+        (VAR x) with the value of x in the given context.
+
+        """
+        return Term(self.name, [x.expand(context) for x in self.contents])
+
+    def __str__(self):
+        if not self.contents:
+            return self.name
+        return "%s(%s)" % (
+            self.name, ', '.join([str(x) for x in self.contents])
+        )
+
+    def __repr__(self):
+        # sigh
+        return str(self)
+
+
+class Variable(Term):
+    def __init__(self, name):
+        assert name[0].isupper()
+        self.name = name
+        self.contents = []
+
+    def expand(self, context):
+        return context.fetch(self.name)
+
 class ScannerMixin(object):
     def set_buffer(self, buffer):
         self.buffer = buffer
         self.position = 0
+        self.token = None
 
     def eof(self):
         return self.position >= len(self.buffer)
@@ -80,7 +116,7 @@ class ScannerMixin(object):
             return
         
         if self.startswith(('=', '(', ')', '[', ']', '{', '}',
-                            '|', '&', u'→', '.')):
+                            '|', '&', u'→', ',', '.')):
             self.token = self.chop(1)
             return
 
@@ -119,8 +155,6 @@ class ScannerMixin(object):
 class Parser(ScannerMixin):
     def __init__(self, buffer):
         self.set_buffer(buffer)
-        self.token = None
-        self.position = 0
         self.scan()
 
     def grammar(self):
@@ -151,8 +185,15 @@ class Parser(ScannerMixin):
             rhs = self.expr2()
             lhs = ('AND', lhs, rhs)
         return lhs
-    
+
     def expr2(self):
+        lhs = self.expr3()
+        if self.consume(u'→'):
+            v = self.variable()
+            lhs = ('SEND', lhs, v)
+        return lhs
+    
+    def expr3(self):
         if self.consume('('):
             e = self.expr0()
             self.expect(')')
@@ -160,7 +201,7 @@ class Parser(ScannerMixin):
         elif self.consume('['):
             e = self.expr0()
             self.expect(']')
-            return ('OR', e, ('RETURN', ('ATOM', u'nil')))
+            return ('OR', e, ('RETURN', Term('nil')))
         elif self.consume('{'):
             e = self.expr0()
             self.expect('}')
@@ -182,32 +223,32 @@ class Parser(ScannerMixin):
         else:
             t = self.token
             self.scan()
-            v = None
-            if self.consume(u'→'):
-                v = self.variable()
-            return ('CALL', t, v)
+            return ('CALL', t)
 
     def variable(self):
         if self.token[0].isupper():
             var = self.token
             self.scan()
-            return ('VAR', var)
+            return Variable(var)
         else:
-            raise ValueError("Expected variable")
+            self.error('variable')
 
     def term(self):
-        if self.consume('('):
-            subs = []
-            while (self.token != ')'):
-                subs.append(self.term())
-            self.expect(')')
-            return ('LIST', subs)
-        elif self.token[0].isupper():
+        if self.token[0].isupper():
             return self.variable()
-        else:
+        elif self.token[0].isalnum():
             atom = self.token
             self.scan()
-            return ('ATOM', atom)
+            subs = []
+            if self.consume('('):
+                if self.token != ')':
+                    subs.append(self.term())
+                while self.consume(','):
+                    subs.append(self.term())
+                self.expect(')')
+            return Term(atom, subs)
+        else:
+            self.error('term')
 
 
 class ContextMixin(object):
@@ -266,31 +307,6 @@ class Interpreter(ScannerMixin, ContextMixin):
             raise ValueError("No '%s' production defined" % name)
         return found
 
-    ### term stuff ---------------------------------------- ###
-    
-    def replace_vars(self, ast):
-        """Expands a term, replacing all (VAR x) with the value of x
-        in the current context."""
-        
-        if ast[0] == 'ATOM':
-            return ast
-        elif ast[0] == 'LIST':
-            return ('LIST', [self.replace_vars(x) for x in ast[1]])
-        elif ast[0] == 'VAR':
-            return self.fetch(ast[1])
-        else:
-            raise NotImplementedError("internal error: bad term")
-
-    def stringify_term(self, ast):
-        if ast[0] == 'ATOM':
-            return ast[1]
-        elif ast[0] == 'LIST':
-            return '(%s)' % ' '.join([self.stringify_term(x) for x in ast[1]])
-        elif ast[0] == 'VAR':
-            return ast[1]
-        else:
-            raise NotImplementedError("internal error: bad term")
-
     ### interpreter proper ---------------------------------- ###
     
     def interpret(self, ast):
@@ -303,17 +319,17 @@ class Interpreter(ScannerMixin, ContextMixin):
             self.pop_context(ast[1])
             return x
         elif ast[0] == 'CALL':
-            result = self.interpret(self.find_production(ast[1]))
-            if ast[2] is not None:
-                assert ast[2][0] == 'VAR', ast
-                varname = ast[2][1]
-                self.store(varname, result)
-            return result
+            return self.interpret(self.find_production(ast[1]))
+        elif ast[0] == 'SEND':
+            result = self.interpret(ast[1])
+            assert isinstance(ast[2], Variable), ast
+            self.store(ast[2].name, result)
         elif ast[0] == 'SET':
-            assert ast[1][0] == 'VAR', ast
-            varname = ast[1][1]
-            result = self.replace_vars(ast[2])
-            self.store(varname, result)
+            assert isinstance(ast[1], Variable), ast
+            assert isinstance(ast[2], Term), ast
+            # weird, but we just pass ourself, since we're a context!
+            result = ast[2].expand(self)
+            self.store(ast[1].name, result)
             return result
         elif ast[0] == 'AND':
             lhs = ast[1]
@@ -333,11 +349,11 @@ class Interpreter(ScannerMixin, ContextMixin):
                 self.rewind(saved_scanner_state)
                 return self.interpret(rhs)
         elif ast[0] == 'RETURN':
-            return self.replace_vars(ast[1])
+            return ast[1].expand(self)
         elif ast[0] == 'FAIL':
             raise TamsinParseError("fail")
         elif ast[0] == 'WHILE':
-            result = ('ATOM', 'nil')
+            result = Term('nil')
             while True:
                 try:
                     result = self.interpret(ast[1])
@@ -346,7 +362,7 @@ class Interpreter(ScannerMixin, ContextMixin):
         elif ast[0] == 'LITERAL':
             if self.token == ast[1]:
                 self.scan()
-                return ('ATOM', ast[1])
+                return Term(ast[1])
             else:
                 raise TamsinParseError("expected '%s' found '%s'" %
                     (ast[1], self.token)
@@ -374,7 +390,7 @@ def main(args):
             #print repr(ast)
             interpreter = Interpreter(ast, sys.stdin.read())
             result = interpreter.interpret(ast)
-            print interpreter.stringify_term(result)
+            print str(result)
     else:
         raise ValueError("first argument must be 'parse' or 'run'")
 

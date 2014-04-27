@@ -3,7 +3,7 @@ Tamsin
 
 Tamsin is a language somewhere between a programming language and a
 meta-language (a language for defining languages.)  It also has some
-characteristics reminiscent of unix shell programming and Scheme.
+characteristics reminiscent of unix shell programming and Erlang.
 (And Squishy2K.  And Chomsky Level 0 grammars.  And dioids.  And...)
 
 Basically, every time I see someone use a compiler-compiler like `yacc`
@@ -27,14 +27,15 @@ Grammar
     Production ::= ProdName "=" Expr0.
     Expr0 := Expr1 {("||" | "|") Expr1}.
     Expr1 := Expr2 {("&&" | "&") Expr2}.
-    Expr2 := "(" Expr0 ")"
+    Expr2 := Expr3 ["→" Variable].
+    Expr3 := "(" Expr0 ")"
            | "[" Expr0 "]"
+           | "{" Expr0 "}"
            | "set" Variable "=" Term
            | "return" Term
            | "fail"
            | LitToken
-           | ProdName ["→" Variable].
-
+           | ProdName.
     Term := Atom
           | Variable
           | "(" {Term} ")".
@@ -53,19 +54,19 @@ double quotes.
 
     | main = blerp.
     | blerp = "blerp".
-    = ('PROGRAM', [('PROD', u'main', ('CALL', u'blerp', None)), ('PROD', u'blerp', ('LITERAL', u'blerp'))])
+    = ('PROGRAM', [('PROD', u'main', ('CALL', u'blerp')), ('PROD', u'blerp', ('LITERAL', u'blerp'))])
 
 A rule may consist of two rules joined by `&`.
 
     | main = zeroes.
     | zeroes = "0" & zeroes.
-    = ('PROGRAM', [('PROD', u'main', ('CALL', u'zeroes', None)), ('PROD', u'zeroes', ('AND', ('LITERAL', u'0'), ('CALL', u'zeroes', None)))])
+    = ('PROGRAM', [('PROD', u'main', ('CALL', u'zeroes')), ('PROD', u'zeroes', ('AND', ('LITERAL', u'0'), ('CALL', u'zeroes')))])
 
 A rule may consist of two rules joined by `|`.
 
     | main = zeroes.
     | zeroes = "0" | "1".
-    = ('PROGRAM', [('PROD', u'main', ('CALL', u'zeroes', None)), ('PROD', u'zeroes', ('OR', ('LITERAL', u'0'), ('LITERAL', u'1')))])
+    = ('PROGRAM', [('PROD', u'main', ('CALL', u'zeroes')), ('PROD', u'zeroes', ('OR', ('LITERAL', u'0'), ('LITERAL', u'1')))])
 
 If you're too used to C or Javascript or `sh`, you can double up those symbols
 to `&&` and `||`.  Note also that `&` has a higher precedence than `|`.
@@ -76,11 +77,11 @@ to `&&` and `||`.  Note also that `&` has a higher precedence than `|`.
 A rule may consist of a bunch of other stuff.
 
     | main = zeroes.
-    | zeroes = ("0" & zeroes → E & return (zero E)) | return nil.
-    = ('PROGRAM', [('PROD', u'main', ('CALL', u'zeroes', None)), ('PROD', u'zeroes', ('OR', ('AND', ('AND', ('LITERAL', u'0'), ('CALL', u'zeroes', ('VAR', u'E'))), ('RETURN', ('LIST', [('ATOM', u'zero'), ('VAR', u'E')]))), ('RETURN', ('ATOM', u'nil'))))])
+    | zeroes = ("0" & zeroes → E & return zero(E)) | return nil.
+    = ('PROGRAM', [('PROD', u'main', ('CALL', u'zeroes')), ('PROD', u'zeroes', ('OR', ('AND', ('AND', ('LITERAL', u'0'), ('SEND', ('CALL', u'zeroes'), E)), ('RETURN', zero(E))), ('RETURN', nil)))])
 
     | main = "0" & return one | "1" & return zero.
-    = ('PROGRAM', [('PROD', u'main', ('OR', ('AND', ('LITERAL', u'0'), ('RETURN', ('ATOM', u'one'))), ('AND', ('LITERAL', u'1'), ('RETURN', ('ATOM', u'zero')))))])
+    = ('PROGRAM', [('PROD', u'main', ('OR', ('AND', ('LITERAL', u'0'), ('RETURN', one)), ('AND', ('LITERAL', u'1'), ('RETURN', zero))))])
 
     -> Tests for functionality "Intepret Tamsin program"
     
@@ -156,15 +157,15 @@ and returns the result of that.  For example, this program accepts `0` or
 Using `return` described above, this program accepts 0 or 1 and evaluates
 to the opposite.
 
-    | main = "0" & return one | "1" & return zero.
+    | main = "0" & return 1 | "1" & return 0.
     + 0
-    = one
+    = 1
 
-    | main = "0" & return one | "1" & return zero.
+    | main = "0" & return 1 | "1" & return 0.
     + 1
-    = zero
+    = 0
 
-    | main = "0" & return one | "1" & return zero.
+    | main = "0" & return 1 | "1" & return 0.
     + 2
     ? expected '1' found '2'
 
@@ -191,17 +192,24 @@ Variables must be capitalized.
     | blerp = "blerp".
     ? Expected variable
 
+In fact, the result of anything may be sent into a variable by `→`.  But
+note that `→` has a higher precence than `&`.
+
+    | main = ("0" | "1") → B & return itsa(B).
+    + 0
+    = itsa(0)
+
 This program accepts a pair of bits and outputs them as a list.
 
-    | main = bit → A & bit → B & return (A B).
+    | main = bit → A & bit → B & return pair(A, B).
     | bit = "0" | "1".
     + 1 0
-    = (1 0)
+    = pair(1, 0)
 
-    | main = bit → A & bit → B & return (A B).
+    | main = bit → A & bit → B & return pair(A, B).
     | bit = "0" | "1".
     + 0 1
-    = (0 1)
+    = pair(0, 1)
 
 This program expects an infinite number of 0's.  It will be disappointed.
 
@@ -212,18 +220,18 @@ This program expects an infinite number of 0's.  It will be disappointed.
 
 This program expects a finite number of 0's, and returns a term representing
 how many it found.  It will not be disappointed.
-    
+
     | main = zeroes.
-    | zeroes = ("0" & zeroes → E & return (zero E)) | return nil.
+    | zeroes = ("0" & zeroes → E & return zero(E)) | return nil.
     + 0 0 0 0
-    = (zero (zero (zero (zero nil))))
+    = zero(zero(zero(zero(nil))))
 
 This isn't the only way to set a variable.  You can also do so unconditionally.
 
     | main = eee.
-    | eee = set E = whatever && set F = stuff && return (E F).
+    | eee = set E = whatever && set F = stuff && return pair(E ,F).
     + ignored
-    = (whatever stuff)
+    = pair(whatever, stuff)
 
 And note that variables are subject to backtracking, too; if a variable is
 set while parsing something that failed, it is no longer set in the `|`
@@ -267,9 +275,9 @@ The rule `[FOO]` is a short form for `(FOO | return nil)`.
 So we can rewrite the "zeroes" example to be simpler:
 
     | main = zeroes.
-    | zeroes = ["0" & zeroes → E & return (zero E)].
+    | zeroes = ["0" & zeroes → E & return zero(E)].
     + 0 0 0 0
-    = (zero (zero (zero (zero nil))))
+    = zero(zero(zero(zero(nil))))
 
 The rule `{FOO}` is what it is in EBNF, and/or a while loop.  Like `[]`,
 we don't strictly need it, because we could just write it as recursive
@@ -296,6 +304,43 @@ So we can rewrite the "zeroes" example to be even... I hesistate to use
 the word "simpler", but we can... write it differently.
 
     | main = zeroes.
-    | zeroes = set Z = nil & {"0" && set Z = (zero Z)} & return Z.
+    | zeroes = set Z = nil & {"0" && set Z = zero(Z)} & return Z.
     + 0 0 0 0
-    = (zero (zero (zero (zero nil))))
+    = zero(zero(zero(zero(nil))))
+
+Aside
+-----
+
+OK!  So... here is a problem: if you haven't noticed yet,
+
+*   what a rule consumes, is a string.
+*   what a rule evaluates to, is a term.
+*   the symbol `(` means something different in a rule (where it expresses
+    precendence) than in a term (where it signifies the list of subterms.)
+*   the symbol `foo` means something different in a rule (where it denotes
+    a production) than in a term (where it is an atom.)
+
+This is probably unacceptable.  Which syntax do we want to change?
+
+    PRODUCTION = set V = foo & return ⟨atom V production⟩.
+
+i.e. productions are distinguished from atoms and variables by being
+all-caps.  Lists are distinguished from precedence by being ⟨ ⟩.
+
+    production = set V = 'foo & return '(atom V production).
+
+i.e. `'` acts a bit like quote, or rather quasi-quote, as Variables get
+expanded.
+
+    production = set V = :foo & return :smth(:atom Var :production).
+
+i.e. atoms are prefixed with `:`, like Ruby, and terms are constructors
+with a leading atom, like real terms and not like lists.
+
+    production = set V = 「foo」 & return 「(atom Var anotheratom)」.
+
+A funky, Japanese-influenced version of quote.  Nice, but really not suited
+for this, quite.  Ditto ⟦these⟧.
+
+Ah, well, it may not be a real problem, unless we want to make `return`
+optional (which we do.)  Maybe, onto weirder stuff first.
