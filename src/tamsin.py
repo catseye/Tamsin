@@ -10,71 +10,92 @@ def debug(x):
     if DEBUG:
         print x
 
+
 class TamsinParseError(ValueError):
     pass
 
-class Parser(object):
 
-    def __init__(self, buffer):
+class ScannerMixin(object):
+    def set_buffer(self, buffer):
         self.buffer = buffer
-        self.token = None
         self.position = 0
-        self.scan()
 
-    ### scanner bits first
+    def eof(self):
+        return self.position >= len(self.buffer)
 
     def chop(self, amount):
-        result = self.buffer[:amount]
-        self.buffer = self.buffer[amount:]
+        if self.eof():
+            return None
+        result = self.buffer[self.position:self.position+amount]
+        #debug("chopped: '%s'" % result)
         self.position += amount
         return result
 
+    def startswith(self, strings):
+        for s in strings:
+            if self.buffer[self.position:self.position+len(s)] == s:
+                return True
+        return False
+
+    def isalnum(self):
+        return self.buffer[self.position].isalnum()
+
     def error(self, expected):
-        report = self.buffer[:20]
-        if len(self.buffer) > 20:
+        report = self.buffer[self.position:self.position+20]
+        if len(report) == 20:
             report += '...'
         raise ValueError("Expected %s, found '%s' at '%s...'" %
                          (expected, self.token, report))
 
     def scan(self):
         self.scan_impl()
-        #print "scanned: '%s'" % self.token
+        debug("scanned: '%s'" % self.token)
+
+    def tell(self):
+        """Don't assume anything about what this returns except that
+        you can pass it to rewind().
+
+        """
+        return (self.token, self.position)
+
+    def rewind(self, told):
+        (token, position) = told
+        self.token = token
+        self.position = position
+        debug("rewound to %s, token now '%s', buffer now '%s'" %
+            (position, self.token, self.buffer[self.position:])
+        )
 
     def scan_impl(self):
-        while self.buffer.startswith((' ', '\t', '\r', '\n')):
+        while self.startswith((' ', '\t', '\r', '\n')):
             self.chop(1)
 
-        if self.buffer.startswith(('&&', '||')):
+        if self.eof():
+            self.token = None
+            return
+
+        if self.startswith(('&&', '||')):
             self.token = self.chop(1)
             self.chop(1)
             return
         
-        if self.buffer.startswith(('=', '(', ')', '[', ']', '{', '}',
-                                   '|', '&', u'→', '.')):
+        if self.startswith(('=', '(', ')', '[', ']', '{', '}',
+                            '|', '&', u'→', '.')):
             self.token = self.chop(1)
             return
 
-        if self.buffer.startswith('"'):
+        if self.startswith(('"',)):
             self.token = '"'
             self.chop(1)
-            while self.buffer and not self.buffer.startswith('"'):
+            while not self.eof() and not self.startswith('"'):
                 self.token += self.chop(1)
             self.chop(1)  # chop ending quote
             return
-        
-        for keyword in ('set', 'return', 'fail'):
-            if self.buffer.startswith(keyword):
-                self.token = self.chop(len(keyword))
-                return
 
-        if self.buffer and self.buffer[0].isalpha():
+        if not self.eof() and self.isalnum():
             self.token = ''
-            while self.buffer and self.buffer[0].isalpha():
+            while not self.eof() and self.isalnum():
                 self.token += self.chop(1)
-            return
-
-        if not self.buffer:
-            self.token = None
             return
 
         self.token = self.buffer[0]
@@ -94,7 +115,13 @@ class Parser(object):
             self.error("'%s'" % t)
         return r
 
-    ### now the parser bits
+
+class Parser(ScannerMixin):
+    def __init__(self, buffer):
+        self.set_buffer(buffer)
+        self.token = None
+        self.position = 0
+        self.scan()
 
     def grammar(self):
         prods = [self.production()]
@@ -183,17 +210,10 @@ class Parser(object):
             return ('ATOM', atom)
 
 
-class Interpreter(object):
-    def __init__(self, ast, input_):
-        self.program = ast
-        self.input = input_.split(' ')
-        self.position = 0
-        self.scan()
+class ContextMixin(object):
+    def init_contexts(self):
         self.contexts = []
-        #print repr(self.input)
 
-    ### context stuff ---------------------------------------- ###
-    
     def push_context(self, purpose):
         debug("pushing new context for %r" % purpose)
         self.contexts.append({})
@@ -226,18 +246,13 @@ class Interpreter(object):
         )
         self.contexts[-1][name] = value
 
-    ### scanner stuff ---------------------------------------- ###
-    
-    def scan(self):
-        if self.position >= len(self.input):
-            self.token = None
-        else:
-            self.token = self.input[self.position]
-            self.position += 1
 
-    def rewind(self, position):
-        self.position = position
-        self.token = self.input[position - 1]
+class Interpreter(ScannerMixin, ContextMixin):
+    def __init__(self, ast, buffer):
+        self.program = ast
+        self.set_buffer(buffer)
+        self.scan()
+        self.init_contexts()
 
     ### grammar stuff ---------------------------------------- ###
     
@@ -310,12 +325,12 @@ class Interpreter(object):
             lhs = ast[1]
             rhs = ast[2]
             saved_context = self.current_context()
-            saved_position = self.position
+            saved_scanner_state = self.tell()
             try:
                 return self.interpret(lhs)
             except TamsinParseError as e:
                 self.install_context(saved_context)
-                self.rewind(saved_position)
+                self.rewind(saved_scanner_state)
                 return self.interpret(rhs)
         elif ast[0] == 'RETURN':
             return self.replace_vars(ast[1])

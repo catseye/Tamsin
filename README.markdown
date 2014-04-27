@@ -91,6 +91,10 @@ When run, a Tamsin program parses the input.  A terminal expects a token
 identical to it to be on the input.  If that expectation is met, it evaluates
 to that token.  If not, it raises an error.
 
+Note that input into a Tamsin program is first broken up into tokens as
+specified by the gammar of Tamsin itself.  This is a little restrictive, and
+is due to change at some point.
+
     | main = blerp.
     | blerp = "blerp".
     + blerp
