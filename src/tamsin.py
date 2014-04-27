@@ -30,8 +30,11 @@ class Parser(object):
         return result
 
     def error(self, expected):
+        report = self.buffer[:20]
+        if len(self.buffer) > 20:
+            report += '...'
         raise ValueError("Expected %s, found '%s' at '%s...'" %
-                         (expected, self.token, self.buffer[:20]))
+                         (expected, self.token, report))
 
     def scan(self):
         self.scan_impl()
@@ -186,7 +189,44 @@ class Interpreter(object):
         self.input = input_.split(' ')
         self.position = 0
         self.scan()
+        self.contexts = []
         #print repr(self.input)
+
+    ### context stuff ---------------------------------------- ###
+    
+    def push_context(self, purpose):
+        debug("pushing new context for %r" % purpose)
+        self.contexts.append({})
+
+    def pop_context(self, purpose):
+        debug("popping context for %r" % purpose)
+        self.contexts.pop()
+
+    def current_context(self):
+        """Don't assume anything about what this returns except that
+        you can pass it to install_context().
+
+        """
+        debug("retrieving current context %r" % self.contexts[-1])
+        return self.contexts[-1].copy()
+
+    def install_context(self, context):
+        debug("installing context %r" % context)
+        self.contexts[-1] = context
+
+    def fetch(self, name):
+        debug("fetching %s (it's %r)" %
+            (name, self.contexts[-1].get(name, 'undefined'))
+        )
+        return self.contexts[-1][name]
+
+    def store(self, name, value):
+        debug("updating %s (was %s) to %r" %
+            (name, self.contexts[-1].get(name, 'undefined'), value)
+        )
+        self.contexts[-1][name] = value
+
+    ### scanner stuff ---------------------------------------- ###
     
     def scan(self):
         if self.position >= len(self.input):
@@ -199,6 +239,8 @@ class Interpreter(object):
         self.position = position
         self.token = self.input[position - 1]
 
+    ### grammar stuff ---------------------------------------- ###
+    
     def find_production(self, name):
         found = None
         for x in self.program[1]:
@@ -209,15 +251,18 @@ class Interpreter(object):
             raise ValueError("No '%s' production defined" % name)
         return found
 
-    def replace_vars(self, ast, context):
-        """Expands a term."""
+    ### term stuff ---------------------------------------- ###
+    
+    def replace_vars(self, ast):
+        """Expands a term, replacing all (VAR x) with the value of x
+        in the current context."""
         
         if ast[0] == 'ATOM':
             return ast
         elif ast[0] == 'LIST':
-            return ('LIST', [self.replace_vars(x, context) for x in ast[1]])
+            return ('LIST', [self.replace_vars(x) for x in ast[1]])
         elif ast[0] == 'VAR':
-            return context[ast[1]] # context.get(ast[1], None)
+            return self.fetch(ast[1])
         else:
             raise NotImplementedError("internal error: bad term")
 
@@ -231,58 +276,56 @@ class Interpreter(object):
         else:
             raise NotImplementedError("internal error: bad term")
 
-    def interpret(self, ast, context):
+    ### interpreter proper ---------------------------------- ###
+    
+    def interpret(self, ast):
         if ast[0] == 'PROGRAM':
-            return self.interpret(self.find_production('main'), context)
+            return self.interpret(self.find_production('main'))
         elif ast[0] == 'PROD':
             #print "interpreting %s" % repr(ast)
-            return self.interpret(ast[2], {})
+            self.push_context(ast[1])
+            x = self.interpret(ast[2])
+            self.pop_context(ast[1])
+            return x
         elif ast[0] == 'CALL':
-            new_context = {}
-            result = self.interpret(self.find_production(ast[1]), new_context)
+            result = self.interpret(self.find_production(ast[1]))
             if ast[2] is not None:
                 assert ast[2][0] == 'VAR', ast
                 varname = ast[2][1]
-                debug("updating %s (was %s) to %r" %
-                    (varname, context.get(varname, 'undefined'), result)
-                )
-                context[varname] = result
+                self.store(varname, result)
             return result
         elif ast[0] == 'SET':
             assert ast[1][0] == 'VAR', ast
             varname = ast[1][1]
-            result = self.replace_vars(ast[2], context)
-            debug("setting %s (was %s) to %r" %
-                (varname, context.get(varname, 'undefined'), result)
-            )
-            context[varname] = result
+            result = self.replace_vars(ast[2])
+            self.store(varname, result)
             return result
         elif ast[0] == 'AND':
             lhs = ast[1]
             rhs = ast[2]
-            value_lhs = self.interpret(lhs, context)
-            value_rhs = self.interpret(rhs, context)
+            value_lhs = self.interpret(lhs)
+            value_rhs = self.interpret(rhs)
             return value_rhs
         elif ast[0] == 'OR':
             lhs = ast[1]
             rhs = ast[2]
-            saved_context = context.copy()
+            saved_context = self.current_context()
             saved_position = self.position
             try:
-                return self.interpret(lhs, context)
+                return self.interpret(lhs)
             except TamsinParseError as e:
-                context = saved_context
+                self.install_context(saved_context)
                 self.rewind(saved_position)
-                return self.interpret(rhs, context)
+                return self.interpret(rhs)
         elif ast[0] == 'RETURN':
-            return self.replace_vars(ast[1], context)
+            return self.replace_vars(ast[1])
         elif ast[0] == 'FAIL':
             raise TamsinParseError("fail")
         elif ast[0] == 'WHILE':
             result = ('ATOM', 'nil')
             while True:
                 try:
-                    result = self.interpret(ast[1], context)
+                    result = self.interpret(ast[1])
                 except TamsinParseError as e:
                     return result
         elif ast[0] == 'LITERAL':
@@ -297,21 +340,29 @@ class Interpreter(object):
             raise NotImplementedError(repr(ast))
 
 
-if __name__ == '__main__':
-    if sys.argv[1] == 'parse':
-        with codecs.open(sys.argv[2], 'r', 'UTF-8') as f:
+def main(args):
+    global DEBUG
+    if args[0] == '--debug':
+        DEBUG = True
+        args = args[1:]
+    if args[0] == 'parse':
+        with codecs.open(args[1], 'r', 'UTF-8') as f:
             contents = f.read()
             parser = Parser(contents)
             ast = parser.grammar()
             print repr(ast)
-    elif sys.argv[1] == 'run':
-        with codecs.open(sys.argv[2], 'r', 'UTF-8') as f:
+    elif args[0] == 'run':
+        with codecs.open(args[1], 'r', 'UTF-8') as f:
             contents = f.read()
             parser = Parser(contents)
             ast = parser.grammar()
             #print repr(ast)
             interpreter = Interpreter(ast, sys.stdin.read())
-            result = interpreter.interpret(ast, {})
+            result = interpreter.interpret(ast)
             print interpreter.stringify_term(result)
     else:
         raise ValueError("first argument must be 'parse' or 'run'")
+
+
+if __name__ == '__main__':
+    main(sys.argv[1:])

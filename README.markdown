@@ -221,6 +221,22 @@ This isn't the only way to set a variable.  You can also do so unconditionally.
     + ignored
     = (whatever stuff)
 
+And note that variables are subject to backtracking, too; if a variable is
+set while parsing something that failed, it is no longer set in the `|`
+alternative.
+
+    | main = set E = original &
+    |          (set E = changed && "0" && "1" | "0" && "2") &
+    |        return E.
+    + 0 1
+    = changed
+
+    | main = set E = original &
+    |          (set E = changed && "0" && "1" | "0" && "2") &
+    |        return E.
+    + 0 2
+    = original
+
 The rule `fail` always fails.  This lets you establish global flags, of
 a sort.
 

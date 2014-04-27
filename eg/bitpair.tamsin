@@ -1,0 +1,3 @@
+main = bit → A & bit → B & return (A B).
+bit = "0" | "1".
+
