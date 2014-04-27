@@ -323,19 +323,32 @@ class Interpreter(ScannerMixin, ContextMixin):
     ### term matching
     
     def match_all(self, patterns, values):
+        """Returns a dict of bindings if all values match all patterns,
+        or False if there was a mismatch.
+
+        """
         i = 0
         bindings = {}
         while i < len(patterns):
-            sub_bindings = self.match_terms(patterns[i], values[i])
-            bindings.update(sub_bindings)
+            sub = self.match_terms(patterns[i], values[i])
+            if sub == False:
+                return False
+            bindings.update(sub)
             i += 1
         return bindings
     
     def match_terms(self, pattern, value):
+        """Returns a dict of bindings if the values matches the pattern,
+        or False if there was a mismatch.
+
+        """
         if isinstance(pattern, Variable):
+            # TODO: check existing binding!  oh well, assume unique for now.
             return {pattern.name: value}
         elif isinstance(pattern, Term):
             i = 0
+            if pattern.name != value.name:
+                return False
             bindings = {}
             while i < len(pattern.contents):
                 b = self.match_terms(pattern.contents[i], value.contents[i])
@@ -360,13 +373,16 @@ class Interpreter(ScannerMixin, ContextMixin):
             return x
         elif ast[0] == 'CALL':
             prods = self.find_productions(ast[1])
+            debug("candidate productions: %r" % prods)
             args = [x.expand(self) for x in ast[2]]
             for prod in prods:
                 formals = prod[2]
+                debug("formals: %r, args: %r" % (formals, args))
                 if not formals:
                     return self.interpret(prod)
                 bindings = self.match_all(formals, args)
-                if bindings:
+                debug("bindings: %r" % bindings)
+                if bindings != False:
                     return self.interpret(prod, bindings=bindings)            
         elif ast[0] == 'SEND':
             result = self.interpret(ast[1])

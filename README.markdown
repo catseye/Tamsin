@@ -372,3 +372,21 @@ pattern match the term?  Hahaha.
     | blerf(b) = return zon.
     | blerf(c) = return zzt.
     = zzt
+
+Thus, we can write productions that recursively call themselves, and
+terminate on the base case.
+
+    | main = blerf(tree(tree(tree(a,b),c),d)).
+    | blerf(tree(L,R)) = blerf(L).
+    | blerf(Other) = return Other.
+    = a
+
+What does this get us?  I DON'T KNOW.  Oh, heck.  Let's parse a tree.
+
+    | main = tree → T & rightmost(T).
+    | tree = "tree" & "(" & tree → L & "," & tree → R & ")" & return tree(L, R)
+    |      | "0" | "1" | "2".
+    | rightmost(tree(L,R)) = rightmost(R).
+    | rightmost(X) = return X.
+    + tree(tree(0,1),tree(0,tree(1,2)))
+    = 2
