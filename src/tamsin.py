@@ -167,10 +167,17 @@ class Parser(ScannerMixin):
     def production(self):
         name = self.token
         self.scan()
+        args = []
+        if self.consume('('):
+            if self.token != ')':
+                args.append(self.term())
+                while self.consume(','):
+                    args.append(self.term())
+            self.expect(')')
         self.expect('=')
         e = self.expr0()
         self.expect('.')
-        return ('PROD', name, e)
+        return ('PROD', name, args, e)
     
     def expr0(self):
         lhs = self.expr1()
@@ -223,7 +230,14 @@ class Parser(ScannerMixin):
         else:
             t = self.token
             self.scan()
-            return ('CALL', t)
+            args = []
+            if self.consume('('):
+                if self.token != ')':
+                    args.append(self.term())
+                    while self.consume(','):
+                        args.append(self.term())
+                self.expect(')')
+            return ('CALL', t, args)
 
     def variable(self):
         if self.token[0].isupper():
@@ -297,33 +311,68 @@ class Interpreter(ScannerMixin, ContextMixin):
 
     ### grammar stuff ---------------------------------------- ###
     
-    def find_production(self, name):
-        found = None
-        for x in self.program[1]:
-            if x[1] == name:
-                found = x
-                break
-        if not found:
+    def find_productions(self, name):
+        productions = []
+        for ast in self.program[1]:
+            if ast[1] == name:
+                productions.append(ast)
+        if not productions:
             raise ValueError("No '%s' production defined" % name)
-        return found
+        return productions
+
+    ### term matching
+    
+    def match_all(self, patterns, values):
+        i = 0
+        bindings = {}
+        while i < len(patterns):
+            sub_bindings = self.match_terms(patterns[i], values[i])
+            bindings.update(sub_bindings)
+            i += 1
+        return bindings
+    
+    def match_terms(self, pattern, value):
+        if isinstance(pattern, Variable):
+            return {pattern.name: value}
+        elif isinstance(pattern, Term):
+            i = 0
+            bindings = {}
+            while i < len(pattern.contents):
+                b = self.match_terms(pattern.contents[i], value.contents[i])
+                bindings.update(b)
+                i += 1
+            return bindings
 
     ### interpreter proper ---------------------------------- ###
     
-    def interpret(self, ast):
+    def interpret(self, ast, bindings=None):
         if ast[0] == 'PROGRAM':
-            return self.interpret(self.find_production('main'))
+            mains = self.find_productions('main')
+            return self.interpret(mains[0])
         elif ast[0] == 'PROD':
-            #print "interpreting %s" % repr(ast)
+            debug("interpreting production %s" % repr(ast))
             self.push_context(ast[1])
-            x = self.interpret(ast[2])
+            if bindings:
+                for name in bindings.keys():
+                    self.store(name, bindings[name])
+            x = self.interpret(ast[3])
             self.pop_context(ast[1])
             return x
         elif ast[0] == 'CALL':
-            return self.interpret(self.find_production(ast[1]))
+            prods = self.find_productions(ast[1])
+            args = [x.expand(self) for x in ast[2]]
+            for prod in prods:
+                formals = prod[2]
+                if not formals:
+                    return self.interpret(prod)
+                bindings = self.match_all(formals, args)
+                if bindings:
+                    return self.interpret(prod, bindings=bindings)            
         elif ast[0] == 'SEND':
             result = self.interpret(ast[1])
             assert isinstance(ast[2], Variable), ast
             self.store(ast[2].name, result)
+            return result
         elif ast[0] == 'SET':
             assert isinstance(ast[1], Variable), ast
             assert isinstance(ast[2], Term), ast

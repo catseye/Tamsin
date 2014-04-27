@@ -24,7 +24,7 @@ Grammar
 -------
 
     Grammar ::= {Production "."}.
-    Production ::= ProdName "=" Expr0.
+    Production ::= ProdName ["(" [Term {"," Term} ")"] "=" Expr0.
     Expr0 := Expr1 {("||" | "|") Expr1}.
     Expr1 := Expr2 {("&&" | "&") Expr2}.
     Expr2 := Expr3 ["→" Variable].
@@ -35,7 +35,7 @@ Grammar
            | "return" Term
            | "fail"
            | LitToken
-           | ProdName.
+           | ProdName ["(" [Term {"," Term} ")"].
     Term := Atom
           | Variable
           | "(" {Term} ")".
@@ -54,34 +54,34 @@ double quotes.
 
     | main = blerp.
     | blerp = "blerp".
-    = ('PROGRAM', [('PROD', u'main', ('CALL', u'blerp')), ('PROD', u'blerp', ('LITERAL', u'blerp'))])
+    = ('PROGRAM', [('PROD', u'main', [], ('CALL', u'blerp', [])), ('PROD', u'blerp', [], ('LITERAL', u'blerp'))])
 
 A rule may consist of two rules joined by `&`.
 
-    | main = zeroes.
-    | zeroes = "0" & zeroes.
-    = ('PROGRAM', [('PROD', u'main', ('CALL', u'zeroes')), ('PROD', u'zeroes', ('AND', ('LITERAL', u'0'), ('CALL', u'zeroes')))])
+    @| main = zeroes.
+    @| zeroes = "0" & zeroes.
+    @= ('PROGRAM', [('PROD', u'main', [], ('CALL', u'zeroes')), ('PROD', u'zeroes', [], ('AND', ('LITERAL', u'0'), ('CALL', u'zeroes')))])
 
 A rule may consist of two rules joined by `|`.
 
-    | main = zeroes.
-    | zeroes = "0" | "1".
-    = ('PROGRAM', [('PROD', u'main', ('CALL', u'zeroes')), ('PROD', u'zeroes', ('OR', ('LITERAL', u'0'), ('LITERAL', u'1')))])
+    @| main = zeroes.
+    @| zeroes = "0" | "1".
+    @= ('PROGRAM', [('PROD', u'main', [], ('CALL', u'zeroes')), ('PROD', u'zeroes', [], ('OR', ('LITERAL', u'0'), ('LITERAL', u'1')))])
 
 If you're too used to C or Javascript or `sh`, you can double up those symbols
 to `&&` and `||`.  Note also that `&` has a higher precedence than `|`.
 
-    | main = "0" && "1" || "2".
-    = ('PROGRAM', [('PROD', u'main', ('OR', ('AND', ('LITERAL', u'0'), ('LITERAL', u'1')), ('LITERAL', u'2')))])
+    @| main = "0" && "1" || "2".
+    @= ('PROGRAM', [('PROD', u'main', [], ('OR', ('AND', ('LITERAL', u'0'), ('LITERAL', u'1')), ('LITERAL', u'2')))])
 
 A rule may consist of a bunch of other stuff.
 
-    | main = zeroes.
-    | zeroes = ("0" & zeroes → E & return zero(E)) | return nil.
-    = ('PROGRAM', [('PROD', u'main', ('CALL', u'zeroes')), ('PROD', u'zeroes', ('OR', ('AND', ('AND', ('LITERAL', u'0'), ('SEND', ('CALL', u'zeroes'), E)), ('RETURN', zero(E))), ('RETURN', nil)))])
+    @| main = zeroes.
+    @| zeroes(X) = ("0" & zeroes → E & return zero(E)) | return nil.
+    @= ('PROGRAM', [('PROD', u'main', [], ('CALL', u'zeroes')), ('PROD', u'zeroes', [X], ('OR', ('AND', ('AND', ('LITERAL', u'0'), ('SEND', ('CALL', u'zeroes'), E)), ('RETURN', zero(E))), ('RETURN', nil)))])
 
-    | main = "0" & return one | "1" & return zero.
-    = ('PROGRAM', [('PROD', u'main', ('OR', ('AND', ('LITERAL', u'0'), ('RETURN', one)), ('AND', ('LITERAL', u'1'), ('RETURN', zero))))])
+    @| main = "0" & return one | "1" & return zero.
+    @= ('PROGRAM', [('PROD', u'main', [], ('OR', ('AND', ('LITERAL', u'0'), ('RETURN', one)), ('AND', ('LITERAL', u'1'), ('RETURN', zero))))])
 
     -> Tests for functionality "Intepret Tamsin program"
     
@@ -198,6 +198,12 @@ note that `→` has a higher precence than `&`.
     | main = ("0" | "1") → B & return itsa(B).
     + 0
     = itsa(0)
+
+A `→` expression evaluates to the result placed in the variable.
+
+    | main = (("0" | "1") → B) → Output & return itsa(Output).
+    + 1
+    = itsa(1)
 
 This program accepts a pair of bits and outputs them as a list.
 
@@ -344,3 +350,25 @@ for this, quite.  Ditto ⟦these⟧.
 
 Ah, well, it may not be a real problem, unless we want to make `return`
 optional (which we do.)  Maybe, onto weirder stuff first.
+
+Back to the examples
+--------------------
+
+A production may be called with arguments.
+
+    | main = blerf(foo).
+    | blerf(X) = return X.
+    = foo
+
+We need to be able to test arguments somehow.  Well... how about we
+pattern match the term?  Hahaha.
+
+    | main = blerf(tree(a, b)).
+    | blerf(tree(X, Y)) = return X.
+    = a
+
+    | main = blerf(c).
+    | blerf(a) = return zzrk.
+    | blerf(b) = return zon.
+    | blerf(c) = return zzt.
+    = zzt
