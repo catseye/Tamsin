@@ -442,16 +442,16 @@ For now, let's evaluate some backwards S-expressions.
 DEFINITELY SOME PROBLEMS WITH `{while}`; we're not restoring context
 properly when we try/except.
 
-    @| main = sexp.
-    @| sexp = symbol | list.
-    @| list = "(" &
-    @|        set L = nil &
-    @|        {sexp → S & set L = cons(S, L)} &
-    @|        ")" &
-    @|        return L.
-    @| symbol = "cons" | "head" | "tail" | "nil" | "a" | "b" | "c".
-    @+ (nil)
-    @= cons(a, cons(b, nil))
+    | main = sexp.
+    | sexp = symbol | list.
+    | list = "(" &
+    |        set L = nil &
+    |        {sexp → S & set L = cons(S, L)} &
+    |        ")" &
+    |        return L.
+    | symbol = "cons" | "head" | "tail" | "nil" | "a" | "b" | "c".
+    + (cons (a cons(b nil))
+    = cons(a, cons(b, nil))
 
 
     | main = set L = nil & (aorb & set L = el(L) | cord & set L = le(L)) &
@@ -532,44 +532,6 @@ Evaluator.
     + ((((a b cons) b cons) tail) tail)
     = a
 
-    | main = sexp → S & eval(S).
-    | sexp = symbol | list.
-    | list = "(" & listtail(nil).
-    | listtail(L) = sexp → S & listtail(pair(S, L))
-    |             | ")" & return L.
-    | symbol = "cons" | "head" | "tail" | "nil" | "a" | "b" | "c".
-    | 
-    | head(pair(A, B)) = return A.
-    | tail(pair(A, B)) = return B.
-    | cons(A, B) = return pair(A, B).
-    | 
-    | eval(pair(head, pair(X, nil))) = eval(X) → R & head(R) → P & return P.
-    | eval(pair(tail, pair(X, nil))) = eval(X) → R & tail(R) → P & return P.
-    | eval(pair(cons, pair(A, pair(B, nil)))) =
-    |    eval(A) → AE & eval(B) → BE & return pair(AE, BE).
-    | eval(X) = return X.
-    + ((a b cons) head)
-    = b
-
-    | main = sexp → S & eval(S).
-    | sexp = symbol | list.
-    | list = "(" & listtail(nil).
-    | listtail(L) = sexp → S & listtail(pair(S, L))
-    |             | ")" & return L.
-    | symbol = "cons" | "head" | "tail" | "nil" | "a" | "b" | "c".
-    | 
-    | head(pair(A, B)) = return A.
-    | tail(pair(A, B)) = return B.
-    | cons(A, B) = return pair(A, B).
-    | 
-    | eval(pair(head, pair(X, nil))) = eval(X) → R & head(R) → P & return P.
-    | eval(pair(tail, pair(X, nil))) = eval(X) → R & tail(R) → P & return P.
-    | eval(pair(cons, pair(A, pair(B, nil)))) =
-    |    eval(A) → AE & eval(B) → BE & return pair(AE, BE).
-    | eval(X) = return X.
-    + ((a b cons) tail)
-    = a
-
     | main = sexp → S & print S & reverse(S) → R & print R & eval(R).
     | sexp = symbol | list.
     | list = "(" & listtail(nil).
@@ -591,32 +553,15 @@ Evaluator.
     |    print AE & print BE & cons(AE, BE) → C & return C.
     | eval(X) = return X.
     + (((a b cons) head) ((a b cons) tail) cons)
+    = pair(pair(pair(nil, pair(pair(nil, pair(pair(pair(nil, a), b), cons)), head)), pair(pair(nil, pair(pair(pair(nil, a), b), cons)), tail)), cons)
+    = pair(cons, pair(pair(tail, pair(pair(cons, pair(b, pair(a, nil))), nil)), pair(pair(head, pair(pair(cons, pair(b, pair(a, nil))), nil)), nil)))
+    = b
+    = a
+    = b
+    = a
+    = a
+    = b
     = pair(a, b)
-
-    pair(
-        cons,
-        pair(
-            pair(
-                tail,
-                pair(
-                    pair(
-                        cons,
-                        pair(
-                            b,
-                            pair(
-                                a,
-                                nil
-                            )
-                        )
-                    ),
-                    nil
-                )
-            ),
-            nil
-        )
-    )
-    
-    (cons (tail (cons (b a))))
 
     @| sexp = symbol | list.
     @| list = "(" &

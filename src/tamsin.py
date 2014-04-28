@@ -50,8 +50,9 @@ class Variable(Term):
     def expand(self, context):
         return context.fetch(self.name)
 
-class ScannerMixin(object):
-    def set_buffer(self, buffer):
+
+class Scanner(object):
+    def __init__(self, buffer):
         """Calls scan() for you!"""
         debug("setting buffer to '%s'" % buffer)
         self.buffer = buffer
@@ -87,25 +88,15 @@ class ScannerMixin(object):
         raise ValueError(u"Expected %s, found '%s' at '%s...'" %
                          (expected, self.token, report))
 
+    def clone(self):
+        n = Scanner(self.buffer)
+        n.position = self.position
+        n.token = self.token
+        return n
+
     def scan(self):
         self.scan_impl()
         debug("scanned: '%s'" % self.token)
-
-    def tell(self):
-        """Don't assume anything about what this returns except that
-        you can pass it to rewind().
-
-        """
-        return (self.buffer, self.token, self.position)
-
-    def rewind(self, told):
-        (buffer_, token, position) = told
-        self.buffer = buffer_
-        self.token = token
-        self.position = position
-        debug("rewound to %s, token now '%s', buffer now '%s'" %
-            (position, self.token, self.buffer[self.position:])
-        )
 
     def scan_impl(self):
         while self.startswith((' ', '\t', '\r', '\n')):
@@ -157,23 +148,40 @@ class ScannerMixin(object):
         return r
 
 
-class Parser(ScannerMixin):
+class Parser(object):
     def __init__(self, buffer):
-        self.set_buffer(buffer)
+        self.scanner = Scanner(buffer)
+
+    def eof(self):
+        return self.scanner.eof()
+    def chop(self, amount):
+        return self.scanner.chop(amount)
+    def startswith(self, strings):
+        return self.scanner.startswith(strings)
+    def isalnum(self):
+        return self.scanner.isalnum()
+    def error(self, expected):
+        return self.scanner.error(expected)
+    def scan(self):
+        return self.scanner.scan()
+    def consume(self, t):
+        return self.scanner.consume(t)
+    def expect(self, t):
+        return self.scanner.expect(t)
 
     def grammar(self):
         prods = [self.production()]
-        while self.token is not None:
+        while self.scanner.token is not None:
             prods.append(self.production())
         
         return ('PROGRAM', prods)
     
     def production(self):
-        name = self.token
+        name = self.scanner.token
         self.scan()
         args = []
         if self.consume('('):
-            if self.token != ')':
+            if self.scanner.token != ')':
                 args.append(self.term())
                 while self.consume(','):
                     args.append(self.term())
@@ -217,8 +225,8 @@ class Parser(ScannerMixin):
             e = self.expr0()
             self.expect('}')
             return ('WHILE', e)
-        elif self.token and self.token[0] == '"':
-            literal = self.token[1:]
+        elif self.scanner.token and self.scanner.token[0] == '"':
+            literal = self.scanner.token[1:]
             self.scan()
             return ('LITERAL', literal)
         elif self.consume('set'):
@@ -235,11 +243,11 @@ class Parser(ScannerMixin):
             t = self.term()
             return ('PRINT', t)
         else:
-            name = self.token
+            name = self.scanner.token
             self.scan()
             args = []
             if self.consume('('):
-                if self.token != ')':
+                if self.scanner.token != ')':
                     args.append(self.term())
                     while self.consume(','):
                         args.append(self.term())
@@ -250,22 +258,22 @@ class Parser(ScannerMixin):
             return ('CALL', name, args, ibuf)
 
     def variable(self):
-        if self.token[0].isupper():
-            var = self.token
+        if self.scanner.token[0].isupper():
+            var = self.scanner.token
             self.scan()
             return Variable(var)
         else:
             self.error('variable')
 
     def term(self):
-        if self.token[0].isupper():
+        if self.scanner.token[0].isupper():
             return self.variable()
-        elif self.token[0].isalnum():
-            atom = self.token
+        elif self.scanner.token[0].isalnum():
+            atom = self.scanner.token
             self.scan()
             subs = []
             if self.consume('('):
-                if self.token != ')':
+                if self.scanner.token != ')':
                     subs.append(self.term())
                 while self.consume(','):
                     subs.append(self.term())
@@ -275,52 +283,44 @@ class Parser(ScannerMixin):
             self.error('term')
 
 
-class ContextMixin(object):
-    def init_contexts(self):
-        self.contexts = []
+class Context(object):
+    def __init__(self):
+        self.scopes = []
 
-    def push_context(self, purpose):
-        debug("pushing new context for %r" % purpose)
-        self.contexts.append({})
-        debug("CONTEXTS NOW: %r" % self.contexts)
+    def push_scope(self, purpose):
+        debug("pushing new scope for %r" % purpose)
+        self.scopes.append({})
+        debug("SCOPES NOW: %r" % self.scopes)
 
-    def pop_context(self, purpose):
-        debug("popping context for %r" % purpose)
-        self.contexts.pop()
-        debug("CONTEXTS NOW: %r" % self.contexts)
+    def pop_scope(self, purpose):
+        debug("popping scope for %r" % purpose)
+        self.scopes.pop()
+        debug("SCOPES NOW: %r" % self.scopes)
 
-    def current_context(self):
-        """Don't assume anything about what this returns except that
-        you can pass it to install_context().
-
-        """
-        debug("retrieving current context %r" % self.contexts[-1])
-        debug("CONTEXTS NOW: %r" % self.contexts)
-        return self.contexts[-1].copy()
-
-    def install_context(self, context):
-        debug("installing context %r" % context)
-        self.contexts[-1] = context
-        debug("CONTEXTS NOW: %r" % self.contexts)
+    def clone(self):
+        n = Context()
+        for scope in self.scopes:
+            n.scopes.append(scope.copy())
+        return n
 
     def fetch(self, name):
         debug("fetching %s (it's %r, in %r)" %
-            (name, self.contexts[-1].get(name, 'undefined'), self.contexts[-1])
+            (name, self.scopes[-1].get(name, 'undefined'), self.scopes[-1])
         )
-        return self.contexts[-1][name]
+        return self.scopes[-1][name]
 
     def store(self, name, value):
         debug("updating %s (was %s) to %r" %
-            (name, self.contexts[-1].get(name, 'undefined'), value)
+            (name, self.scopes[-1].get(name, 'undefined'), value)
         )
-        self.contexts[-1][name] = value
+        self.scopes[-1][name] = value
 
 
-class Interpreter(ScannerMixin, ContextMixin):
+class Interpreter(object):
     def __init__(self, ast, buffer):
         self.program = ast
-        self.set_buffer(buffer)
-        self.init_contexts()
+        self.scanner = Scanner(buffer)
+        self.context = Context()
 
     ### grammar stuff ---------------------------------------- ###
     
@@ -379,14 +379,14 @@ class Interpreter(ScannerMixin, ContextMixin):
             mains = self.find_productions('main')
             return self.interpret(mains[0])
         elif ast[0] == 'PROD':
-            self.push_context(ast[1])
+            self.context.push_scope(ast[1])
             if bindings:
                 for name in bindings.keys():
-                    self.store(name, bindings[name])
+                    self.context.store(name, bindings[name])
             debug("INTERPRETING RULE %s" % repr(ast[3]))
             x = self.interpret(ast[3])
             debug("FINISHED INTERPRETING RULE %s" % repr(ast[3]))
-            self.pop_context(ast[1])
+            self.context.pop_scope(ast[1])
             return x
         elif ast[0] == 'CALL':
             name = ast[1]
@@ -394,7 +394,7 @@ class Interpreter(ScannerMixin, ContextMixin):
             ibuf = ast[3]
             prods = self.find_productions(name)
             debug("candidate productions: %r" % prods)
-            args = [x.expand(self) for x in args]
+            args = [x.expand(self.context) for x in args]
             for prod in prods:
                 formals = prod[2]
                 debug("formals: %r, args: %r" % (formals, args))
@@ -403,13 +403,13 @@ class Interpreter(ScannerMixin, ContextMixin):
                 if bindings != False:
                     saved_scanner_state = None
                     if ibuf is not None:
-                        ibuf = ibuf.expand(self)
+                        ibuf = ibuf.expand(self.context)
                         debug("expanded ibuf: %r" % ibuf)
-                        saved_scanner_state = self.tell()
-                        self.set_buffer(str(ibuf))
+                        saved_scanner = self.scanner.clone()
+                        self.scanner = Scanner(str(ibuf))
                     x = self.interpret(prod, bindings=bindings)
                     if ibuf is not None:
-                        self.rewind(saved_scanner_state)
+                        self.scanner = saved_scanner
                     return x
             raise ValueError("No '%s' production matched arguments %r" %
                 (name, args)
@@ -417,14 +417,13 @@ class Interpreter(ScannerMixin, ContextMixin):
         elif ast[0] == 'SEND':
             result = self.interpret(ast[1])
             assert isinstance(ast[2], Variable), ast
-            self.store(ast[2].name, result)
+            self.context.store(ast[2].name, result)
             return result
         elif ast[0] == 'SET':
             assert isinstance(ast[1], Variable), ast
             assert isinstance(ast[2], Term), ast
-            # weird, but we just pass ourself, since we're a context!
-            result = ast[2].expand(self)
-            self.store(ast[1].name, result)
+            result = ast[2].expand(self.context)
+            self.context.store(ast[1].name, result)
             return result
         elif ast[0] == 'AND':
             lhs = ast[1]
@@ -435,37 +434,41 @@ class Interpreter(ScannerMixin, ContextMixin):
         elif ast[0] == 'OR':
             lhs = ast[1]
             rhs = ast[2]
-            saved_context = self.current_context()
-            saved_scanner_state = self.tell()
+            saved_context = self.context.clone()
+            saved_scanner = self.scanner.clone()
             try:
                 return self.interpret(lhs)
             except TamsinParseError as e:
-                self.install_context(saved_context)
-                self.rewind(saved_scanner_state)
+                self.context = saved_context
+                self.scanner = saved_scanner
                 return self.interpret(rhs)
         elif ast[0] == 'RETURN':
-            return ast[1].expand(self)
+            return ast[1].expand(self.context)
         elif ast[0] == 'FAIL':
             raise TamsinParseError("fail")
         elif ast[0] == 'PRINT':
-            val = ast[1].expand(self)
+            val = ast[1].expand(self.context)
             print val
             return val
         elif ast[0] == 'WHILE':
             result = Term('nil')
             while True:
+                saved_context = self.context.clone()
+                saved_scanner = self.scanner.clone()
                 try:
                     result = self.interpret(ast[1])
                 except TamsinParseError as e:
+                    self.context = saved_context
+                    self.scanner = saved_scanner
                     return result
         elif ast[0] == 'LITERAL':
-            debug('expecting %s, token is %s' % (ast[1], self.token))
-            if self.token == ast[1]:
-                self.scan()
+            debug('expecting %s, token is %s' % (ast[1], self.scanner.token))
+            if self.scanner.token == ast[1]:
+                self.scanner.scan()
                 return Term(ast[1])
             else:
                 raise TamsinParseError("expected '%s' found '%s'" %
-                    (ast[1], self.token)
+                    (ast[1], self.scanner.token)
                 )
         else:
             raise NotImplementedError(repr(ast))
