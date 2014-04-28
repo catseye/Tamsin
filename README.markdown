@@ -725,6 +725,13 @@ of the `with`, scanning returns to whatever scanner was in force before the
     + cat dog
     = dog
 
+But you need to be careful with `with`!  You should not put `with` inside
+a rule that can fail, i.e. the LHS of `|` or inside a `{}`.  Because if it
+does fail and the interpreter reverts the scanner to its previous state,
+its previous state may have been a different scanner.  The result may well
+be eurr.  I could make this a static error, but... for now, just remember
+this and be careful.
+
 Aside #2
 --------
 
@@ -802,3 +809,12 @@ Now that we can concatenate terms, we can probably write our own scanner.
     = .
 
 Indeed we can.
+
+The next logical step would be to be able to say
+
+    main = program with scanner.
+    scanner = scan with raw.
+    scan = {" "} & (...)
+    program = "token" & ";" & "token" & ...
+
+But we're not there yet.
