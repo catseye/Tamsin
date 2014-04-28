@@ -70,13 +70,13 @@ class Concat(Term):
 
 class EventProducer(object):
     def event(self, tag, *data):
-        if not getattr(self, 'listeners', None):
+        if self.listeners is None:
             self.listeners = []
         for listener in self.listeners:
             listener.announce(tag, *data)
 
     def subscribe(self, listener):
-        if not getattr(self, 'listeners', None):
+        if self.listeners is None:
             self.listeners = []
         self.listeners.append(listener)
 
@@ -86,8 +86,11 @@ class DebugEventListener(object):
         producer.subscribe(self)
     
     def announce(self, tag, *data):
-        if tag in (): # ('interpret_ast', 'try_literal'):
+        if tag in ('chopped', 'consume', 'scanned'): # ('interpret_ast', 'try_literal'):
             return
+        elif tag in ('try_literal', 'no_match'):
+            print tag, data[0]
+            data[1].dump()
         elif tag in ('switched_scanner_forward', 'switched_scanner_back'):
             print tag
             data[0].dump()
@@ -97,15 +100,16 @@ class DebugEventListener(object):
 
 
 class Scanner(EventProducer):
-    def __init__(self, buffer):
+    def __init__(self, buffer, listeners=None):
         """Does NOT calls scan() for you.  You should do that before
         using it.
 
         """
+        self.listeners = listeners
         self.event('set_buffer', buffer)
         self.buffer = buffer
         self.position = 0
-        self.reset_position = 0
+        self.reset_position = self.position
 
     def eof(self):
         return self.position >= len(self.buffer)
@@ -177,7 +181,7 @@ class Scanner(EventProducer):
         self.event('switch_scanner', self, new_scanner)
         # copy properties over to new scanner
         new_scanner.position = self.position
-        new_scanner.reset_position = 0
+        new_scanner.reset_position = self.reset_position
         self.event('switched_scanner', new_scanner)
         return new_scanner
 
@@ -203,11 +207,11 @@ class Scanner(EventProducer):
     
     def dump(self):
         print "--%r" % self
-        print "  buffer: %s" % enc(self.buffer)
+        print "  buffer: '%s'" % enc(self.buffer)
         print "  position: %s" % self.position
-        print "  buffer at position: %s" % self.report_buffer(self.position, 40)
+        print "  buffer at position: '%s'" % self.report_buffer(self.position, 40)
         print "  reset_position: %s" % self.reset_position
-        print "  buffer at reset_pos: %s" % self.report_buffer(self.reset_position, 40)
+        print "  buffer at reset_pos: '%s'" % self.report_buffer(self.reset_position, 40)
 
 
 class TamsinScanner(Scanner):
@@ -264,8 +268,8 @@ class ProductionScanner(Scanner):
     scan the input.
 
     """
-    def __init__(self, buffer, interpreter, production):
-        Scanner.__init__(self, buffer)
+    def __init__(self, buffer, interpreter, production, listeners=None):
+        Scanner.__init__(self, buffer, listeners=listeners)
         self.interpreter = interpreter
         self.production = production
 
@@ -284,8 +288,9 @@ class ProductionScanner(Scanner):
 
 
 class Parser(EventProducer):
-    def __init__(self, buffer):
-        self.scanner = TamsinScanner(buffer)
+    def __init__(self, buffer, listeners=None):
+        self.listeners = listeners
+        self.scanner = TamsinScanner(buffer, listeners=self.listeners)
 
     def eof(self):
         return self.scanner.eof()
@@ -436,7 +441,8 @@ class Parser(EventProducer):
 
 
 class Context(EventProducer):
-    def __init__(self):
+    def __init__(self, listeners=None):
+        self.listeners = listeners
         self.scopes = []
 
     def push_scope(self, purpose):
@@ -448,7 +454,7 @@ class Context(EventProducer):
         self.event('pop_scope', self)
 
     def clone(self):
-        n = Context()
+        n = Context(listeners=self.listeners)
         for scope in self.scopes:
             n.scopes.append(scope.copy())
         return n
@@ -467,10 +473,11 @@ class Context(EventProducer):
 
 
 class Interpreter(EventProducer):
-    def __init__(self, ast, buffer):
+    def __init__(self, ast, buffer, listeners=None):
+        self.listeners = listeners
         self.program = ast
-        self.scanner = TamsinScanner(buffer)
-        self.context = Context()
+        self.scanner = TamsinScanner(buffer, listeners=self.listeners)
+        self.context = Context(listeners=self.listeners)
 
     ### grammar stuff ---------------------------------------- ###
     
@@ -610,15 +617,18 @@ class Interpreter(EventProducer):
             sub = ast[1]
             scanner_name = ast[2]
             if scanner_name == u'tamsin':
-                new_scanner = TamsinScanner(self.scanner.buffer)
+                new_scanner = TamsinScanner(self.scanner.buffer,
+                    listeners=self.listeners)
             elif scanner_name == u'raw':
-                new_scanner = RawScanner(self.scanner.buffer)
+                new_scanner = RawScanner(self.scanner.buffer,
+                    listeners=self.listeners)
             else:
                 prods = self.find_productions(scanner_name)
                 if len(prods) != 1:
                     raise ValueError("No such scanner '%s'" % scanner_name)
                 new_scanner = ProductionScanner(
-                    self.scanner.buffer, self, prods[0]
+                    self.scanner.buffer, self, prods[0],
+                    listeners=self.listeners
                 )
             self.event("switching_scanners")
             old_scanner = self.scanner
@@ -645,8 +655,11 @@ class Interpreter(EventProducer):
             if self.scanner.consume(ast[1]):
                 return Term(ast[1])
             else:
-                raise TamsinParseError("expected '%s' found '%s'" %
-                    (ast[1], self.scanner.next_tok())
+                self.event('no_match', ast[1], self.scanner)
+                raise TamsinParseError("expected '%s' found '%s' (%r vs %r) (at '%s')" %
+                    (ast[1], self.scanner.next_tok(),
+                     ast[1], self.scanner.next_tok(),
+                     self.scanner.report_buffer(self.scanner.position, 20))
                 )
         else:
             raise NotImplementedError(repr(ast))
@@ -654,8 +667,9 @@ class Interpreter(EventProducer):
 
 def main(args):
     debug = None
+    listeners = []
     if args[0] == '--debug':
-        debug = DebugEventListener()
+        listeners.append(DebugEventListener())
         args = args[1:]
     if args[0] == 'parse':
         with codecs.open(args[1], 'r', 'UTF-8') as f:
@@ -666,14 +680,10 @@ def main(args):
     elif args[0] == 'run':
         with codecs.open(args[1], 'r', 'UTF-8') as f:
             contents = f.read()
-            parser = Parser(contents)
-            if debug:
-                debug.listen_to(parser)
+            parser = Parser(contents, listeners=listeners)
             ast = parser.grammar()
             #print repr(ast)
-            interpreter = Interpreter(ast, sys.stdin.read())
-            if debug:
-                debug.listen_to(interpreter)
+            interpreter = Interpreter(ast, sys.stdin.read(), listeners=listeners)
             result = interpreter.interpret(ast)
             print str(result)
     else:
