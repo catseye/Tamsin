@@ -8,7 +8,7 @@ DEBUG = False
 
 def debug(x):
     if DEBUG:
-        print x
+        print x.encode('ascii', 'ignore')
 
 
 class TamsinParseError(ValueError):
@@ -83,7 +83,8 @@ class ScannerMixin(object):
         report = self.buffer[self.position:self.position+20]
         if len(report) == 20:
             report += '...'
-        raise ValueError("Expected %s, found '%s' at '%s...'" %
+        #raise ValueError((expected, self.token, report))
+        raise ValueError(u"Expected %s, found '%s' at '%s...'" %
                          (expected, self.token, report))
 
     def scan(self):
@@ -278,10 +279,12 @@ class ContextMixin(object):
     def push_context(self, purpose):
         debug("pushing new context for %r" % purpose)
         self.contexts.append({})
+        debug("CONTEXTS NOW: %r" % self.contexts)
 
     def pop_context(self, purpose):
         debug("popping context for %r" % purpose)
         self.contexts.pop()
+        debug("CONTEXTS NOW: %r" % self.contexts)
 
     def current_context(self):
         """Don't assume anything about what this returns except that
@@ -289,15 +292,17 @@ class ContextMixin(object):
 
         """
         debug("retrieving current context %r" % self.contexts[-1])
+        debug("CONTEXTS NOW: %r" % self.contexts)
         return self.contexts[-1].copy()
 
     def install_context(self, context):
         debug("installing context %r" % context)
         self.contexts[-1] = context
+        debug("CONTEXTS NOW: %r" % self.contexts)
 
     def fetch(self, name):
-        debug("fetching %s (it's %r)" %
-            (name, self.contexts[-1].get(name, 'undefined'))
+        debug("fetching %s (it's %r, in %r)" %
+            (name, self.contexts[-1].get(name, 'undefined'), self.contexts[-1])
         )
         return self.contexts[-1][name]
 
@@ -357,6 +362,8 @@ class Interpreter(ScannerMixin, ContextMixin):
             bindings = {}
             while i < len(pattern.contents):
                 b = self.match_terms(pattern.contents[i], value.contents[i])
+                if b == False:
+                    return False
                 bindings.update(b)
                 i += 1
             return bindings
@@ -364,16 +371,18 @@ class Interpreter(ScannerMixin, ContextMixin):
     ### interpreter proper ---------------------------------- ###
     
     def interpret(self, ast, bindings=None):
+        debug("interpreting %s" % repr(ast))
         if ast[0] == 'PROGRAM':
             mains = self.find_productions('main')
             return self.interpret(mains[0])
         elif ast[0] == 'PROD':
-            debug("interpreting production %s" % repr(ast))
             self.push_context(ast[1])
             if bindings:
                 for name in bindings.keys():
                     self.store(name, bindings[name])
+            debug("INTERPRETING RULE %s" % repr(ast[3]))
             x = self.interpret(ast[3])
+            debug("FINISHED INTERPRETING RULE %s" % repr(ast[3]))
             self.pop_context(ast[1])
             return x
         elif ast[0] == 'CALL':
@@ -399,6 +408,9 @@ class Interpreter(ScannerMixin, ContextMixin):
                     if ibuf is not None:
                         self.rewind(saved_scanner_state)
                     return x
+            raise ValueError("No '%s' production matched arguments %r" %
+                (name, args)
+            )
         elif ast[0] == 'SEND':
             result = self.interpret(ast[1])
             assert isinstance(ast[2], Variable), ast
@@ -440,6 +452,7 @@ class Interpreter(ScannerMixin, ContextMixin):
                 except TamsinParseError as e:
                     return result
         elif ast[0] == 'LITERAL':
+            debug('expecting %s, token is %s' % (ast[1], self.token))
             if self.token == ast[1]:
                 self.scan()
                 return Term(ast[1])
@@ -467,7 +480,7 @@ def main(args):
             contents = f.read()
             parser = Parser(contents)
             ast = parser.grammar()
-            #print repr(ast)
+            debug(repr(ast))
             interpreter = Interpreter(ast, sys.stdin.read())
             result = interpreter.interpret(ast)
             print str(result)

@@ -370,6 +370,12 @@ pattern match the term?  Hahaha.
     | blerf(c) = return zzt.
     = zzt
 
+    | main = blerf(d).
+    | blerf(a) = return zzrk.
+    | blerf(b) = return zon.
+    | blerf(c) = return zzt.
+    ? No 'blerf' production matched arguments [d]
+
 Thus, we can write productions that recursively call themselves, and
 terminate on the base case.
 
@@ -419,3 +425,113 @@ pointing the production "at" some other text...
     |      | "a" | "b" | "c".
     + doesn't matter
     = fwee(a, fwee(b, c))
+
+This would be nicer if we had a syntax to put arbitrary text in an atom.
+Hey, how about 「this is an atom」?  Hmmm...
+
+For now, let's evaluate some backwards S-expressions.
+
+DEFINITELY SOME PROBLEMS WITH `{while}`; we're not restoring context
+properly when we try/except.
+
+    @| main = sexp.
+    @| sexp = symbol | list.
+    @| list = "(" &
+    @|        set L = nil &
+    @|        {sexp → S & set L = cons(S, L)} &
+    @|        ")" &
+    @|        return L.
+    @| symbol = "cons" | "head" | "tail" | "nil" | "a" | "b" | "c".
+    @+ (nil)
+    @= cons(a, cons(b, nil))
+
+So let's write it in the less intuitive, recursive way:
+
+    | main = sexp.
+    | sexp = symbol | list.
+    | list = "(" & listtail(nil).
+    | listtail(L) = sexp → S & listtail(cons(S, L))
+    |             | ")" & return L.
+    | symbol = "cons" | "head" | "tail" | "nil" | "a" | "b" | "c".
+    + (a b)
+    = cons(b, cons(a, nil))
+
+Evaluator.
+
+    | main = sexp → S & eval(S).
+    | sexp = symbol | list.
+    | list = "(" & listtail(nil).
+    | listtail(L) = sexp → S & listtail(pair(S, L))
+    |             | ")" & return L.
+    | symbol = "cons" | "head" | "tail" | "nil" | "a" | "b" | "c".
+    | 
+    | head(pair(A, B)) = return A.
+    | tail(pair(A, B)) = return B.
+    | cons(A, B) = return pair(A, B).
+    | 
+    | eval(pair(head, pair(X, nil))) = eval(X) → R & head(R) → P & return P.
+    | eval(pair(tail, pair(X, nil))) = eval(X) → R & tail(R) → P & return P.
+    | eval(pair(cons, pair(A, pair(B, nil)))) =
+    |    eval(A) → AE & eval(B) → BE & return pair(AE, BE).
+    | eval(X) = return X.
+    + (a b cons)
+    = pair(b, a)
+
+    | main = sexp → S & eval(S).
+    | sexp = symbol | list.
+    | list = "(" & listtail(nil).
+    | listtail(L) = sexp → S & listtail(pair(S, L))
+    |             | ")" & return L.
+    | symbol = "cons" | "head" | "tail" | "nil" | "a" | "b" | "c".
+    | 
+    | head(pair(A, B)) = return A.
+    | tail(pair(A, B)) = return B.
+    | cons(A, B) = return pair(A, B).
+    | 
+    | eval(pair(head, pair(X, nil))) = eval(X) → R & head(R) → P & return P.
+    | eval(pair(tail, pair(X, nil))) = eval(X) → R & tail(R) → P & return P.
+    | eval(pair(cons, pair(A, pair(B, nil)))) =
+    |    eval(A) → AE & eval(B) → BE & return pair(AE, BE).
+    | eval(X) = return X.
+    + ((a b cons) head)
+    = b
+
+    | main = sexp → S & eval(S).
+    | sexp = symbol | list.
+    | list = "(" & listtail(nil).
+    | listtail(L) = sexp → S & listtail(pair(S, L))
+    |             | ")" & return L.
+    | symbol = "cons" | "head" | "tail" | "nil" | "a" | "b" | "c".
+    | 
+    | head(pair(A, B)) = return A.
+    | tail(pair(A, B)) = return B.
+    | cons(A, B) = return pair(A, B).
+    | 
+    | eval(pair(head, pair(X, nil))) = eval(X) → R & head(R) → P & return P.
+    | eval(pair(tail, pair(X, nil))) = eval(X) → R & tail(R) → P & return P.
+    | eval(pair(cons, pair(A, pair(B, nil)))) =
+    |    eval(A) → AE & eval(B) → BE & return pair(AE, BE).
+    | eval(X) = return X.
+    + ((((a b cons) b cons) tail) tail)
+    = a
+
+    @| sexp = symbol | list.
+    @| list = "(" &
+    @|        set L = nil &
+    @|        {sexp → S & set L = cons(S, L)} &
+    @|        ")" &
+    @|        return L.
+    @| symbol = "cons" | "head" | "tail" | "nil" | "a" | "b" | "c".
+    @| main = sexp → S & eval(S).
+    @+ ((nil b cons) a cons)
+    @= cons(a, cons(b, nil))
+
+Implicit Scanner
+----------------
+
+Not only is there an implicit buffer, there is also, obviously, an implicit
+scanner.  By default, this is the scanner for the Tamsin language.  But
+you can change it!  Ideally, you could define your own scanner, but for
+now, you'll only be able to select from the Tamsin scanner and a "raw"
+scanner that only gives back characters.
+
