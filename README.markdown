@@ -818,3 +818,37 @@ The next logical step would be to be able to say
     program = "token" & ";" & "token" & ...
 
 But we're not there yet.
+
+Well, the best way to get there is to make that a test, see it fail, then
+improve the implementation so that it passes,  Test-driven language design
+for the win!
+
+When you name a production in the program with `with`, that production
+should return a token each time it is called.
+
+    | main = program with scanner.
+    | scanner = scan with raw.
+    | scan = {" "} & (
+    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    |        ).
+    | program = "cat" & ("cat" | "dog") & "dog".
+    + cat cat dog
+    = dog
+
+    | main = program with scanner.
+    | scanner = scan with raw.
+    | scan = {" "} & (
+    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    |        ).
+    | program = "cat" & ("cat" | "dog") & "dog".
+    + cat dog dog
+    = dog
+
+    | main = program with scanner.
+    | scanner = scan with raw.
+    | scan = {" "} & (
+    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    |        ).
+    | program = "cat" & ("cat" | "dog") & "dog".
+    + cat cat cat
+    ? expected 'dog' found 'cat'

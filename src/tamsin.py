@@ -198,6 +198,22 @@ class RawScanner(Scanner):
         self.token = self.chop(1)
 
 
+class ProductionScanner(Scanner):
+    """A Scanner that uses a production of the Tamsin program to
+    scan the input.  Should be subclassed, with __init__ setting
+    the production field to the desired production AST.
+
+    """
+    def scan_impl(self):
+        if self.eof():
+            self.token = None
+            return
+        self.token = self.interpreter.interpret(self.production)
+        #raise NotImplementedError("Congratulation! %s produced %s" %
+        #    (repr(self.production), repr(result))
+        #)
+
+
 class Parser(object):
     def __init__(self, buffer):
         self.scanner = TamsinScanner(buffer)
@@ -531,7 +547,17 @@ class Interpreter(object):
             elif scanner_name == 'raw':
                 new_scanner_class = RawScanner
             else:
-                raise ValueError("No such scanner '%s'" % scanner_name)
+                prods = self.find_productions(scanner_name)
+                if len(prods) != 1:
+                    raise ValueError("No such scanner '%s'" % scanner_name)
+                interpreter = self
+                # oh dear.
+                class CustomScanner(ProductionScanner):
+                    def __init__(self, buffer):
+                        self.interpreter = interpreter
+                        self.production = prods[0]
+                        ProductionScanner.__init__(self, buffer)
+                new_scanner_class = CustomScanner
             old_scanner_class = self.scanner.__class__
             self.scanner = self.scanner.switch(new_scanner_class)
             result = self.interpret(sub)
