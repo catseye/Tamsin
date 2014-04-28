@@ -6,9 +6,14 @@ import sys
 
 DEBUG = False
 
+def enc(x):
+    if not isinstance(x, str):
+        x = unicode(x)
+    return x.encode('ascii', 'xmlcharrefreplace')
+
 def debug(x):
     if DEBUG:
-        print x.encode('ascii', 'xmlcharrefreplace')
+        print enc(x)
 
 
 class TamsinParseError(ValueError):
@@ -74,6 +79,7 @@ class Scanner(object):
         debug("setting buffer to '%s'" % buffer)
         self.buffer = buffer
         self.position = 0
+        self.reset_position = None
         self.token = None
         self.scan()
 
@@ -97,14 +103,22 @@ class Scanner(object):
     def isalnum(self):
         return self.buffer[self.position].isalnum()
 
-    def error(self, expected):
-        report = self.buffer[self.position:self.position+20]
-        if len(report) == 20:
+    def report_buffer(self, position, length):
+        """Display a printable snippet of the buffer, of maximum
+        length length, starting at position.
+
+        """
+        report = self.buffer[position:position+length]
+        if len(report) == length:
             report += '...'
-        raise ValueError(u"Expected %s, found '%s' at '%s...'" %
-                         (expected.encode('ascii', 'xmlcharrefreplace'),
-                          self.token.encode('ascii', 'xmlcharrefreplace'),
-                          report.encode('ascii', 'xmlcharrefreplace')))
+        return enc(report)
+
+    def error(self, expected):
+        raise ValueError(u"Expected %s, found '%s' at '%s...' (position %s)" %
+                         (enc(expected),
+                          enc(self.token),
+                          self.report_buffer(self.position, 20),
+                          self.position))
 
     def clone(self, class_=None):
         if class_ is None:
@@ -120,8 +134,12 @@ class Scanner(object):
         debug("scanned: '%s'" % self.token)
 
     def switch(self, class_):
+        """Note that there is a different method for switching back to
+        a scanner you just switched from!  (TODO: Python's with?)
+
+        """
         # 'putback' the token
-        debug("reset position %s, position %s, putbacking '%s'" %
+        debug("scanner.switch().  reset position %s, position %s, putbacking '%s'" %
             (self.reset_position, self.position,
                 self.buffer[self.reset_position:self.position-self.reset_position+1])
         )
@@ -129,6 +147,17 @@ class Scanner(object):
         self.token = None
         new_scanner = self.clone(class_=class_)
         new_scanner.scan()
+        return new_scanner
+
+    def switch_back(self, class_):
+        debug("scanner.switch_back().  reset position %s, position %s, putbacking '%s'" %
+            (self.reset_position, self.position,
+                self.buffer[self.reset_position:self.position-self.reset_position+1])
+        )
+        self.position = self.reset_position
+        self.token = None
+        new_scanner = self.clone(class_=class_)
+        #new_scanner.scan()
         return new_scanner
 
     def consume(self, t):
@@ -144,6 +173,16 @@ class Scanner(object):
         if r is None:
             self.error("'%s'" % t)
         return r
+    
+    def dump(self):
+        if DEBUG:
+            print "--%r" % self
+            print "  buffer: %s" % enc(self.buffer)
+            print "  position: %s" % self.position
+            print "  buffer at position: %s" % self.report_buffer(self.position, 40)
+            print "  reset_position: %s" % self.reset_position
+            print "  buffer at reset_pos: %s" % self.report_buffer(self.reset_position, 40)
+            print "  token: %s" % enc(self.token)
 
 
 class TamsinScanner(Scanner):
@@ -559,16 +598,21 @@ class Interpreter(object):
                         self.production = prods[0]
                         ProductionScanner.__init__(self, buffer)
                 new_scanner_class = CustomScanner
+            debug("SWITCHING SCANNERS")
             old_scanner_class = self.scanner.__class__
             old_scanner = self.scanner
             self.scanner = self.scanner.switch(new_scanner_class)
             debug("SWITCHED SCANNER FROM %r TO %r" %
                 (old_scanner, self.scanner))
+            old_scanner.dump()
+            self.scanner.dump()
             result = self.interpret(sub)
             old_scanner = self.scanner
             self.scanner = self.scanner.switch(old_scanner_class)
             debug("SWITCHED SCANNER BACK TO %r FROM %r" %
                 (self.scanner, old_scanner))
+            old_scanner.dump()
+            self.scanner.dump()
             return result
         elif ast[0] == 'WHILE':
             result = Term('nil')
