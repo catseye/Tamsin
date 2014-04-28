@@ -201,6 +201,32 @@ Alternatives can select code to be executed, basically.
     = cord
     = ok
 
+If there is more input than we asked to parse, it still succeeds.
+
+    | main = "sure" & "begorrah".
+    + sure begorrah tis a fine day
+    = begorrah
+
+The symbol `□` may be used to match against the end of the input
+(colloquially called "EOF".)
+
+    | main = "sure" & "begorrah" & □.
+    + sure begorrah
+    = EOF
+
+This is how you can error if there is extra input remaining.
+
+    | main = "sure" & "begorrah" & □.
+    + sure begorrah tis a fine day
+    ? expected EOF found 'tis'
+
+The end of the input is a virtual infinite stream of □'s.  You can match
+as many as you like, and it continues to succeed.
+
+    | main = "sure" & "begorrah" & □ & □ & □.
+    + sure begorrah
+    = EOF
+
 When a production is called, the result that it evaluates to may be stored
 in a variable.  Variables are local to the production.
 
@@ -245,7 +271,7 @@ This program expects an infinite number of 0's.  It will be disappointed.
     | main = zeroes.
     | zeroes = "0" & zeroes.
     + 0 0 0 0 0
-    ? expected '0' found 'None'
+    ? expected '0' found 'EOF'
 
 This program expects a finite number of 0's, and returns a term representing
 how many it found.  It will not be disappointed.

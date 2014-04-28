@@ -5,6 +5,14 @@ import codecs
 import sys
 
 
+class EOF(object):
+    def __str__(self):
+        return "EOF"
+    def __repr__(self):
+        return "EOF"
+EOF = EOF()  # unique
+
+
 def enc(x):
     if not isinstance(x, str):
         x = unicode(x)
@@ -237,7 +245,7 @@ class TamsinScanner(Scanner):
             self.chop(1)
 
         if self.eof():
-            return None
+            return EOF
 
         if self.startswith(('&&', '||')):
             tok = self.chop(1)
@@ -245,7 +253,7 @@ class TamsinScanner(Scanner):
             return tok
         
         if self.startswith(('=', '(', ')', '[', ']', '{', '}',
-                            '|', '&', u'→', ',', '.', '@', u'•')):
+                            '|', '&', u'→', ',', '.', '@', u'•', u'□')):
             return self.chop(1)
 
         if self.startswith(('"',)):
@@ -276,7 +284,7 @@ class TamsinScanner(Scanner):
 class RawScanner(Scanner):
     def scan_impl(self):
         if self.eof():
-            return None
+            return EOF
         return self.chop(1)
 
 
@@ -308,14 +316,14 @@ class ProductionScanner(Scanner):
 
     def scan_impl(self):
         if self.eof():
-            return None
-        # maybe we should just have a try/catch here?
+            return EOF
+        # if we ever go back to exceptions, we would have a try/catch here
         (success, tok) = self.interpreter.interpret(self.production)
         if success:
             self.event('production_scan', self.production, tok)
             return str(tok)
         else:
-            return None
+            return EOF
 
 
 class Parser(EventProducer):
@@ -344,7 +352,7 @@ class Parser(EventProducer):
 
     def grammar(self):
         prods = [self.production()]
-        while self.next_tok() is not None:
+        while self.next_tok() is not EOF:
             prods.append(self.production())
         return ('PROGRAM', prods)
 
@@ -364,7 +372,7 @@ class Parser(EventProducer):
         e = self.expr0()
         self.expect('.')
         return ('PROD', name, args, e)
-    
+
     def expr0(self):
         lhs = self.expr1()
         while self.consume('|'):
@@ -420,6 +428,8 @@ class Parser(EventProducer):
             return ('RETURN', t)
         elif self.consume('fail'):
             return ('FAIL',)
+        elif self.consume(u'□'):
+            return ('EOF',)
         elif self.consume('print'):
             t = self.term()
             return ('PRINT', t)
@@ -522,7 +532,7 @@ class Interpreter(EventProducer):
             raise ValueError("No '%s' production defined" % name)
         return productions
 
-    ### term matching
+    ### term matching ---------------------------------------- ###
     
     def match_all(self, patterns, values):
         """Returns a dict of bindings if all values match all patterns,
@@ -652,6 +662,13 @@ class Interpreter(EventProducer):
             return (True, ast[1].expand(self.context))
         elif ast[0] == 'FAIL':
             return (False, Term("fail"))
+        elif ast[0] == 'EOF':
+            if self.scanner.eof():
+                return (True, EOF)
+            else:
+                return (False, Term("expected EOF found '%s'" %
+                                    self.scanner.next_tok())
+                       )
         elif ast[0] == 'PRINT':
             val = ast[1].expand(self.context)
             print val
