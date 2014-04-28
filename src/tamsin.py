@@ -97,12 +97,17 @@ class Scanner(object):
         return n
 
     def scan(self):
+        self.reset_position = self.position
         self.scan_impl()
         debug("scanned: '%s'" % self.token)
 
     def switch(self, class_):
         # 'putback' the token
-        self.position -= len(self.token)
+        debug("reset position %s, position %s, putbacking '%s'" %
+            (self.reset_position, self.position,
+                self.buffer[self.reset_position:self.position-self.reset_position+1])
+        )
+        self.position = self.reset_position
         self.token = None
         new_scanner = self.clone(class_=class_)
         new_scanner.scan()
@@ -487,10 +492,8 @@ class Interpreter(object):
                 new_scanner_class = RawScanner
             else:
                 raise ValueError("No such scanner '%s'" % scanner_name)
-            saved_scanner = self.scanner.clone()
             self.scanner = self.scanner.switch(new_scanner_class)
             result = self.interpret(sub)
-            self.scanner = saved_scanner
             return result
         elif ast[0] == 'WHILE':
             result = Term('nil')

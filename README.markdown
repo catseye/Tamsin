@@ -48,7 +48,10 @@ Examples
     -> Tests for functionality "Parse Tamsin program"
     
     -> Functionality "Parse Tamsin program" is implemented by
-    -> shell command "./src/tamsin.py parse %(test-body-file)"
+    -> shell command "./src/tamsin.py parse %(test-body-file) | head -c 13"
+
+Note that we're just concerned that it actually parsed; we don't care about
+the representation of the internal AST.  So we truncate the output.
 
 A Tamsin program consists of productions.  A production consists of a name
 and a rule.  A rule may consist of a name of a production, or a terminal in
@@ -56,31 +59,31 @@ double quotes.
 
     | main = blerp.
     | blerp = "blerp".
-    = ('PROGRAM', [('PROD', u'main', [], ('CALL', u'blerp', [], None)), ('PROD', u'blerp', [], ('LITERAL', u'blerp'))])
+    = ('PROGRAM', [
 
 A rule may consist of two rules joined by `&`.
 
-    @| main = zeroes.
-    @| zeroes = "0" & zeroes.
-    @= ('PROGRAM', [('PROD', u'main', [], ('CALL', u'zeroes')), ('PROD', u'zeroes', [], ('AND', ('LITERAL', u'0'), ('CALL', u'zeroes')))])
+    | main = zeroes.
+    | zeroes = "0" & zeroes.
+    = ('PROGRAM', [
 
 A rule may consist of two rules joined by `|`.
 
-    @| main = zeroes.
-    @| zeroes = "0" | "1".
-    @= ('PROGRAM', [('PROD', u'main', [], ('CALL', u'zeroes')), ('PROD', u'zeroes', [], ('OR', ('LITERAL', u'0'), ('LITERAL', u'1')))])
+    | main = zeroes.
+    | zeroes = "0" | "1".
+    = ('PROGRAM', [
 
 If you're too used to C or Javascript or `sh`, you can double up those symbols
 to `&&` and `||`.  Note also that `&` has a higher precedence than `|`.
 
-    @| main = "0" && "1" || "2".
-    @= ('PROGRAM', [('PROD', u'main', [], ('OR', ('AND', ('LITERAL', u'0'), ('LITERAL', u'1')), ('LITERAL', u'2')))])
+    | main = "0" && "1" || "2".
+    = ('PROGRAM', [
 
 A rule may consist of a bunch of other stuff.
 
     | main = zeroes.
     | zeroes(X) = ("0" & zeroes → E & return zero(E)) | return nil.
-    = ('PROGRAM', [('PROD', u'main', [], ('CALL', u'zeroes', [], None)), ('PROD', u'zeroes', [X], ('OR', ('AND', ('AND', ('LITERAL', u'0'), ('SEND', ('CALL', u'zeroes', [], None), E)), ('RETURN', zero(E))), ('RETURN', nil)))])
+    = ('PROGRAM', [
 
     -> Tests for functionality "Intepret Tamsin program"
     
@@ -669,7 +672,7 @@ you can change it!  Ideally, you could define your own scanner, but for
 now, you'll only be able to select from the Tamsin scanner and a "raw"
 scanner that only gives back characters.
 
-As an implementation note: ccanners for recursive descent parsers commonly
+As an implementation note: scanners for recursive descent parsers commonly
 pre-emptively scan the next token.  So when we switch scanners, we'd have a
 "leftover" token from the previous scanner, unless we deal with it in some
 way.  The way we deal with it is to rewind the scanner by the length of
@@ -696,19 +699,66 @@ again (by the new rules.)
     + cat
     ? expected 'cat' found 'c'
 
-You can mix two scanners in one production.  Note that... oh, we need to
-deal with putbacking spaces we've skipped, don't we.
+You can mix two scanners in one production.  Note that the Tamsin scanner
+doesn't consume spaces after a token, and that the raw scanner doesn't skip
+spaces.
 
-    | main = "cat" with tamsin & ("c" & "a" & "t") with raw & return ok.
-    + cat         cat
-    = ok
-
-Note that the raw scanner doesn't skip spaces.
-
-    | main = ("p" & "a" & "t" & "c" & "h") with raw & return ok.
-    +         pat   ch
+    | main = "dog" with tamsin & ("c" & "a" & "t") with raw & return ok.
+    + dog cat
     ? expected 'c' found ' '
 
-    | main = ("p" & "a" & "t" & {" "} & "c" & "h") with raw & return ok.
-    +         pat   ch
+But we can make it skip spaces...
+
+    | main = "dog" with tamsin & ({" "} & "c" & "a" & "t") with raw & return ok.
+    + dog        cat
     = ok
+
+Note that we don't actually save the old scanner and restore it after the
+`with`.  If we did, well, it would be more messy than it is currently, it
+seems.  Restore it yourself if you need to!
+
+    | main = ("c" & "a" & "t" & " ") with raw & "dog".
+    + cat dog
+    ? expected 'dog' found 'd'
+
+    | main = ("c" & "a" & "t" & " ") with raw & "d" & "o" & "g".
+    + cat dog
+    = g
+
+    | main = ("c" & "a" & "t" & " ") with raw & "dog" with tamsin.
+    + cat dog
+    = dog
+
+Aside #2
+--------
+
+Well this is all very nice, very pretty I'm sure you'll agree, but it doesn't
+hang together too well.  Figuration is easier than composition.  The thing is
+that we still have these two domains, the domain of strings that we parse
+and the domain of terms that we match.  We need to bring them closer together.
+This section is just ideas for that.
+
+One is that instead of, or alongside terms, we compose strings.
+
+First, we put arbitrary text in an atom, with 「this syntax」.
+
+Then we allow terms to be concatenated with •.
+
+So, something like:
+    
+    #| main = aorb → C & return 「fo go」 • C.
+    #| aorb = "a" | "b".
+    #+ a
+    #= fo goa
+
+Then we no longer pattern-match terms.  They're just strings.  So we... we
+parse them.
+
+    #| main = aorb → C & return donkey(「fo go」 • C).
+    #| aorb = "a" | "b".
+    #| donkey("fo" & "goa") = return yes.
+    #| donkey("fo" & "gob") = return no.
+    #+ a
+    #= yes
+    #+ b
+    #= no
