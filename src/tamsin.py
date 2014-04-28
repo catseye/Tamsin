@@ -82,15 +82,34 @@ class EventProducer(object):
 
 
 class DebugEventListener(object):
+    def __init__(self):
+        self.indent = 0
+
     def listen_to(self, producer):
         producer.subscribe(self)
-    
+
+    def putstr(self, s):
+        print (self.indent * '  ' + s)
+
     def announce(self, tag, *data):
-        if tag in ('succeed_or', 'fail_or', 'begin_or'):
-            print "%s %r" % (tag, data)
-        elif tag in ('try_literal', 'consume_literal', 'no_match'):
-            print "%s %r" % (tag, data)
-            data[1].dump()
+        if tag == 'enter_interpreter':
+            self.indent += 1
+        if tag == 'leave_interpreter':
+            self.indent -= 1
+
+        # EVERYTHING
+        self.putstr("%s %r" % (tag, data))
+        for d in data:
+            if getattr(d, 'dump', None) is not None:
+                d.dump(self.indent)
+        return
+         
+        if tag in ('enter_interpreter', 'leave_interpreter', 'succeed_or', 'fail_or', 'begin_or'):
+            self.putstr("%s %r" % (tag, data))
+            return
+        elif tag in ('try_literal', 'consume_literal', 'fail_literal'):
+            self.putstr("%s %r" % (tag, data))
+            data[1].dump(self.indent)
             return
         else:
             return
@@ -98,24 +117,24 @@ class DebugEventListener(object):
         if tag in ('chopped', 'consume', 'scanned'): # ('interpret_ast', 'try_literal'):
             return
         elif tag in ('switched_scanner_forward', 'switched_scanner_back'):
-            print tag
+            self.putstr(tag)
             data[0].dump()
             data[1].dump()
         else:
-            print "%s %r" % (tag, data)
+            self.putstr("%s %r" % (tag, data))
 
 
 class Scanner(EventProducer):
-    def __init__(self, buffer, position=0, reset_position=0, listeners=None):
-        """Does NOT calls scan() for you.  You should do that before
-        using it.
+    def __init__(self, buffer, position=0, listeners=None):
+        """Does NOT call scan() for you.  You should do that only when
+        you want to scan a token (not before.)
 
         """
         self.listeners = listeners
         self.event('set_buffer', buffer)
         self.buffer = buffer
         self.position = position
-        self.reset_position = reset_position
+        self.reset_position = position
 
     def set_interpreter(self, interpreter):
         # ignored by all but ProductionScanner
@@ -158,16 +177,20 @@ class Scanner(EventProducer):
                           self.position))
 
     def clone(self):
+        assert self.position == self.reset_position, "divergent..."
         return self.__class__(self.buffer, position=self.position,
-                              reset_position=self.reset_position,
                               listeners=self.listeners)
 
     def scan(self):
-        """Returns the next token from the buffer.  You MUST call either
-        commit() or unscan() after calling this.  If you want to just see
-        what the next token would be, call next_tok().
+        """Returns the next token from the buffer.
+        
+        You MUST call either commit() or unscan() after calling this,
+        as otherwise the position and reset_position will be divergent
+        (and you will trigger an assert if you try to scan() or clone().)
+        If you want to just see what the next token would be, call next_tok().
 
         """
+        assert self.position == self.reset_position, "divergent..."
         tok = self.scan_impl()
         self.event('scanned', self, tok)
         return tok
@@ -203,13 +226,13 @@ class Scanner(EventProducer):
             self.error("'%s'" % t)
         return r
     
-    def dump(self):
-        print "--%r" % self
-        print "  buffer: '%s'" % enc(self.buffer)
-        print "  position: %s" % self.position
-        print "  buffer at position: '%s'" % self.report_buffer(self.position, 40)
-        print "  reset_position: %s" % self.reset_position
-        print "  buffer at reset_pos: '%s'" % self.report_buffer(self.reset_position, 40)
+    def dump(self, indent=1):
+        print "==" * indent + "%r" % self
+        print "--" * indent + "buffer: '%s'" % enc(self.buffer)
+        print "--" * indent + "position: %s" % self.position
+        print "--" * indent + "buffer at position: '%s'" % self.report_buffer(self.position, 40)
+        print "--" * indent + "reset_position: %s" % self.reset_position
+        print "--" * indent + "buffer at reset_pos: '%s'" % self.report_buffer(self.reset_position, 40)
 
 
 class TamsinScanner(Scanner):
@@ -268,11 +291,9 @@ class ProductionScanner(Scanner):
     Uses its own Interpreter.  Let's see if that helps.
 
     """
-    def __init__(self, buffer, production, position=0, reset_position=0,
-                 listeners=None):
+    def __init__(self, buffer, production, position=0, listeners=None):
         Scanner.__init__(
-            self, buffer, position=position, reset_position=reset_position,
-            listeners=listeners
+            self, buffer, position=position, listeners=listeners
         )
         self.interpreter = None
         self.production = production
@@ -281,9 +302,10 @@ class ProductionScanner(Scanner):
         self.interpreter = interpreter
 
     def clone(self):
+        assert self.position == self.reset_position, "divergent..."
         n = self.__class__(
             self.buffer, self.production, position=self.position,
-            reset_position=self.reset_position, listeners=self.listeners
+            listeners=self.listeners
         )
         n.set_interpreter(self.interpreter)
         return n
@@ -636,13 +658,11 @@ class Interpreter(EventProducer):
             if scanner_name == u'tamsin':
                 new_scanner = TamsinScanner(self.scanner.buffer,
                     position=self.scanner.position,
-                    reset_position=self.scanner.reset_position,
                     listeners=self.listeners
                 )
             elif scanner_name == u'raw':
                 new_scanner = RawScanner(self.scanner.buffer,
                     position=self.scanner.position,
-                    reset_position=self.scanner.reset_position,
                     listeners=self.listeners
                 )
             else:
@@ -652,15 +672,26 @@ class Interpreter(EventProducer):
                 new_scanner = ProductionScanner(
                     self.scanner.buffer, prods[0],
                     position=self.scanner.position,
-                    reset_position=self.scanner.reset_position,
                     listeners=self.listeners
                 )
             new_interpreter = Interpreter(
                 self.program, new_scanner, listeners=self.listeners
             )
-            result = new_interpreter.interpret(sub)
+            self.event('enter_interpreter', new_scanner, new_interpreter)
+            try:
+                result = new_interpreter.interpret(sub)
+            except TamsinParseError as e:
+                self.event('fail_interpreter', e)
+                self.event('leave_interpreter', self.scanner, self)
+                assert new_scanner.position == new_scanner.reset_position
+                self.scanner.position = new_scanner.position
+                self.scanner.reset_position = self.scanner.position
+                raise e
+            self.event('result_interpreter', result)
+            self.event('leave_interpreter', self.scanner, self)
+            assert new_scanner.position == new_scanner.reset_position
             self.scanner.position = new_scanner.position
-            self.scanner.reset_position = new_scanner.reset_position
+            self.scanner.reset_position = self.scanner.position
             return result
         elif ast[0] == 'WHILE':
             result = Term('nil')
@@ -684,7 +715,7 @@ class Interpreter(EventProducer):
                 self.event('consume_literal', ast[1], self.scanner)
                 return Term(ast[1])
             else:
-                self.event('no_match', ast[1], self.scanner)
+                self.event('fail_literal', ast[1], self.scanner)
                 raise TamsinParseError("expected '%s' found '%s' (%r vs %r) (at '%s')" %
                     (ast[1], self.scanner.next_tok(),
                      ast[1], self.scanner.next_tok(),

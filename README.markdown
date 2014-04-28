@@ -828,14 +828,82 @@ When you name a production in the program with `with`, that production
 should return a token each time it is called.
 
     | main = program with scanner.
+    | scanner = scan with tamsin.
+    | scan = "cat" | "dog".
+    | program = "cat" & "dog".
+    + cat dog
+    = dog
+
+    | main = program with scanner.
+    | scanner = scan with tamsin.
+    | scan = "cat" & return meow | "dog" & return woof.
+    | program = "meow" & "woof".
+    + cat dog
+    = woof
+
+    | main = program with scanner.
     | scanner = scan with raw.
     | scan = {" "} & (
+    |            "c" & "a" & "t" & return meow | "d" & "o" & "g" & return woof
+    |        ).
+    | program = "meow".
+    + cat
+    = meow
+
+    | main = program with scanner.
+    | scanner = scan with raw.
+    | scan = {" "} & (
+    |            "c" & "a" & "t" & return meow | "d" & "o" & "g" & return woof
+    |        ).
+    | program = "woof".
+    + dog
+    = woof
+
+    | main = program with scanner.
+    | scanner = scan with raw.
+    | scan = {" "} & (
+    |            "c" & "a" & "t" & return meow | "d" & "o" & "g" & return woof
+    |        ).
+    | program = "meow" | "woof".
+    + cat
+    = meow
+
+    | main = program with scanner.
+    | scanner = scan with raw.
+    | scan = {" "} & (
+    |            "c" & "a" & "t" & return meow | "d" & "o" & "g" & return woof
+    |        ).
+    | program = "meow" | "woof".
+    + dog
+    = woof
+
+    | main = program with scanner.
+    | scanner = scan with raw.
+    | scan = (
+    |            "c" & "a" & "t" & return meow | "d" & "o" & "g" & return woof
+    |        ).
+    | program = "meow" & "woof".
+    + catdog
+    = woof
+
+    | main = program with scanner.
+    | scanner = scan with raw.
+    | scan = (
+    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    |        ).
+    | program = "cat" & "dog".
+    + catdog
+    = dog
+
+    | main = program with scanner.
+    | scanner = scan with raw.
+    | scan = (
     |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
     |        ).
     | program = "cat" & print 1 &
     |           ("cat" & print 2 | "dog" & print 3) &
     |           "dog" & print 4 & return ok.
-    + cat cat dog
+    + catcatdog
     = 1
     = 2
     = 4
@@ -843,17 +911,189 @@ should return a token each time it is called.
 
     | main = program with scanner.
     | scanner = scan with raw.
-    | scan = {" "} & (
+    | scan = (
     |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
     |        ).
     | program = "cat" & print 1 &
     |           ("cat" & print 2 | "dog" & print 3) &
     |           "dog" & print 4 & return ok.
+    + catdogdog
+    = 1
+    = 3
+    = 4
+    = ok
+
+    | main = program with scanner.
+    | scanner = scan with raw.
+    | scan = animal → A & return A.
+    | animal = (
+    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    |          ).
+    | program = "cat" & print 1 &
+    |           ("cat" & print 2 | "dog" & print 3) &
+    |           "dog" & print 4 & return ok.
+    + catdogdog
+    = 1
+    = 3
+    = 4
+    = ok
+
+    | main = program with scanner.
+    | scanner = scan with raw.
+    | scan = animal → A & " " & return A.
+    | animal = (
+    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    |          ).
+    | program = "cat" & print 1 &
+    |           ("cat" & print 2 | "dog" & print 3) &
+    |           "dog" & print 4 & return ok.
+    + cat dog dog 
+    = 1
+    = 3
+    = 4
+    = ok
+
+    | main = program with scanner.
+    | scanner = scan with raw.
+    | scan = animal → A & "," & return A.
+    | animal = (
+    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    |          ).
+    | program = "cat" & print 1 &
+    |           ("cat" & print 2 | "dog" & print 3) &
+    |           "dog" & print 4 & return ok.
+    + cat,dog,dog,
+    = 1
+    = 3
+    = 4
+    = ok
+
+    | main = program with scanner.
+    | scanner = scan with raw.
+    | scan = animal → A & "-" & ">" & return A.
+    | animal = (
+    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    |          ).
+    | program = "cat" & print 1 &
+    |           ("cat" & print 2 | "dog" & print 3) &
+    |           "dog" & print 4 & return ok.
+    + cat->dog->dog->
+    = 1
+    = 3
+    = 4
+    = ok
+
+Nope, does not like a space in front.
+
+    | main = program with scanner.
+    | scanner = scan with raw.
+    | scan = " " & animal → A & return A.
+    | animal = (
+    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    |          ).
+    | program = "cat" & print 1 &
+    |           ("cat" & print 2 | "dog" & print 3) &
+    |           "dog" & print 4 & return ok.
+    +  cat dog dog
+    = 1
+    = 3
+    = 4
+    = ok
+
+Does not like an X in front either.
+
+    | main = program with scanner.
+    | scanner = scan with raw.
+    | scan = "X" & animal → A & return A.
+    | animal = (
+    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    |          ).
+    | program = "cat" & print 1 &
+    |           ("cat" & print 2 | "dog" & print 3) &
+    |           "dog" & print 4 & return ok.
+    + XcatXdogXdog
+    = 1
+    = 3
+    = 4
+    = ok
+
+Parens asking too much?
+
+    | main = program with scanner.
+    | scanner = scan with raw.
+    | scan = "(" & animal → A & ")" & return A.
+    | animal = (
+    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    |          ).
+    | program = "cat" & print 1 &
+    |           ("cat" & print 2 | "dog" & print 3) &
+    |           "dog" & print 4 & return ok.
+    + (cat)(dog)(dog)
+    = 1
+    = 3
+    = 4
+    = ok
+
+Solve this & I bet you solve the two following.
+
+    | main = program with scanner.
+    | scanner = scan with raw.
+    | scan = {" "} & (
+    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    |        ).
+    | program = "cat" & "dog".
+    + cat dog
+    = dog
+
+    @| main = program with scanner.
+    @| scanner = scan with raw.
+    @| scan = {" "} & (
+    @|            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    @|        ).
+    @| program = "cat" & print 1 &
+    @|           ("cat" & print 2 | "dog" & print 3) &
+    @|           "dog" & print 4 & return ok.
+    @+ cat cat dog
+    @= 1
+    @= 2
+    @= 4
+    @= ok
+    @
+    @| main = program with scanner.
+    @| scanner = scan with raw.
+    @| scan = {" "} & (
+    @|            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    @|        ).
+    @| program = "cat" & print 1 &
+    @|           ("cat" & print 2 | "dog" & print 3) &
+    @|           "dog" & print 4 & return ok.
+    @+ cat dog dog
+    @= 1
+    @= 3
+    @= 4
+    @= ok
+
+Am I losing my mind?
+
+    | main = "cat" & print 1 &
+    |        ("cat" & print 2 | "dog" & print 3) &
+    |        "dog" & print 4 & return ok.
+    + cat cat dog
+    = 1
+    = 2
+    = 4
+    = ok
+
+    | main = "cat" & print 1 &
+    |        ("cat" & print 2 | "dog" & print 3) &
+    |        "dog" & print 4 & return ok.
     + cat dog dog
     = 1
     = 3
     = 4
     = ok
+
+No, eh?
 
     | main = program with scanner.
     | scanner = scan with raw.
