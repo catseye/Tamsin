@@ -106,7 +106,6 @@ class Scanner(EventProducer):
         self.buffer = buffer
         self.position = 0
         self.reset_position = 0
-        self.token = None
 
     def eof(self):
         return self.position >= len(self.buffer)
@@ -139,9 +138,8 @@ class Scanner(EventProducer):
         return enc(report)
 
     def error(self, expected):
-        raise ValueError(u"Expected %s, found '%s' at '%s...' (position %s)" %
+        raise ValueError(u"Expected %s' at '%s...' (position %s)" %
                          (enc(expected),
-                          enc(self.token),
                           self.report_buffer(self.position, 20),
                           self.position))
 
@@ -149,39 +147,53 @@ class Scanner(EventProducer):
         n = self.__class__(self.buffer)
         n.position = self.position
         n.reset_position = self.reset_position
-        n.token = self.token
         return n
 
     def scan(self):
+        """Returns the next token from the buffer.  You MUST call either
+        commit() or unscan() after calling this.  If you want to just see
+        what the next token would be, call next_tok().
+
+        """
+        tok = self.scan_impl()
+        self.event('scanned', self, tok)
+        return tok
+
+    def unscan(self):
+        self.position = self.reset_position
+
+    def commit(self):
         self.reset_position = self.position
-        self.scan_impl()
-        self.event('scanned', self)
+
+    def next_tok(self):
+        tok = self.scan()
+        self.unscan()
+        return tok
 
     def switch(self, new_scanner):
         """Returns the new_scanner for convenience.
 
         """
         self.event('switch_scanner', self, new_scanner)
-        # 'putback' the token
-        self.position = self.reset_position
-        self.reset_position = 0
-        self.token = None
         # copy properties over to new scanner
         new_scanner.position = self.position
         new_scanner.reset_position = 0
-        new_scanner.token = None
-        # prime the pump
-        new_scanner.scan()
         self.event('switched_scanner', new_scanner)
         return new_scanner
 
     def consume(self, t):
         self.event('consume', t)
-        if self.token == t:
-            self.scan()
+        if self.scan() == t:
+            self.commit()
             return t
         else:
+            self.unscan()
             return None
+
+    def consume_any(self):
+        tok = self.scan()
+        self.commit()
+        return tok
     
     def expect(self, t):
         r = self.consume(t)
@@ -196,7 +208,6 @@ class Scanner(EventProducer):
         print "  buffer at position: %s" % self.report_buffer(self.position, 40)
         print "  reset_position: %s" % self.reset_position
         print "  buffer at reset_pos: %s" % self.report_buffer(self.reset_position, 40)
-        print "  token: %s" % enc(self.token)
 
 
 class TamsinScanner(Scanner):
@@ -205,51 +216,47 @@ class TamsinScanner(Scanner):
             self.chop(1)
 
         if self.eof():
-            self.token = None
-            return
+            return None
 
         if self.startswith(('&&', '||')):
-            self.token = self.chop(1)
+            tok = self.chop(1)
             self.chop(1)
-            return
+            return tok
         
         if self.startswith(('=', '(', ')', '[', ']', '{', '}',
                             '|', '&', u'→', ',', '.', '@', u'•')):
-            self.token = self.chop(1)
-            return
+            return self.chop(1)
 
         if self.startswith(('"',)):
-            self.token = '"'
+            tok = '"'
             self.chop(1)
             while not self.eof() and not self.startswith('"'):
-                self.token += self.chop(1)
+                tok += self.chop(1)
             self.chop(1)  # chop ending quote
-            return
+            return tok
 
         if self.startswith((u'「',)):
-            self.token = u'「'
+            tok = u'「'
             self.chop(1)
             while not self.eof() and not self.startswith(u'」'):
-                self.token += self.chop(1)
+                tok += self.chop(1)
             self.chop(1)  # chop ending quote
-            return
+            return tok
 
         if not self.eof() and self.isalnum():
-            self.token = ''
+            tok = ''
             while not self.eof() and self.isalnum():
-                self.token += self.chop(1)
-            return
+                tok += self.chop(1)
+            return tok
 
-        self.token = self.buffer[0]
         self.error('identifiable character')
 
 
 class RawScanner(Scanner):
     def scan_impl(self):
         if self.eof():
-            self.token = None
-            return
-        self.token = self.chop(1)
+            return None
+        return self.chop(1)
 
 
 class ProductionScanner(Scanner):
@@ -266,21 +273,19 @@ class ProductionScanner(Scanner):
         n = self.__class__(self.buffer, self.interpreter, self.production)
         n.position = self.position
         n.reset_position = self.reset_position
-        n.token = self.token
         return n
 
     def scan_impl(self):
         if self.eof():
-            self.token = None
-            return
-        self.token = str(self.interpreter.interpret(self.production))
-        self.event('production_scan', self.production, self.token)
+            return None
+        tok = str(self.interpreter.interpret(self.production))
+        self.event('production_scan', self.production, tok)
+        return tok
 
 
 class Parser(EventProducer):
     def __init__(self, buffer):
         self.scanner = TamsinScanner(buffer)
-        self.scanner.scan()
 
     def eof(self):
         return self.scanner.eof()
@@ -292,26 +297,26 @@ class Parser(EventProducer):
         return self.scanner.isalnum()
     def error(self, expected):
         return self.scanner.error(expected)
-    def scan(self):
-        return self.scanner.scan()
+    def next_tok(self):
+        return self.scanner.next_tok()
     def consume(self, t):
         return self.scanner.consume(t)
+    def consume_any(self):
+        return self.scanner.consume_any()
     def expect(self, t):
         return self.scanner.expect(t)
 
     def grammar(self):
         prods = [self.production()]
-        while self.scanner.token is not None:
+        while self.next_tok() is not None:
             prods.append(self.production())
-        
         return ('PROGRAM', prods)
-    
+
     def production(self):
-        name = self.scanner.token
-        self.scan()
+        name = self.consume_any()
         args = []
         if self.consume('('):
-            if self.scanner.token != ')':
+            if self.next_tok() != ')':
                 args.append(self.term())
                 while self.consume(','):
                     args.append(self.term())
@@ -341,8 +346,7 @@ class Parser(EventProducer):
     def expr2(self):
         lhs = self.expr3()
         if self.consume('with'):
-            scanner_name = self.scanner.token
-            self.scan()
+            scanner_name = self.consume_any()
             lhs = ('WITH', lhs, scanner_name)
         return lhs
 
@@ -366,9 +370,9 @@ class Parser(EventProducer):
             e = self.expr0()
             self.expect('}')
             return ('WHILE', e)
-        elif self.scanner.token and self.scanner.token[0] == '"':
-            literal = self.scanner.token[1:]
-            self.scan()
+        elif (self.scanner.next_tok() is not None and
+              self.scanner.next_tok()[0] == '"'):
+            literal = self.consume_any()[1:]
             return ('LITERAL', literal)
         elif self.consume('set'):
             v = self.variable()
@@ -384,11 +388,10 @@ class Parser(EventProducer):
             t = self.term()
             return ('PRINT', t)
         else:
-            name = self.scanner.token
-            self.scan()
+            name = self.consume_any()
             args = []
             if self.consume('('):
-                if self.scanner.token != ')':
+                if self.scanner.next_tok() != ')':
                     args.append(self.term())
                     while self.consume(','):
                         args.append(self.term())
@@ -399,9 +402,8 @@ class Parser(EventProducer):
             return ('CALL', name, args, ibuf)
 
     def variable(self):
-        if self.scanner.token[0].isupper():
-            var = self.scanner.token
-            self.scan()
+        if self.scanner.next_tok()[0].isupper():
+            var = self.consume_any()
             return Variable(var)
         else:
             self.error('variable')
@@ -414,16 +416,16 @@ class Parser(EventProducer):
         return lhs
 
     def term1(self):
-        if self.scanner.token[0].isupper():
+        if self.scanner.next_tok()[0].isupper():
             return self.variable()
-        elif self.scanner.token[0].isalnum() or self.scanner.token[0] == u'「':
-            atom = self.scanner.token
+        elif (self.scanner.next_tok()[0].isalnum() or
+              self.scanner.next_tok()[0][0] == u'「'):
+            atom = self.consume_any()
             if atom[0] == u'「':
                 atom = atom[1:]
-            self.scan()
             subs = []
             if self.consume('('):
-                if self.scanner.token != ')':
+                if self.scanner.next_tok() != ')':
                     subs.append(self.term())
                 while self.consume(','):
                     subs.append(self.term())
@@ -468,7 +470,6 @@ class Interpreter(EventProducer):
     def __init__(self, ast, buffer):
         self.program = ast
         self.scanner = TamsinScanner(buffer)
-        self.scanner.scan()
         self.context = Context()
 
     ### grammar stuff ---------------------------------------- ###
@@ -560,8 +561,6 @@ class Interpreter(EventProducer):
                             self.scanner.buffer = str(ibuf)
                             self.scanner.position = 0
                             self.scanner.saved_position = 0
-                            self.scanner.token = None
-                            self.scanner.scan()
                         x = self.interpret(prod, bindings=bindings)
                         if ibuf is not None:
                             self.scanner = saved_scanner
@@ -642,13 +641,12 @@ class Interpreter(EventProducer):
                     self.scanner = saved_scanner
                     return result
         elif ast[0] == 'LITERAL':
-            self.event('try_literal', ast[1], self.scanner.token)
-            if self.scanner.token == ast[1]:
-                self.scanner.scan()
+            self.event('try_literal', ast[1], self.scanner)
+            if self.scanner.consume(ast[1]):
                 return Term(ast[1])
             else:
                 raise TamsinParseError("expected '%s' found '%s'" %
-                    (ast[1], self.scanner.token)
+                    (ast[1], self.scanner.next_tok())
                 )
         else:
             raise NotImplementedError(repr(ast))
