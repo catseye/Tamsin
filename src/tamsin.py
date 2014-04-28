@@ -51,6 +51,22 @@ class Variable(Term):
         return context.fetch(self.name)
 
 
+class Concat(Term):
+    def __init__(self, lhs, rhs):
+        assert isinstance(lhs, Term)
+        assert isinstance(rhs, Term)
+        self.lhs = lhs
+        self.rhs = rhs
+
+    def expand(self, context):
+        lhs = self.lhs.expand(context)
+        rhs = self.rhs.expand(context)
+        return Term(str(lhs) + str(rhs))
+
+    def __str__(self):
+        return "%s + %s" % (self.lhs, self.rhs)
+
+
 class Scanner(object):
     def __init__(self, buffer):
         """Calls scan() for you!"""
@@ -143,7 +159,7 @@ class TamsinScanner(Scanner):
             return
         
         if self.startswith(('=', '(', ')', '[', ']', '{', '}',
-                            '|', '&', u'→', ',', '.', '@')):
+                            '|', '&', u'→', ',', '.', '@', u'•')):
             self.token = self.chop(1)
             return
 
@@ -151,6 +167,14 @@ class TamsinScanner(Scanner):
             self.token = '"'
             self.chop(1)
             while not self.eof() and not self.startswith('"'):
+                self.token += self.chop(1)
+            self.chop(1)  # chop ending quote
+            return
+
+        if self.startswith((u'「',)):
+            self.token = u'「'
+            self.chop(1)
+            while not self.eof() and not self.startswith(u'」'):
                 self.token += self.chop(1)
             self.chop(1)  # chop ending quote
             return
@@ -299,10 +323,19 @@ class Parser(object):
             self.error('variable')
 
     def term(self):
+        lhs = self.term1()
+        while self.consume(u'•'):
+            rhs = self.term1()
+            lhs = Concat(lhs, rhs)
+        return lhs
+
+    def term1(self):
         if self.scanner.token[0].isupper():
             return self.variable()
-        elif self.scanner.token[0].isalnum():
+        elif self.scanner.token[0].isalnum() or self.scanner.token[0] == u'「':
             atom = self.scanner.token
+            if atom[0] == u'「':
+                atom = atom[1:]
             self.scan()
             subs = []
             if self.consume('('):

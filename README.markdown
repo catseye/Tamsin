@@ -38,9 +38,10 @@ Grammar
            | "print" Term
            | LitToken
            | ProdName ["(" [Term {"," Term} ")"] ["@" Term].
-    Term := Atom
-          | Variable
-          | "(" {Term} ")".
+    Term  := Term0.
+    Term0 := Term1 {"•" Term1}.
+    Term1 := Atom ["(" {Term0} ")"]
+           | Variable
 
 Examples
 --------
@@ -189,13 +190,15 @@ the stream that the LHS started on.  So basically, it's "backtracking".
 
 Alternatives can select code to be executed, basically.
 
-    | main = set L = nil & (aorb & set L = el(L) | cord & set L = le(L)) &
-    |        return L.
-    | aorb = "a" | "b".
-    | cord = "c" | eorf.
-    | eorf = "e" | "f".
+    | main = aorb & print aorb | cord & print cord & return ok.
+    | aorb = "a" & print ay | "b" & print bee.
+    | cord = "c" & print see | eorf & print eorf.
+    | eorf = "e" & print ee | f & print eff.
     + e
-    = le(nil)
+    = ee
+    = eorf
+    = cord
+    = ok
 
 When a production is called, the result that it evaluates to may be stored
 in a variable.  Variables are local to the production.
@@ -745,19 +748,34 @@ First, we put arbitrary text in an atom, with 「this syntax」.
 Then we allow terms to be concatenated with •.
 
 So, something like:
+
+    | main = return 「Hello, world!」.
+    = Hello, world!
+
+    | main = return 「fo go」 • 「od of」.
+    + 9s9gs09gt8gibs
+    = fo good of
     
-    #| main = aorb → C & return 「fo go」 • C.
-    #| aorb = "a" | "b".
-    #+ a
-    #= fo goa
+    | main = {aorb → R & print R} & ".".
+    | aorb = ("a" | "b") → C & return z • C.
+    + a b a.
+    = za
+    = zb
+    = za
+    = .
+
+    | main = set T = 「」 & {aorb → R & set T = T • R} & "." & return T.
+    | aorb = ("a" | "b") → C & return z • C.
+    + a b a.
+    = zazbza
 
 Then we no longer pattern-match terms.  They're just strings.  So we... we
 parse them.
 
     #| main = aorb → C & return donkey(「fo go」 • C).
     #| aorb = "a" | "b".
-    #| donkey("fo" & "goa") = return yes.
-    #| donkey("fo" & "gob") = return no.
+    #| donkey⟦"fo" & "goa"⟧ = return yes.
+    #| donkey⟦"fo" & "gob"⟧ = return no.
     #+ a
     #= yes
     #+ b
