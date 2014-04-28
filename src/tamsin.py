@@ -23,8 +23,9 @@ class Term(object):
         self.contents = contents
 
     def expand(self, context):
-        """Expands this term, returning a new term where replacing all
-        (VAR x) with the value of x in the given context.
+        """Expands this term, returning a new term where, for all x, all
+        occurrences of (VAR x) are replaced with the value of x in the
+        given context.
 
         """
         return Term(self.name, [x.expand(context) for x in self.contents])
@@ -208,10 +209,10 @@ class ProductionScanner(Scanner):
         if self.eof():
             self.token = None
             return
-        self.token = self.interpreter.interpret(self.production)
-        #raise NotImplementedError("Congratulation! %s produced %s" %
-        #    (repr(self.production), repr(result))
-        #)
+        self.token = str(self.interpreter.interpret(self.production))
+        debug("Congratulation! %s produced %s" %
+            (repr(self.production), repr(self.token))
+        )
 
 
 class Parser(object):
@@ -460,7 +461,7 @@ class Interpreter(object):
     ### interpreter proper ---------------------------------- ###
     
     def interpret(self, ast, bindings=None):
-        debug("interpreting %s" % repr(ast))
+        #debug("interpreting %s" % repr(ast))
         if ast[0] == 'PROGRAM':
             mains = self.find_productions('main')
             return self.interpret(mains[0])
@@ -542,9 +543,9 @@ class Interpreter(object):
         elif ast[0] == 'WITH':
             sub = ast[1]
             scanner_name = ast[2]
-            if scanner_name == 'tamsin':
+            if scanner_name == u'tamsin':
                 new_scanner_class = TamsinScanner
-            elif scanner_name == 'raw':
+            elif scanner_name == u'raw':
                 new_scanner_class = RawScanner
             else:
                 prods = self.find_productions(scanner_name)
@@ -559,9 +560,15 @@ class Interpreter(object):
                         ProductionScanner.__init__(self, buffer)
                 new_scanner_class = CustomScanner
             old_scanner_class = self.scanner.__class__
+            old_scanner = self.scanner
             self.scanner = self.scanner.switch(new_scanner_class)
+            debug("SWITCHED SCANNER FROM %r TO %r" %
+                (old_scanner, self.scanner))
             result = self.interpret(sub)
+            old_scanner = self.scanner
             self.scanner = self.scanner.switch(old_scanner_class)
+            debug("SWITCHED SCANNER BACK TO %r FROM %r" %
+                (self.scanner, old_scanner))
             return result
         elif ast[0] == 'WHILE':
             result = Term('nil')
