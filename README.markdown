@@ -1099,6 +1099,19 @@ NO.......
     +  cat dog dog
     = dog
 
+NO.......?
+
+    | main = program with scanner.
+    | scanner = scan with raw.
+    | scan = " " & animal → A & return A.
+    | animal = (
+    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    |            | "."
+    |          ).
+    | program = "cat" & ("cat" | "dog") & "dog" & ".".
+    +  cat dog dog .
+    = .
+
 OK
 
     | main = program with scanner.
@@ -1134,6 +1147,13 @@ Notes:
 
     indeed it seems like the problem is when the LHS of | matches
     and then there is something after it in the production
+    
+    OK so it looks like it *might* have to do with when
+    ProductionScanner couldn't scan anything.  This could
+    happen even in next_tok() at the end of a string, even after
+    we've successfully parsed everything else.
+    
+    Will think about it.
 
 Nope, does not like a space in front.
 

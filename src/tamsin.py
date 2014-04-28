@@ -11,10 +11,6 @@ def enc(x):
     return x.encode('ascii', 'xmlcharrefreplace')
 
 
-class TamsinParseError(ValueError):
-    pass
-
-
 class Term(object):
     def __init__(self, name, contents=None):
         self.name = name
@@ -313,9 +309,13 @@ class ProductionScanner(Scanner):
     def scan_impl(self):
         if self.eof():
             return None
-        tok = str(self.interpreter.interpret(self.production))
-        self.event('production_scan', self.production, tok)
-        return tok
+        # maybe we should just have a try/catch here?
+        (success, tok) = self.interpreter.interpret(self.production)
+        if success:
+            self.event('production_scan', self.production, tok)
+            return str(tok)
+        else:
+            return None
 
 
 class Parser(EventProducer):
@@ -563,6 +563,10 @@ class Interpreter(EventProducer):
     ### interpreter proper ---------------------------------- ###
     
     def interpret(self, ast, bindings=None):
+        """Returns a pair (bool, result) where bool is True if it
+        succeeded and False if it failed.
+
+        """
         self.event('interpret_ast', ast)
         if ast[0] == 'PROGRAM':
             mains = self.find_productions('main')
@@ -573,10 +577,10 @@ class Interpreter(EventProducer):
                 for name in bindings.keys():
                     self.context.store(name, bindings[name])
             self.event('begin_interpret_rule', ast[3])
-            x = self.interpret(ast[3])
+            (succeeded, x) = self.interpret(ast[3])
             self.event('end_interpret_rule', ast[3])
             self.context.pop_scope(ast[1])
-            return x
+            return (succeeded, x)
         elif ast[0] == 'CALL':
             name = ast[1]
             args = ast[2]
@@ -610,46 +614,48 @@ class Interpreter(EventProducer):
                 (name, args)
             )
         elif ast[0] == 'SEND':
-            result = self.interpret(ast[1])
+            (succeded, result) = self.interpret(ast[1])
             assert isinstance(ast[2], Variable), ast
             self.context.store(ast[2].name, result)
-            return result
+            return (succeded, result)
         elif ast[0] == 'SET':
             assert isinstance(ast[1], Variable), ast
             assert isinstance(ast[2], Term), ast
             result = ast[2].expand(self.context)
             self.context.store(ast[1].name, result)
-            return result
+            return (True, result)
         elif ast[0] == 'AND':
             lhs = ast[1]
             rhs = ast[2]
-            value_lhs = self.interpret(lhs)
-            value_rhs = self.interpret(rhs)
-            return value_rhs
+            (succeeded, value_lhs) = self.interpret(lhs)
+            if not succeeded:
+                return (False, value_lhs)
+            (succeeded, value_rhs) = self.interpret(rhs)
+            return (succeeded, value_rhs)
         elif ast[0] == 'OR':
             lhs = ast[1]
             rhs = ast[2]
             saved_context = self.context.clone()
             saved_scanner = self.scanner.clone()
             self.event('begin_or', lhs, rhs, saved_context, saved_scanner)
-            try:
-                result = self.interpret(lhs)
+            (succeeded, result) = self.interpret(lhs)
+            if succeeded:
                 self.event('succeed_or', result)
-                return result
-            except TamsinParseError as e:
-                self.event('fail_or', self.context, self.scanner, e)
+                return (True, result)
+            else:
+                self.event('fail_or', self.context, self.scanner, result)
                 self.context = saved_context
                 assert self.scanner.__class__ == saved_scanner.__class__
                 self.scanner = saved_scanner
                 return self.interpret(rhs)
         elif ast[0] == 'RETURN':
-            return ast[1].expand(self.context)
+            return (True, ast[1].expand(self.context))
         elif ast[0] == 'FAIL':
-            raise TamsinParseError("fail")
+            return (False, Term("fail"))
         elif ast[0] == 'PRINT':
             val = ast[1].expand(self.context)
             print val
-            return val
+            return (True, val)
         elif ast[0] == 'WITH':
             sub = ast[1]
             scanner_name = ast[2]
@@ -677,48 +683,42 @@ class Interpreter(EventProducer):
                 self.program, new_scanner, listeners=self.listeners
             )
             self.event('enter_interpreter', new_scanner, new_interpreter)
-            try:
-                result = new_interpreter.interpret(sub)
-            except TamsinParseError as e:
-                self.event('fail_interpreter', e)
-                self.event('leave_interpreter', self.scanner, self)
-                assert new_scanner.position == new_scanner.reset_position
-                self.scanner.position = new_scanner.position
-                self.scanner.reset_position = self.scanner.position
-                raise e
-            self.event('result_interpreter', result)
+            (succeeded, result) = new_interpreter.interpret(sub)
+            #print >>sys.stderr, succeeded, result
             self.event('leave_interpreter', self.scanner, self)
             assert new_scanner.position == new_scanner.reset_position
             self.scanner.position = new_scanner.position
             self.scanner.reset_position = self.scanner.position
-            return result
+            return (succeeded, result)
         elif ast[0] == 'WHILE':
             result = Term('nil')
             self.event('begin_while')
-            while True:
+            succeeded = True
+            successful_result = result
+            while succeeded:
                 saved_context = self.context.clone()
                 saved_scanner = self.scanner.clone()
-                try:
-                    result = self.interpret(ast[1])
+                (succeeded, result) = self.interpret(ast[1])
+                if succeeded:
+                    successful_result = result
                     self.event('repeating_while', result)
-                except TamsinParseError as e:
-                    self.context = saved_context
-                    assert self.scanner.__class__ == saved_scanner.__class__
-                    self.scanner = saved_scanner
-                    self.event('end_while', result)
-                    return result
+            self.context = saved_context
+            assert self.scanner.__class__ == saved_scanner.__class__
+            self.scanner = saved_scanner
+            self.event('end_while', result)
+            return (True, successful_result)
         elif ast[0] == 'LITERAL':
             self.event('try_literal', ast[1], self.scanner)
             if self.scanner.consume(ast[1]):
                 self.event('consume_literal', ast[1], self.scanner)
-                return Term(ast[1])
+                return (True, Term(ast[1]))
             else:
                 self.event('fail_literal', ast[1], self.scanner)
-                raise TamsinParseError("expected '%s' found '%s' (%r vs %r) (at '%s')" %
-                    (ast[1], self.scanner.next_tok(),
-                     ast[1], self.scanner.next_tok(),
-                     self.scanner.report_buffer(self.scanner.position, 20))
-                )
+                s = ("expected '%s' found '%s' (%r vs %r) (at '%s')" %
+                     (ast[1], self.scanner.next_tok(),
+                      ast[1], self.scanner.next_tok(),
+                      self.scanner.report_buffer(self.scanner.position, 20)))
+                return (False, Term(s))
         else:
             raise NotImplementedError(repr(ast))
 
@@ -746,7 +746,10 @@ def main(args):
                 TamsinScanner(sys.stdin.read(), listeners=listeners),
                 listeners=listeners
             )
-            result = interpreter.interpret(ast)
+            (succeeded, result) = interpreter.interpret(ast)
+            if not succeeded:
+                sys.stderr.write(str(result))
+                sys.exit(1)
             print str(result)
     else:
         raise ValueError("first argument must be 'parse' or 'run'")
