@@ -669,9 +669,12 @@ you can change it!  Ideally, you could define your own scanner, but for
 now, you'll only be able to select from the Tamsin scanner and a "raw"
 scanner that only gives back characters.
 
-There are definitely some caveats here.  Scanners for recursive descent
-parsers pre-emptively scan the next token.  So when we switch scanners,
-we'll have a "leftover" token from the previous scanner.  Well, we'll see.
+As an implementation note: ccanners for recursive descent parsers commonly
+pre-emptively scan the next token.  So when we switch scanners, we'd have a
+"leftover" token from the previous scanner, unless we deal with it in some
+way.  The way we deal with it is to rewind the scanner by the length of
+the last token scanned just before switching, then after switching, scan
+again (by the new rules.)
 
     | main = cat.
     | cat = "cat" & return ok.
@@ -686,4 +689,26 @@ we'll have a "leftover" token from the previous scanner.  Well, we'll see.
     | main = cat with raw.
     | cat = "c" & "a" & "t" & return ok.
     + cat
+    = ok
+
+    | main = cat with raw.
+    | cat = "cat" & return ok.
+    + cat
+    ? expected 'cat' found 'c'
+
+You can mix two scanners in one production.  Note that... oh, we need to
+deal with putbacking spaces we've skipped, don't we.
+
+    | main = "cat" with tamsin & ("c" & "a" & "t") with raw & return ok.
+    + cat         cat
+    = ok
+
+Note that the raw scanner doesn't skip spaces.
+
+    | main = ("p" & "a" & "t" & "c" & "h") with raw & return ok.
+    +         pat   ch
+    ? expected 'c' found ' '
+
+    | main = ("p" & "a" & "t" & {" "} & "c" & "h") with raw & return ok.
+    +         pat   ch
     = ok

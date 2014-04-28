@@ -100,6 +100,14 @@ class Scanner(object):
         self.scan_impl()
         debug("scanned: '%s'" % self.token)
 
+    def switch(self, class_):
+        # 'putback' the token
+        self.position -= len(self.token)
+        self.token = None
+        new_scanner = self.clone(class_=class_)
+        new_scanner.scan()
+        return new_scanner
+
     def consume(self, t):
         #print repr(self.token), repr(t)
         if self.token == t:
@@ -480,7 +488,7 @@ class Interpreter(object):
             else:
                 raise ValueError("No such scanner '%s'" % scanner_name)
             saved_scanner = self.scanner.clone()
-            self.scanner = self.scanner.clone(class_=new_scanner_class)
+            self.scanner = self.scanner.switch(new_scanner_class)
             result = self.interpret(sub)
             self.scanner = saved_scanner
             return result
