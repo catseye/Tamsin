@@ -231,6 +231,9 @@ class Parser(ScannerMixin):
             return ('RETURN', t)
         elif self.consume('fail'):
             return ('FAIL',)
+        elif self.consume('print'):
+            t = self.term()
+            return ('PRINT', t)
         else:
             name = self.token
             self.scan()
@@ -444,6 +447,10 @@ class Interpreter(ScannerMixin, ContextMixin):
             return ast[1].expand(self)
         elif ast[0] == 'FAIL':
             raise TamsinParseError("fail")
+        elif ast[0] == 'PRINT':
+            val = ast[1].expand(self)
+            print val
+            return val
         elif ast[0] == 'WHILE':
             result = Term('nil')
             while True:

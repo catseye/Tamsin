@@ -34,6 +34,7 @@ Grammar
            | "set" Variable "=" Term
            | "return" Term
            | "fail"
+           | "print" Term
            | LitToken
            | ProdName ["(" [Term {"," Term} ")"] ["@" Term].
     Term := Atom
@@ -117,6 +118,13 @@ no matter what the input is.
     + foo
     + foo 0 0 0 0 0
     = blerp
+
+And like any good language, you can print things.
+
+    | main = print hello & return world.
+    + ahoshoshohspohdphs
+    = hello
+    = world
 
 But back to parsing.  The `&` operator processes its left-hand side on the
 input, then the right-hand side.  It returns the result of its RHS.  But if
@@ -445,6 +453,15 @@ properly when we try/except.
     @+ (nil)
     @= cons(a, cons(b, nil))
 
+
+    | main = set L = nil & (aorb & set L = el(L) | cord & set L = le(L)) &
+    |        return L.
+    | aorb = "a" | "b".
+    | cord = "c" | eorf.
+    | eorf = "e" | "f".
+    + e
+    = le(nil)
+
 So let's write it in the less intuitive, recursive way:
 
     | main = sexp.
@@ -514,6 +531,92 @@ Evaluator.
     | eval(X) = return X.
     + ((((a b cons) b cons) tail) tail)
     = a
+
+    | main = sexp → S & eval(S).
+    | sexp = symbol | list.
+    | list = "(" & listtail(nil).
+    | listtail(L) = sexp → S & listtail(pair(S, L))
+    |             | ")" & return L.
+    | symbol = "cons" | "head" | "tail" | "nil" | "a" | "b" | "c".
+    | 
+    | head(pair(A, B)) = return A.
+    | tail(pair(A, B)) = return B.
+    | cons(A, B) = return pair(A, B).
+    | 
+    | eval(pair(head, pair(X, nil))) = eval(X) → R & head(R) → P & return P.
+    | eval(pair(tail, pair(X, nil))) = eval(X) → R & tail(R) → P & return P.
+    | eval(pair(cons, pair(A, pair(B, nil)))) =
+    |    eval(A) → AE & eval(B) → BE & return pair(AE, BE).
+    | eval(X) = return X.
+    + ((a b cons) head)
+    = b
+
+    | main = sexp → S & eval(S).
+    | sexp = symbol | list.
+    | list = "(" & listtail(nil).
+    | listtail(L) = sexp → S & listtail(pair(S, L))
+    |             | ")" & return L.
+    | symbol = "cons" | "head" | "tail" | "nil" | "a" | "b" | "c".
+    | 
+    | head(pair(A, B)) = return A.
+    | tail(pair(A, B)) = return B.
+    | cons(A, B) = return pair(A, B).
+    | 
+    | eval(pair(head, pair(X, nil))) = eval(X) → R & head(R) → P & return P.
+    | eval(pair(tail, pair(X, nil))) = eval(X) → R & tail(R) → P & return P.
+    | eval(pair(cons, pair(A, pair(B, nil)))) =
+    |    eval(A) → AE & eval(B) → BE & return pair(AE, BE).
+    | eval(X) = return X.
+    + ((a b cons) tail)
+    = a
+
+    | main = sexp → S & print S & reverse(S) → R & print R & eval(R).
+    | sexp = symbol | list.
+    | list = "(" & listtail(nil).
+    | listtail(L) = sexp → S & listtail(pair(L, S))
+    |             | ")" & return L.
+    | symbol = "cons" | "head" | "tail" | "nil" | "a" | "b" | "c".
+    | 
+    | reverse(pair(A, B)) = reverse(A) → RA & reverse(B) → RB & return pair(RB, RA).
+    | reverse(X) = return X.
+    | 
+    | head(pair(A, B)) = return A.
+    | tail(pair(A, B)) = return B.
+    | cons(A, B) = return pair(A, B).
+    | 
+    | eval(pair(head, pair(X, nil))) = eval(X) → R & head(R) → P & return P.
+    | eval(pair(tail, pair(X, nil))) = eval(X) → R & tail(R) → P & return P.
+    | eval(pair(cons, pair(A, pair(B, nil)))) =
+    |    eval(A) → AE & eval(B) → BE &
+    |    print AE & print BE & cons(AE, BE) → C & return C.
+    | eval(X) = return X.
+    + (((a b cons) head) ((a b cons) tail) cons)
+    = pair(a, b)
+
+    pair(
+        cons,
+        pair(
+            pair(
+                tail,
+                pair(
+                    pair(
+                        cons,
+                        pair(
+                            b,
+                            pair(
+                                a,
+                                nil
+                            )
+                        )
+                    ),
+                    nil
+                )
+            ),
+            nil
+        )
+    )
+    
+    (cons (tail (cons (b a))))
 
     @| sexp = symbol | list.
     @| list = "(" &
