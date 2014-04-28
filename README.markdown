@@ -831,18 +831,28 @@ should return a token each time it is called.
     | scan = {" "} & (
     |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
     |        ).
-    | program = "cat" & ("cat" | "dog") & "dog".
+    | program = "cat" & print 1 &
+    |           ("cat" & print 2 | "dog" & print 3) &
+    |           "dog" & print 4 & return ok.
     + cat cat dog
-    = dog
+    = 1
+    = 2
+    = 4
+    = ok
 
     | main = program with scanner.
     | scanner = scan with raw.
     | scan = {" "} & (
     |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
     |        ).
-    | program = "cat" & ("cat" | "dog") & "dog".
+    | program = "cat" & print 1 &
+    |           ("cat" & print 2 | "dog" & print 3) &
+    |           "dog" & print 4 & return ok.
     + cat dog dog
-    = dog
+    = 1
+    = 3
+    = 4
+    = ok
 
     | main = program with scanner.
     | scanner = scan with raw.
@@ -852,3 +862,12 @@ should return a token each time it is called.
     | program = "cat" & ("cat" | "dog") & "dog".
     + cat cat cat
     ? expected 'dog' found 'cat'
+
+    | main = program with scanner.
+    | scanner = scan with raw.
+    | scan = {" "} & (
+    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    |        ).
+    | program = "cat" & ("cat" | "dog") & "dog".
+    + dog dog dog
+    ? expected 'cat' found 'dog'
