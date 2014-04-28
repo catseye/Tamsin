@@ -637,10 +637,9 @@ class Interpreter(EventProducer):
                 self.event('succeed_or', result)
                 return result
             except TamsinParseError as e:
-                self.event('fail_or', self.context, self.scanner)
+                self.event('fail_or', self.context, self.scanner, e)
                 self.context = saved_context
-                if self.scanner.__class__ != saved_scanner.__class__:
-                    raise ValueError("BANG!")
+                assert self.scanner.__class__ == saved_scanner.__class__
                 self.scanner = saved_scanner
                 return self.interpret(rhs)
         elif ast[0] == 'RETURN':
@@ -704,8 +703,7 @@ class Interpreter(EventProducer):
                     self.event('repeating_while', result)
                 except TamsinParseError as e:
                     self.context = saved_context
-                    if self.scanner.__class__ != saved_scanner.__class__:
-                        raise ValueError("BANG!")
+                    assert self.scanner.__class__ == saved_scanner.__class__
                     self.scanner = saved_scanner
                     self.event('end_while', result)
                     return result
