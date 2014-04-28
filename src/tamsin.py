@@ -525,8 +525,10 @@ class Interpreter(object):
                 new_scanner_class = RawScanner
             else:
                 raise ValueError("No such scanner '%s'" % scanner_name)
+            old_scanner_class = self.scanner.__class__
             self.scanner = self.scanner.switch(new_scanner_class)
             result = self.interpret(sub)
+            self.scanner = self.scanner.switch(old_scanner_class)
             return result
         elif ast[0] == 'WHILE':
             result = Term('nil')

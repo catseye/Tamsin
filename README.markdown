@@ -716,19 +716,11 @@ But we can make it skip spaces...
     + dog        cat
     = ok
 
-Note that we don't actually save the old scanner and restore it after the
-`with`.  If we did, well, it would be more messy than it is currently, it
-seems.  Restore it yourself if you need to!
+Note that the scanner in force is lexically contained in the `with`.  Outside
+of the `with`, scanning returns to whatever scanner was in force before the
+`with`.
 
     | main = ("c" & "a" & "t" & " ") with raw & "dog".
-    + cat dog
-    ? expected 'dog' found 'd'
-
-    | main = ("c" & "a" & "t" & " ") with raw & "d" & "o" & "g".
-    + cat dog
-    = g
-
-    | main = ("c" & "a" & "t" & " ") with raw & "dog" with tamsin.
     + cat dog
     = dog
 
