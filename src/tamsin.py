@@ -86,7 +86,7 @@ class DebugEventListener(object):
         producer.subscribe(self)
     
     def announce(self, tag, *data):
-        if tag in ('interpret_ast', 'try_literal'):
+        if tag in (): # ('interpret_ast', 'try_literal'):
             return
         elif tag in ('switched_scanner_forward', 'switched_scanner_back'):
             print tag
@@ -555,8 +555,13 @@ class Interpreter(EventProducer):
                         if ibuf is not None:
                             ibuf = ibuf.expand(self.context)
                             self.event('call_ibuf', ibuf)
-                            saved_scanner = self.scanner.clone()
-                            self.scanner = (self.scanner.__class__)(str(ibuf))
+                            saved_scanner = self.scanner
+                            self.scanner = self.scanner.clone()
+                            self.scanner.buffer = str(ibuf)
+                            self.scanner.position = 0
+                            self.scanner.saved_position = 0
+                            self.scanner.token = None
+                            self.scanner.scan()
                         x = self.interpret(prod, bindings=bindings)
                         if ibuf is not None:
                             self.scanner = saved_scanner
