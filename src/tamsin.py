@@ -4,16 +4,11 @@
 import codecs
 import sys
 
-DEBUG = False
 
 def enc(x):
     if not isinstance(x, str):
         x = unicode(x)
     return x.encode('ascii', 'xmlcharrefreplace')
-
-def debug(x):
-    if DEBUG:
-        print enc(x)
 
 
 class TamsinParseError(ValueError):
@@ -73,10 +68,38 @@ class Concat(Term):
         return "%s + %s" % (self.lhs, self.rhs)
 
 
-class Scanner(object):
+class EventProducer(object):
+    def event(self, tag, *data):
+        if not getattr(self, 'listeners', None):
+            self.listeners = []
+        for listener in self.listeners:
+            listener.announce(tag, *data)
+
+    def subscribe(self, listener):
+        if not getattr(self, 'listeners', None):
+            self.listeners = []
+        self.listeners.append(listener)
+
+
+class DebugEventListener(object):
+    def listen_to(self, producer):
+        producer.subscribe(self)
+    
+    def announce(self, tag, *data):
+        if tag in ('interpret_ast', 'try_literal'):
+            return
+        elif tag in ('switched_scanner_forward', 'switched_scanner_back'):
+            print tag
+            data[0].dump()
+            data[1].dump()
+        else:
+            print "%s %r" % (tag, data)
+
+
+class Scanner(EventProducer):
     def __init__(self, buffer):
         """Calls scan() for you!"""
-        debug("setting buffer to '%s'" % buffer)
+        self.event('set_buffer', buffer)
         self.buffer = buffer
         self.position = 0
         self.reset_position = None
@@ -90,7 +113,7 @@ class Scanner(object):
         if self.eof():
             return None
         result = self.buffer[self.position:self.position+amount]
-        #debug("chopped: '%s'" % result)
+        self.event('chopped', result)
         self.position += amount
         return result
 
@@ -131,7 +154,7 @@ class Scanner(object):
     def scan(self):
         self.reset_position = self.position
         self.scan_impl()
-        debug("scanned: '%s'" % self.token)
+        self.event('scanned', self)
 
     def switch(self, class_):
         """Note that there is a different method for switching back to
@@ -139,29 +162,16 @@ class Scanner(object):
 
         """
         # 'putback' the token
-        debug("scanner.switch().  reset position %s, position %s, putbacking '%s'" %
-            (self.reset_position, self.position,
-                self.buffer[self.reset_position:self.position-self.reset_position+1])
-        )
+        self.event('switch_scanner', self, class_)
         self.position = self.reset_position
         self.token = None
         new_scanner = self.clone(class_=class_)
         new_scanner.scan()
-        return new_scanner
-
-    def switch_back(self, class_):
-        debug("scanner.switch_back().  reset position %s, position %s, putbacking '%s'" %
-            (self.reset_position, self.position,
-                self.buffer[self.reset_position:self.position-self.reset_position+1])
-        )
-        self.position = self.reset_position
-        self.token = None
-        new_scanner = self.clone(class_=class_)
-        #new_scanner.scan()
+        self.event('switched_scanner', new_scanner)
         return new_scanner
 
     def consume(self, t):
-        #print repr(self.token), repr(t)
+        self.event('consume', t)
         if self.token == t:
             self.scan()
             return t
@@ -175,14 +185,13 @@ class Scanner(object):
         return r
     
     def dump(self):
-        if DEBUG:
-            print "--%r" % self
-            print "  buffer: %s" % enc(self.buffer)
-            print "  position: %s" % self.position
-            print "  buffer at position: %s" % self.report_buffer(self.position, 40)
-            print "  reset_position: %s" % self.reset_position
-            print "  buffer at reset_pos: %s" % self.report_buffer(self.reset_position, 40)
-            print "  token: %s" % enc(self.token)
+        print "--%r" % self
+        print "  buffer: %s" % enc(self.buffer)
+        print "  position: %s" % self.position
+        print "  buffer at position: %s" % self.report_buffer(self.position, 40)
+        print "  reset_position: %s" % self.reset_position
+        print "  buffer at reset_pos: %s" % self.report_buffer(self.reset_position, 40)
+        print "  token: %s" % enc(self.token)
 
 
 class TamsinScanner(Scanner):
@@ -249,12 +258,10 @@ class ProductionScanner(Scanner):
             self.token = None
             return
         self.token = str(self.interpreter.interpret(self.production))
-        debug("Congratulation! %s produced %s" %
-            (repr(self.production), repr(self.token))
-        )
+        self.event('production_scan', self.production, self.token)
 
 
-class Parser(object):
+class Parser(EventProducer):
     def __init__(self, buffer):
         self.scanner = TamsinScanner(buffer)
 
@@ -409,19 +416,17 @@ class Parser(object):
             self.error('term')
 
 
-class Context(object):
+class Context(EventProducer):
     def __init__(self):
         self.scopes = []
 
     def push_scope(self, purpose):
-        debug("pushing new scope for %r" % purpose)
         self.scopes.append({})
-        debug("SCOPES NOW: %r" % self.scopes)
+        self.event('push_scope', self)
 
     def pop_scope(self, purpose):
-        debug("popping scope for %r" % purpose)
         self.scopes.pop()
-        debug("SCOPES NOW: %r" % self.scopes)
+        self.event('pop_scope', self)
 
     def clone(self):
         n = Context()
@@ -430,19 +435,19 @@ class Context(object):
         return n
 
     def fetch(self, name):
-        debug("fetching %s (it's %r, in %r)" %
-            (name, self.scopes[-1].get(name, 'undefined'), self.scopes[-1])
+        self.event('fetch', name,
+            self.scopes[-1].get(name, 'undefined'), self.scopes[-1]
         )
         return self.scopes[-1][name]
 
     def store(self, name, value):
-        debug("updating %s (was %s) to %r" %
-            (name, self.scopes[-1].get(name, 'undefined'), value)
+        self.event('store', name,
+            self.scopes[-1].get(name, 'undefined'), value
         )
         self.scopes[-1][name] = value
 
 
-class Interpreter(object):
+class Interpreter(EventProducer):
     def __init__(self, ast, buffer):
         self.program = ast
         self.scanner = TamsinScanner(buffer)
@@ -500,7 +505,7 @@ class Interpreter(object):
     ### interpreter proper ---------------------------------- ###
     
     def interpret(self, ast, bindings=None):
-        #debug("interpreting %s" % repr(ast))
+        self.event('interpret_ast', ast)
         if ast[0] == 'PROGRAM':
             mains = self.find_productions('main')
             return self.interpret(mains[0])
@@ -509,9 +514,9 @@ class Interpreter(object):
             if bindings:
                 for name in bindings.keys():
                     self.context.store(name, bindings[name])
-            debug("INTERPRETING RULE %s" % repr(ast[3]))
+            self.event('begin_interpret_rule', ast[3])
             x = self.interpret(ast[3])
-            debug("FINISHED INTERPRETING RULE %s" % repr(ast[3]))
+            self.event('end_interpret_rule', ast[3])
             self.context.pop_scope(ast[1])
             return x
         elif ast[0] == 'CALL':
@@ -519,19 +524,19 @@ class Interpreter(object):
             args = ast[2]
             ibuf = ast[3]
             prods = self.find_productions(name)
-            debug("candidate productions: %r" % prods)
+            self.event('call_candidates', prods)
             args = [x.expand(self.context) for x in args]
             for prod in prods:
                 formals = prod[2]
-                debug("formals: %r, args: %r" % (formals, args))
+                self.event('call_args', formals, args)
                 if isinstance(formals, list):
                     bindings = self.match_all(formals, args)
-                    debug("bindings: %r" % bindings)
+                    self.event('call_bindings', bindings)
                     if bindings != False:
                         saved_scanner_state = None
                         if ibuf is not None:
                             ibuf = ibuf.expand(self.context)
-                            debug("expanded ibuf: %r" % ibuf)
+                            self.event('call_ibuf', ibuf)
                             saved_scanner = self.scanner.clone()
                             self.scanner = (self.scanner.__class__)(str(ibuf))
                         x = self.interpret(prod, bindings=bindings)
@@ -539,7 +544,7 @@ class Interpreter(object):
                             self.scanner = saved_scanner
                         return x
                 else:
-                    pass  # print "it's a newfangled one", repr(prod)
+                    self.event('call_newfangled_parsing_args', prod)
             raise ValueError("No '%s' production matched arguments %r" %
                 (name, args)
             )
@@ -598,21 +603,15 @@ class Interpreter(object):
                         self.production = prods[0]
                         ProductionScanner.__init__(self, buffer)
                 new_scanner_class = CustomScanner
-            debug("SWITCHING SCANNERS")
+            self.event("switching_scanners")
             old_scanner_class = self.scanner.__class__
             old_scanner = self.scanner
             self.scanner = self.scanner.switch(new_scanner_class)
-            debug("SWITCHED SCANNER FROM %r TO %r" %
-                (old_scanner, self.scanner))
-            old_scanner.dump()
-            self.scanner.dump()
+            self.event("switched_scanner_forward", old_scanner, self.scanner)
             result = self.interpret(sub)
             old_scanner = self.scanner
             self.scanner = self.scanner.switch(old_scanner_class)
-            debug("SWITCHED SCANNER BACK TO %r FROM %r" %
-                (self.scanner, old_scanner))
-            old_scanner.dump()
-            self.scanner.dump()
+            self.event("switched_scanner_back", old_scanner, self.scanner)
             return result
         elif ast[0] == 'WHILE':
             result = Term('nil')
@@ -626,7 +625,7 @@ class Interpreter(object):
                     self.scanner = saved_scanner
                     return result
         elif ast[0] == 'LITERAL':
-            debug('expecting %s, token is %s' % (ast[1], self.scanner.token))
+            self.event('try_literal', ast[1], self.scanner.token)
             if self.scanner.token == ast[1]:
                 self.scanner.scan()
                 return Term(ast[1])
@@ -639,9 +638,9 @@ class Interpreter(object):
 
 
 def main(args):
-    global DEBUG
+    debug = None
     if args[0] == '--debug':
-        DEBUG = True
+        debug = DebugEventListener()
         args = args[1:]
     if args[0] == 'parse':
         with codecs.open(args[1], 'r', 'UTF-8') as f:
@@ -653,9 +652,13 @@ def main(args):
         with codecs.open(args[1], 'r', 'UTF-8') as f:
             contents = f.read()
             parser = Parser(contents)
+            if debug:
+                debug.listen_to(parser)
             ast = parser.grammar()
-            debug(repr(ast))
+            #print repr(ast)
             interpreter = Interpreter(ast, sys.stdin.read())
+            if debug:
+                debug.listen_to(interpreter)
             result = interpreter.interpret(ast)
             print str(result)
     else:
