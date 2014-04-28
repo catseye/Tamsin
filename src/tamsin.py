@@ -8,7 +8,7 @@ DEBUG = False
 
 def debug(x):
     if DEBUG:
-        print x.encode('ascii', 'ignore')
+        print x.encode('ascii', 'xmlcharrefreplace')
 
 
 class TamsinParseError(ValueError):
@@ -100,9 +100,10 @@ class Scanner(object):
         report = self.buffer[self.position:self.position+20]
         if len(report) == 20:
             report += '...'
-        #raise ValueError((expected, self.token, report))
         raise ValueError(u"Expected %s, found '%s' at '%s...'" %
-                         (expected, self.token, report))
+                         (expected.encode('ascii', 'xmlcharrefreplace'),
+                          self.token.encode('ascii', 'xmlcharrefreplace'),
+                          report.encode('ascii', 'xmlcharrefreplace')))
 
     def clone(self, class_=None):
         if class_ is None:
@@ -235,6 +236,9 @@ class Parser(object):
                 while self.consume(','):
                     args.append(self.term())
             self.expect(')')
+        elif self.consume('['):
+            args = self.expr0()
+            self.expect(']')
         self.expect('=')
         e = self.expr0()
         self.expect('.')
@@ -464,19 +468,22 @@ class Interpreter(object):
             for prod in prods:
                 formals = prod[2]
                 debug("formals: %r, args: %r" % (formals, args))
-                bindings = self.match_all(formals, args)
-                debug("bindings: %r" % bindings)
-                if bindings != False:
-                    saved_scanner_state = None
-                    if ibuf is not None:
-                        ibuf = ibuf.expand(self.context)
-                        debug("expanded ibuf: %r" % ibuf)
-                        saved_scanner = self.scanner.clone()
-                        self.scanner = (self.scanner.__class__)(str(ibuf))
-                    x = self.interpret(prod, bindings=bindings)
-                    if ibuf is not None:
-                        self.scanner = saved_scanner
-                    return x
+                if isinstance(formals, list):
+                    bindings = self.match_all(formals, args)
+                    debug("bindings: %r" % bindings)
+                    if bindings != False:
+                        saved_scanner_state = None
+                        if ibuf is not None:
+                            ibuf = ibuf.expand(self.context)
+                            debug("expanded ibuf: %r" % ibuf)
+                            saved_scanner = self.scanner.clone()
+                            self.scanner = (self.scanner.__class__)(str(ibuf))
+                        x = self.interpret(prod, bindings=bindings)
+                        if ibuf is not None:
+                            self.scanner = saved_scanner
+                        return x
+                else:
+                    pass  # print "it's a newfangled one", repr(prod)
             raise ValueError("No '%s' production matched arguments %r" %
                 (name, args)
             )

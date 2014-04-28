@@ -24,7 +24,7 @@ Grammar
 -------
 
     Grammar ::= {Production "."}.
-    Production ::= ProdName ["(" [Term {"," Term} ")"] "=" Expr0.
+    Production ::= ProdName ["(" [Term {"," Term} ")" | "[" Expr0 "]"] "=" Expr0.
     Expr0 := Expr1 {("||" | "|") Expr1}.
     Expr1 := Expr2 {("&&" | "&") Expr2}.
     Expr2 := Expr3 ["with" Scanner].
@@ -96,8 +96,9 @@ identical to it to be on the input.  If that expectation is met, it evaluates
 to that token.  If not, it raises an error.
 
 Note that input into a Tamsin program is first broken up into tokens as
-specified by the gammar of Tamsin itself.  This is a little restrictive, and
-is due to change at some point.
+specified by the gammar of Tamsin itself.  This is a little restrictive for
+general use, but later on you'll see how to alter the scanner to something
+more tuned for your needs.
 
     | main = blerp.
     | blerp = "blerp".
@@ -764,11 +765,40 @@ So, something like:
 Then we no longer pattern-match terms.  They're just strings.  So we... we
 parse them.
 
-    #| main = aorb → C & return donkey(「fo go」 • C).
-    #| aorb = "a" | "b".
-    #| donkey⟦"fo" & "goa"⟧ = return yes.
-    #| donkey⟦"fo" & "gob"⟧ = return no.
-    #+ a
-    #= yes
-    #+ b
-    #= no
+Well, we can parse the putative syntax for this, anyway, but it's not
+implemented yet.
+
+    | main = aorb → C & donkey(「fo go」 • C) → D & return D.
+    | aorb = "a" | "b".
+    | donkey["fo" & "goa"] = return yes.
+    | donkey["fo" & "gob"] = return no.
+    + b
+    ? No 'donkey' production matched arguments [fo gob]
+
+Anyway, back to scanning
+------------------------
+
+Now that we can concatenate terms, we can probably write our own scanner.
+
+    | main = ({scan → A & print A} & ".") with raw.
+    | scan = {" "} & ("-" & ">" & return 「->」 | "(" | ")" | "," | ";" | word).
+    | word = letter → L & {letter → M & set L = L • M}.
+    | letter = "a" | "b" | "c" | "d" | "e" | "f" | "g".
+    + cabbage( bag , gaffe->fad ); bag(bagbag bag).
+    = cabbage
+    = (
+    = bag
+    = ,
+    = gaffe
+    = ->
+    = fad
+    = )
+    = ;
+    = bag
+    = (
+    = bagbag
+    = bag
+    = )
+    = .
+
+Indeed we can.
