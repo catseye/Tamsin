@@ -1116,7 +1116,7 @@ OK
 NO.......
 
     | main = program with scanner.
-    | scanner = scan with raw.
+    | scanner = (scan | return unknown) with raw.
     | scan = " " & animal → A & return A.
     | animal = (
     |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
@@ -1125,10 +1125,22 @@ NO.......
     +  cat dog dog
     = dog
 
+MMMMM???
+
+    | main = program with scanner.
+    | scanner = (scan | return unknown) with raw.
+    | scan = " " & animal → A & return A.
+    | animal = "c" & "a" & "t" & return cat
+    |        | "d" & "o" & "g" & return dog
+    |        | return unknown.
+    | program = "cat" & ("cat" | "dog") & "dog".
+    +  cat dog dog
+    = dog
+
 NO.......?
 
     | main = program with scanner.
-    | scanner = scan with raw.
+    | scanner = (scan | return unknown) with raw.
     | scan = " " & animal → A & return A.
     | animal = (
     |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
@@ -1141,7 +1153,7 @@ NO.......?
 OK
 
     | main = program with scanner.
-    | scanner = scan with raw.
+    | scanner = (scan | return unknown) with raw.
     | scan = " " & animal → A & return A.
     | animal = (
     |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
@@ -1180,6 +1192,16 @@ Notes:
     we've successfully parsed everything else.
     
     Will think about it.
+    
+    OK, it's that the ProductionScanner can't unscan correctly!
+    In fact, the position number on a ProductionScanner is a bit
+    artificial.  There is a real underlying scanner (usually a
+    RawScanner) doing the actual scanning, and ProductionScanner
+    is sort of a shell or driver for it.
+    
+    ProductionScanner needs to update its position from the
+    slave-scanner's position, but it's not immediatel clear to
+    me how to do that.
 
 Nope, does not like a space in front.
 

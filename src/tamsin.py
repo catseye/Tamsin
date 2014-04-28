@@ -205,9 +205,28 @@ class Scanner(EventProducer):
     def commit(self):
         self.reset_position = self.position
 
+    #def next_tok(self):
+    #    scanner1 = self.clone()
+    #    a = self.next_token()
+    #    scanner2 = self.clone()
+    #    b = self.next_token()
+    #    if a != b:
+    #        print "before scanning " + a
+    #        scanner1.dump()
+    #        print "after scanning " + a + " and before scanning " + b
+    #        scanner2.dump()
+    #        print "after scanning " + b
+    #        self.dump()
+    #        print "%s != %s, BADNESS, MUCH BADNESS" % (a, b)
+    #        sys.exit(1)
+    #    return a
+
     def next_tok(self):
+        before = self.position
         tok = self.scan()
         self.unscan()
+        after = self.position
+        assert before == after, "BADNESS %r" % self
         return tok
 
     def consume(self, t):
@@ -323,7 +342,9 @@ class ProductionScanner(Scanner):
             self.event('production_scan', self.production, tok)
             return str(tok)
         else:
-            return EOF
+            raise ValueError("ProductionScanner FAILED.  Production used "
+                             "by ProductionScanner MUST NOT FAIL, or "
+                             "THIS HAPPENS.")
 
 
 class Parser(EventProducer):
@@ -725,15 +746,15 @@ class Interpreter(EventProducer):
             self.event('end_while', result)
             return (True, successful_result)
         elif ast[0] == 'LITERAL':
-            self.event('try_literal', ast[1], self.scanner)
+            next_tok = self.scanner.next_tok()
+            self.event('try_literal', ast[1], self.scanner, next_tok)
             if self.scanner.consume(ast[1]):
                 self.event('consume_literal', ast[1], self.scanner)
                 return (True, Term(ast[1]))
             else:
                 self.event('fail_literal', ast[1], self.scanner)
-                s = ("expected '%s' found '%s' (%r vs %r) (at '%s')" %
-                     (ast[1], self.scanner.next_tok(),
-                      ast[1], self.scanner.next_tok(),
+                s = ("expected '%s' found '%s' (at '%s')" %
+                     (ast[1], next_tok,
                       self.scanner.report_buffer(self.scanner.position, 20)))
                 return (False, Term(s))
         else:
