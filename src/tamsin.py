@@ -98,13 +98,15 @@ class DebugEventListener(object):
 
 class Scanner(EventProducer):
     def __init__(self, buffer):
-        """Calls scan() for you!"""
+        """Does NOT calls scan() for you.  You should do that before
+        using it.
+
+        """
         self.event('set_buffer', buffer)
         self.buffer = buffer
         self.position = 0
-        self.reset_position = None
+        self.reset_position = 0
         self.token = None
-        self.scan()
 
     def eof(self):
         return self.position >= len(self.buffer)
@@ -143,11 +145,10 @@ class Scanner(EventProducer):
                           self.report_buffer(self.position, 20),
                           self.position))
 
-    def clone(self, class_=None):
-        if class_ is None:
-            class_ = self.__class__
-        n = class_(self.buffer)
+    def clone(self):
+        n = self.__class__(self.buffer)
         n.position = self.position
+        n.reset_position = self.reset_position
         n.token = self.token
         return n
 
@@ -156,16 +157,20 @@ class Scanner(EventProducer):
         self.scan_impl()
         self.event('scanned', self)
 
-    def switch(self, class_):
-        """Note that there is a different method for switching back to
-        a scanner you just switched from!  (TODO: Python's with?)
+    def switch(self, new_scanner):
+        """Returns the new_scanner for convenience.
 
         """
+        self.event('switch_scanner', self, new_scanner)
         # 'putback' the token
-        self.event('switch_scanner', self, class_)
         self.position = self.reset_position
+        self.reset_position = 0
         self.token = None
-        new_scanner = self.clone(class_=class_)
+        # copy properties over to new scanner
+        new_scanner.position = self.position
+        new_scanner.reset_position = 0
+        new_scanner.token = None
+        # prime the pump
         new_scanner.scan()
         self.event('switched_scanner', new_scanner)
         return new_scanner
@@ -249,10 +254,21 @@ class RawScanner(Scanner):
 
 class ProductionScanner(Scanner):
     """A Scanner that uses a production of the Tamsin program to
-    scan the input.  Should be subclassed, with __init__ setting
-    the production field to the desired production AST.
+    scan the input.
 
     """
+    def __init__(self, buffer, interpreter, production):
+        Scanner.__init__(self, buffer)
+        self.interpreter = interpreter
+        self.production = production
+
+    def clone(self):
+        n = self.__class__(self.buffer, self.interpreter, self.production)
+        n.position = self.position
+        n.reset_position = self.reset_position
+        n.token = self.token
+        return n
+
     def scan_impl(self):
         if self.eof():
             self.token = None
@@ -264,6 +280,7 @@ class ProductionScanner(Scanner):
 class Parser(EventProducer):
     def __init__(self, buffer):
         self.scanner = TamsinScanner(buffer)
+        self.scanner.scan()
 
     def eof(self):
         return self.scanner.eof()
@@ -451,6 +468,7 @@ class Interpreter(EventProducer):
     def __init__(self, ast, buffer):
         self.program = ast
         self.scanner = TamsinScanner(buffer)
+        self.scanner.scan()
         self.context = Context()
 
     ### grammar stuff ---------------------------------------- ###
@@ -588,30 +606,24 @@ class Interpreter(EventProducer):
             sub = ast[1]
             scanner_name = ast[2]
             if scanner_name == u'tamsin':
-                new_scanner_class = TamsinScanner
+                new_scanner = TamsinScanner(self.scanner.buffer)
             elif scanner_name == u'raw':
-                new_scanner_class = RawScanner
+                new_scanner = RawScanner(self.scanner.buffer)
             else:
                 prods = self.find_productions(scanner_name)
                 if len(prods) != 1:
                     raise ValueError("No such scanner '%s'" % scanner_name)
-                interpreter = self
-                # oh dear.
-                class CustomScanner(ProductionScanner):
-                    def __init__(self, buffer):
-                        self.interpreter = interpreter
-                        self.production = prods[0]
-                        ProductionScanner.__init__(self, buffer)
-                new_scanner_class = CustomScanner
+                new_scanner = ProductionScanner(
+                    self.scanner.buffer, self, prods[0]
+                )
             self.event("switching_scanners")
-            old_scanner_class = self.scanner.__class__
             old_scanner = self.scanner
-            self.scanner = self.scanner.switch(new_scanner_class)
+            self.scanner = self.scanner.switch(new_scanner)
             self.event("switched_scanner_forward", old_scanner, self.scanner)
             result = self.interpret(sub)
-            old_scanner = self.scanner
-            self.scanner = self.scanner.switch(old_scanner_class)
-            self.event("switched_scanner_back", old_scanner, self.scanner)
+            prev_scanner = self.scanner
+            self.scanner = self.scanner.switch(old_scanner)
+            self.event("switched_scanner_back", prev_scanner, self.scanner)
             return result
         elif ast[0] == 'WHILE':
             result = Term('nil')
