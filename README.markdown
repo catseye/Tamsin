@@ -787,7 +787,8 @@ Anyway, back to scanning
 
 Now that we can concatenate terms, we can probably write our own scanner.
 
-    | main = ({scan → A & print A} & ".") with raw.
+    | main = scanner with raw.
+    | scanner = {scan → A & print A} & ".".
     | scan = {" "} & ("-" & ">" & return 「->」 | "(" | ")" | "," | ";" | word).
     | word = letter → L & {letter → M & set L = L • M}.
     | letter = "a" | "b" | "c" | "d" | "e" | "f" | "g".
