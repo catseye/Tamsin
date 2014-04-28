@@ -456,27 +456,89 @@ quite what I had in mind, but it does parse...
     | sexp = symbol | list.
     | list = "(" &
     |        set L = nil &
-    |        {sexp → S & set L = cons(S, L)} &
+    |        {sexp → S & set L = pair(S, L)} &
     |        ")" &
     |        return L.
     | symbol = "cons" | "head" | "tail" | "nil" | "a" | "b" | "c".
     + (cons (a (cons b nil)))
-    = cons(cons(cons(nil, cons(b, cons(cons, nil))), cons(a, nil)), cons(cons, nil))
+    = pair(pair(pair(nil, pair(b, pair(cons, nil))), pair(a, nil)), pair(cons, nil))
 
 So let's write it in the less intuitive, recursive way:
 
     | main = sexp.
+    | 
     | sexp = symbol | list.
     | list = "(" & listtail(nil).
-    | listtail(L) = sexp → S & listtail(cons(S, L))
+    | listtail(L) = sexp → S & listtail(pair(S, L))
     |             | ")" & return L.
     | symbol = "cons" | "head" | "tail" | "nil" | "a" | "b" | "c".
     + (a b)
-    = cons(b, cons(a, nil))
+    = pair(b, pair(a, nil))
 
-Evaluator.
+Reverser.  In Erlang this would be
 
-    | main = sexp → S & eval(S).
+    reverse([H|T], A) -> reverse(T, [H|A]).
+    reverse([], A) -> A.
+
+    | main = sexp → S & reverse(S, nil) → SR & return SR.
+    | 
+    | sexp = symbol | list.
+    | list = "(" & listtail(nil).
+    | listtail(L) = sexp → S & listtail(pair(S, L))
+    |             | ")" & return L.
+    | symbol = "cons" | "head" | "tail" | "nil" | "a" | "b" | "c".
+    | 
+    | reverse(pair(H, T), A) =
+    |   reverse(T, pair(H, A)) → TR &
+    |   return TR.
+    | reverse(nil, A) =
+    |   return A.
+    + (a b)
+    = pair(a, pair(b, nil))
+
+But it's not deep.
+
+    | main = sexp → S & reverse(S, nil) → SR & return SR.
+    | 
+    | sexp = symbol | list.
+    | list = "(" & listtail(nil).
+    | listtail(L) = sexp → S & listtail(pair(S, L))
+    |             | ")" & return L.
+    | symbol = "cons" | "head" | "tail" | "nil" | "a" | "b" | "c".
+    | 
+    | reverse(pair(H, T), A) =
+    |   reverse(T, pair(H, A)) → TR &
+    |   return TR.
+    | reverse(nil, A) =
+    |   return A.
+    + (a (c b) b)
+    = pair(a, pair(pair(b, pair(c, nil)), pair(b, nil)))
+
+Deep reverser.
+
+    | main = sexp → S & reverse(S, nil) → SR & return SR.
+    | 
+    | sexp = symbol | list.
+    | list = "(" & listtail(nil).
+    | listtail(L) = sexp → S & listtail(pair(S, L))
+    |             | ")" & return L.
+    | symbol = "cons" | "head" | "tail" | "nil" | "a" | "b" | "c".
+    | 
+    | reverse(pair(H, T), A) =
+    |   reverse(H, nil) → HR &
+    |   reverse(T, pair(HR, A)) → TR &
+    |   return TR.
+    | reverse(nil, A) =
+    |   return A.
+    | reverse(X, A) =
+    |   return X.
+    + (a (c b) b)
+    = pair(a, pair(pair(c, pair(b, nil)), pair(b, nil)))
+
+Finally, a little sexpr evaluator.
+
+    | main = sexp → S & reverse(S, nil) → SR & eval(SR).
+    | 
     | sexp = symbol | list.
     | list = "(" & listtail(nil).
     | listtail(L) = sexp → S & listtail(pair(S, L))
@@ -492,10 +554,20 @@ Evaluator.
     | eval(pair(cons, pair(A, pair(B, nil)))) =
     |    eval(A) → AE & eval(B) → BE & return pair(AE, BE).
     | eval(X) = return X.
-    + (a b cons)
-    = pair(b, a)
+    | 
+    | reverse(pair(H, T), A) =
+    |   reverse(H, nil) → HR &
+    |   reverse(T, pair(HR, A)) → TR &
+    |   return TR.
+    | reverse(nil, A) =
+    |   return A.
+    | reverse(X, A) =
+    |   return X.
+    + (cons a b)
+    = pair(a, b)
 
-    | main = sexp → S & eval(S).
+    | main = sexp → S & reverse(S, nil) → SR & eval(SR).
+    | 
     | sexp = symbol | list.
     | list = "(" & listtail(nil).
     | listtail(L) = sexp → S & listtail(pair(S, L))
@@ -511,10 +583,20 @@ Evaluator.
     | eval(pair(cons, pair(A, pair(B, nil)))) =
     |    eval(A) → AE & eval(B) → BE & return pair(AE, BE).
     | eval(X) = return X.
-    + ((a b cons) head)
+    | 
+    | reverse(pair(H, T), A) =
+    |   reverse(H, nil) → HR &
+    |   reverse(T, pair(HR, A)) → TR &
+    |   return TR.
+    | reverse(nil, A) =
+    |   return A.
+    | reverse(X, A) =
+    |   return X.
+    + (head (cons b a))
     = b
 
-    | main = sexp → S & eval(S).
+    | main = sexp → S & reverse(S, nil) → SR & eval(SR).
+    | 
     | sexp = symbol | list.
     | list = "(" & listtail(nil).
     | listtail(L) = sexp → S & listtail(pair(S, L))
@@ -530,18 +612,27 @@ Evaluator.
     | eval(pair(cons, pair(A, pair(B, nil)))) =
     |    eval(A) → AE & eval(B) → BE & return pair(AE, BE).
     | eval(X) = return X.
-    + ((((a b cons) b cons) tail) tail)
+    | 
+    | reverse(pair(H, T), A) =
+    |   reverse(H, nil) → HR &
+    |   reverse(T, pair(HR, A)) → TR &
+    |   return TR.
+    | reverse(nil, A) =
+    |   return A.
+    | reverse(X, A) =
+    |   return X.
+    + (tail (tail (cons b (cons b a))))
     = a
 
-    | main = sexp → S & print S & reverse(S) → R & print R & eval(R).
+In this one, we make the evaluator print out some of the steps it takes.
+
+    | main = sexp → S & reverse(S, nil) → SR & eval(SR).
+    | 
     | sexp = symbol | list.
     | list = "(" & listtail(nil).
-    | listtail(L) = sexp → S & listtail(pair(L, S))
+    | listtail(L) = sexp → S & listtail(pair(S, L))
     |             | ")" & return L.
     | symbol = "cons" | "head" | "tail" | "nil" | "a" | "b" | "c".
-    | 
-    | reverse(pair(A, B)) = reverse(A) → RA & reverse(B) → RB & return pair(RB, RA).
-    | reverse(X) = return X.
     | 
     | head(pair(A, B)) = return A.
     | tail(pair(A, B)) = return B.
@@ -551,29 +642,22 @@ Evaluator.
     | eval(pair(tail, pair(X, nil))) = eval(X) → R & tail(R) → P & return P.
     | eval(pair(cons, pair(A, pair(B, nil)))) =
     |    eval(A) → AE & eval(B) → BE &
-    |    print AE & print BE & cons(AE, BE) → C & return C.
+    |    print y(AE, BE) & cons(AE, BE) → C & return C.
     | eval(X) = return X.
-    + (((a b cons) head) ((a b cons) tail) cons)
-    = pair(pair(pair(nil, pair(pair(nil, pair(pair(pair(nil, a), b), cons)), head)), pair(pair(nil, pair(pair(pair(nil, a), b), cons)), tail)), cons)
-    = pair(cons, pair(pair(tail, pair(pair(cons, pair(b, pair(a, nil))), nil)), pair(pair(head, pair(pair(cons, pair(b, pair(a, nil))), nil)), nil)))
-    = b
-    = a
-    = b
-    = a
-    = a
-    = b
+    | 
+    | reverse(pair(H, T), A) =
+    |   reverse(H, nil) → HR &
+    |   reverse(T, pair(HR, A)) → TR &
+    |   return TR.
+    | reverse(nil, A) =
+    |   return A.
+    | reverse(X, A) =
+    |   return X.
+    + (cons (tail (cons b a)) (head (cons b a)))
+    = y(b, a)
+    = y(b, a)
+    = y(a, b)
     = pair(a, b)
-
-    @| sexp = symbol | list.
-    @| list = "(" &
-    @|        set L = nil &
-    @|        {sexp → S & set L = cons(S, L)} &
-    @|        ")" &
-    @|        return L.
-    @| symbol = "cons" | "head" | "tail" | "nil" | "a" | "b" | "c".
-    @| main = sexp → S & eval(S).
-    @+ ((nil b cons) a cons)
-    @= cons(a, cons(b, nil))
 
 Implicit Scanner
 ----------------
