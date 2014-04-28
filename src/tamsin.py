@@ -88,8 +88,10 @@ class Scanner(object):
         raise ValueError(u"Expected %s, found '%s' at '%s...'" %
                          (expected, self.token, report))
 
-    def clone(self):
-        n = Scanner(self.buffer)
+    def clone(self, class_=None):
+        if class_ is None:
+            class_ = self.__class__
+        n = class_(self.buffer)
         n.position = self.position
         n.token = self.token
         return n
@@ -98,6 +100,22 @@ class Scanner(object):
         self.scan_impl()
         debug("scanned: '%s'" % self.token)
 
+    def consume(self, t):
+        #print repr(self.token), repr(t)
+        if self.token == t:
+            self.scan()
+            return t
+        else:
+            return None
+    
+    def expect(self, t):
+        r = self.consume(t)
+        if r is None:
+            self.error("'%s'" % t)
+        return r
+
+
+class TamsinScanner(Scanner):
     def scan_impl(self):
         while self.startswith((' ', '\t', '\r', '\n')):
             self.chop(1)
@@ -132,25 +150,19 @@ class Scanner(object):
 
         self.token = self.buffer[0]
         self.error('identifiable character')
-        
-    def consume(self, t):
-        #print repr(self.token), repr(t)
-        if self.token == t:
-            self.scan()
-            return t
-        else:
-            return None
-    
-    def expect(self, t):
-        r = self.consume(t)
-        if r is None:
-            self.error("'%s'" % t)
-        return r
+
+
+class RawScanner(Scanner):
+    def scan_impl(self):
+        if self.eof():
+            self.token = None
+            return
+        self.token = self.chop(1)
 
 
 class Parser(object):
     def __init__(self, buffer):
-        self.scanner = Scanner(buffer)
+        self.scanner = TamsinScanner(buffer)
 
     def eof(self):
         return self.scanner.eof()
@@ -207,12 +219,20 @@ class Parser(object):
 
     def expr2(self):
         lhs = self.expr3()
+        if self.consume('with'):
+            scanner_name = self.scanner.token
+            self.scan()
+            lhs = ('WITH', lhs, scanner_name)
+        return lhs
+
+    def expr3(self):
+        lhs = self.expr4()
         if self.consume(u'→'):
             v = self.variable()
             lhs = ('SEND', lhs, v)
         return lhs
-    
-    def expr3(self):
+
+    def expr4(self):
         if self.consume('('):
             e = self.expr0()
             self.expect(')')
@@ -319,7 +339,7 @@ class Context(object):
 class Interpreter(object):
     def __init__(self, ast, buffer):
         self.program = ast
-        self.scanner = Scanner(buffer)
+        self.scanner = TamsinScanner(buffer)
         self.context = Context()
 
     ### grammar stuff ---------------------------------------- ###
@@ -406,7 +426,7 @@ class Interpreter(object):
                         ibuf = ibuf.expand(self.context)
                         debug("expanded ibuf: %r" % ibuf)
                         saved_scanner = self.scanner.clone()
-                        self.scanner = Scanner(str(ibuf))
+                        self.scanner = (self.scanner.__class__)(str(ibuf))
                     x = self.interpret(prod, bindings=bindings)
                     if ibuf is not None:
                         self.scanner = saved_scanner
@@ -450,6 +470,20 @@ class Interpreter(object):
             val = ast[1].expand(self.context)
             print val
             return val
+        elif ast[0] == 'WITH':
+            sub = ast[1]
+            scanner_name = ast[2]
+            if scanner_name == 'tamsin':
+                new_scanner_class = TamsinScanner
+            elif scanner_name == 'raw':
+                new_scanner_class = RawScanner
+            else:
+                raise ValueError("No such scanner '%s'" % scanner_name)
+            saved_scanner = self.scanner.clone()
+            self.scanner = self.scanner.clone(class_=new_scanner_class)
+            result = self.interpret(sub)
+            self.scanner = saved_scanner
+            return result
         elif ast[0] == 'WHILE':
             result = Term('nil')
             while True:

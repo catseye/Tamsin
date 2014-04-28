@@ -27,8 +27,9 @@ Grammar
     Production ::= ProdName ["(" [Term {"," Term} ")"] "=" Expr0.
     Expr0 := Expr1 {("||" | "|") Expr1}.
     Expr1 := Expr2 {("&&" | "&") Expr2}.
-    Expr2 := Expr3 ["→" Variable].
-    Expr3 := "(" Expr0 ")"
+    Expr2 := Expr3 ["with" Scanner].
+    Expr3 := Expr4 ["→" Variable].
+    Expr4 := "(" Expr0 ")"
            | "[" Expr0 "]"
            | "{" Expr0 "}"
            | "set" Variable "=" Term
@@ -668,3 +669,21 @@ you can change it!  Ideally, you could define your own scanner, but for
 now, you'll only be able to select from the Tamsin scanner and a "raw"
 scanner that only gives back characters.
 
+There are definitely some caveats here.  Scanners for recursive descent
+parsers pre-emptively scan the next token.  So when we switch scanners,
+we'll have a "leftover" token from the previous scanner.  Well, we'll see.
+
+    | main = cat.
+    | cat = "cat" & return ok.
+    + cat
+    = ok
+
+    | main = cat.
+    | cat = "c" & "a" & "t" & return ok.
+    + cat
+    ? expected 'c' found 'cat'
+
+    | main = cat with raw.
+    | cat = "c" & "a" & "t" & return ok.
+    + cat
+    = ok
