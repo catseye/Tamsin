@@ -183,6 +183,16 @@ the stream that the LHS started on.  So basically, it's "backtracking".
     + 0 2
     = 2
 
+Alternatives can select code to be executed, basically.
+
+    | main = set L = nil & (aorb & set L = el(L) | cord & set L = le(L)) &
+    |        return L.
+    | aorb = "a" | "b".
+    | cord = "c" | eorf.
+    | eorf = "e" | "f".
+    + e
+    = le(nil)
+
 When a production is called, the result that it evaluates to may be stored
 in a variable.  Variables are local to the production.
 
@@ -439,8 +449,8 @@ Hey, how about 「this is an atom」?  Hmmm...
 
 For now, let's evaluate some backwards S-expressions.
 
-DEFINITELY SOME PROBLEMS WITH `{while}`; we're not restoring context
-properly when we try/except.
+Whew, finally got `{}` (while) working correctly.  Although, this result isn't
+quite what I had in mind, but it does parse...
 
     | main = sexp.
     | sexp = symbol | list.
@@ -450,17 +460,8 @@ properly when we try/except.
     |        ")" &
     |        return L.
     | symbol = "cons" | "head" | "tail" | "nil" | "a" | "b" | "c".
-    + (cons (a cons(b nil))
-    = cons(a, cons(b, nil))
-
-
-    | main = set L = nil & (aorb & set L = el(L) | cord & set L = le(L)) &
-    |        return L.
-    | aorb = "a" | "b".
-    | cord = "c" | eorf.
-    | eorf = "e" | "f".
-    + e
-    = le(nil)
+    + (cons (a (cons b nil)))
+    = cons(cons(cons(nil, cons(b, cons(cons, nil))), cons(a, nil)), cons(cons, nil))
 
 So let's write it in the less intuitive, recursive way:
 
