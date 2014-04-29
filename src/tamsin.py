@@ -94,6 +94,7 @@ class DebugEventListener(object):
 
     def putstr(self, s):
         print (self.indent * '  ' + s)
+        sys.stdout.flush()
 
     def announce(self, tag, *data):
         if tag == 'enter_interpreter':
@@ -111,7 +112,7 @@ class DebugEventListener(object):
                 old_scanner.dump(self.indent)
                 self.putstr("")
         else:
-            return
+            pass
 
         # EVERYTHING
         self.putstr("%s %r" % (tag, data))
@@ -819,6 +820,8 @@ class Interpreter(EventProducer):
                       self.scanner.report_buffer(self.scanner.position, 20)))
                 return (False, Term(s))
         elif ast[0] == 'ANY':
+            if self.scanner.eof():
+                return (False, Term("expected any token, found EOF"))
             return (True, self.scanner.consume_any())
         else:
             raise NotImplementedError(repr(ast))

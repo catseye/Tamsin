@@ -1,24 +1,24 @@
 Tamsin
 ======
 
-Tamsin is a language somewhere between a programming language and a
-meta-language (a language for defining languages.)  It also has some
-characteristics reminiscent of unix shell programming and Erlang.
-(And Squishy2K.  And Chomsky Level 0 grammars.  And dioids.  And...)
+Tamsin is a strange little language that can't decide if it's a
+language-definition language like CoCo/R or a functional language
+like Erlang or a practical extraction and reporting language like...
+that one practical extraction and reporting language whose name
+escapes me at the moment.
 
 Basically, every time I see someone use a compiler-compiler like `yacc`
 or a parser combinator library, part of me thinks, "Well why didn't
 you just write a recursive-descent parser?  Recursive-descent parsers
 are easy to write and they make for extremely pretty code!"
-
 And what does a recursive-descent parser do?  It consumes input.  But
 don't *all* algorithms consume input?  So why not have a language which
 makes it easy to write recursive-descent parsers, and force all programs
 to be written as recursive-descent parsers?  Then all code will be pretty!
 (Yeah, sure, OK.)
 
-Where I'm going with this, I don't exactly know yet.  It is a work in
-progress and will definitely change.
+Where I'm going with this, I don't quite know yet.  It is a
+**work in progress** and will definitely change as time goes on.
 
 Teaser Examples
 ---------------
@@ -55,6 +55,22 @@ Parse an algebraic expression to a syntax tree.
     | term = "x" | "y" | "z" | "(" & expr0 → E & ")" & return E.
     + x+y*(z+x+y)
     = add(x, mul(y, add(add(z, x), y)))
+
+Make a story more exciting!
+
+    | main = collect using ☆char.
+    | collect = set S = '' & {translate → C & set S = S + C} & return S.
+    | translate = □ & fail done | "." & return '!' | "?" & return '?!' | any.
+    + Chapter 1
+    + ---------
+    + It was raining.  She knocked on the door.  She heard
+    + footsteps inside.  The door opened.  The butler peered
+    + out.  "Hello," she said.  "May I come in?"
+    = Chapter 1
+    = ---------
+    = It was raining!  She knocked on the door!  She heard
+    = footsteps inside!  The door opened!  The butler peered
+    = out!  "Hello," she said!  "May I come in?!"
 
 Reverse a list.
 
@@ -235,7 +251,7 @@ as many as you like, and it continues to succeed.
     + sure begorrah
     = EOF
 
-The symbol `any` matches any token defined by the scanner.
+The symbol `any` matches any token defined by the scanner except □.
 
     | main = any & any & any.
     + (@)
@@ -244,6 +260,10 @@ The symbol `any` matches any token defined by the scanner.
     | main = any & any & any.
     + words words words
     = words
+
+    | main = any & any.
+    + words
+    ? expected any token, found EOF
 
 When a production is called, the result that it evaluates to may be stored
 in a variable.  Variables are local to the production.
@@ -1699,3 +1719,4 @@ Appendix B. TODO
 *   dictionary values in variables?
 *   arbitrary non-printable characters in terms and such
 *   special form that consumes rest of input from the Tamsin source
+*   `any` matches EOF; it probably shouldn't.
