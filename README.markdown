@@ -781,7 +781,14 @@ of the `with`, scanning returns to whatever scanner was in force before the
     + cat dog
     = dog
 
-But you need to be careful with `with`!  You should not put `with` inside
+On the other hand, variables set with one scanner can be accessed by another
+scanner, as long as they're in the same production.
+
+    | main = ("c" & "a" & "t" → G) with raw & ("dog" & return G) with tamsin.
+    + cat dog
+    = t
+
+**Note**: you need to be careful with `with`!  You should not put `with` inside
 a rule that can fail, i.e. the LHS of `|` or inside a `{}`.  Because if it
 does fail and the interpreter reverts the scanner to its previous state,
 its previous state may have been a different scanner.  The result may well
@@ -1383,3 +1390,118 @@ We handle parse errors (backtrack) only in `OR` and `WHILE`, and in the
 ProductionScannerEngine logic (to provide that EOF if the scanning production
 failed.  This can happen even in `peek()` at the end of a string, even after
 we've successfully parsed everything else.)
+
+### More tests ###
+
+A production scanner may contain an embedded `with` and use another
+production scanner.
+
+    | main = program with scanner1.
+    | 
+    | scanner1 = scan1 with raw.
+    | scan1 = "a" | "b" | "c" | "(" & other & ")" & return list.
+    | 
+    | other = xyz with scanner2.
+    | xyz = "1" & "1" | "1" & "2" | "2" & "3".
+    | 
+    | scanner2 = scan2 with raw.
+    | scan2 = "x" & return 1 | "y" & return 2 | "z" & return 3.
+    | program = "c" & "list" & "a".
+    + c(xx)a
+    = a
+
+    | main = program with scanner1.
+    | 
+    | scanner1 = scan1 with raw.
+    | scan1 = "a" | "b" | "c" | "(" & other & ")" & return list.
+    | 
+    | other = xyz with scanner2.
+    | xyz = "1" & "1" | "1" & "2" | "2" & "3".
+    | 
+    | scanner2 = scan2 with raw.
+    | scan2 = "x" & return 1 | "y" & return 2 | "z" & return 3.
+    | program = "c" & "list" & "a".
+    + c(yy)a
+    ? expected 'list' found 'EOF'
+
+Maybe an excessive number of minor variations on that...
+
+    | main = program with scanner1.
+    | 
+    | scanner1 = scan1 with raw.
+    | scan1 = "a" | "b" | "c" | "(" & xyz with scanner2 & ")" & return list.
+    | 
+    | xyz = "1" & "1" | "1" & "2" | "2" & "3".
+    | 
+    | scanner2 = scan2 with raw.
+    | scan2 = "x" & return 1 | "y" & return 2 | "z" & return 3.
+    | program = "c" & "list" & "a".
+    + c(xx)a
+    = a
+
+    | main = program with scanner1.
+    | 
+    | scanner1 = scan1 with raw.
+    | scan1 = "a" | "b" | "c" | "(" & {other} & ")" & return list.
+    | 
+    | other = xyz with scanner2.
+    | xyz = "1" & "1" | "1" & "2" | "2" & "3".
+    | 
+    | scanner2 = scan2 with raw.
+    | scan2 = "x" & return 1 | "y" & return 2 | "z" & return 3.
+    | program = "c" & "list" & "a".
+    + c(xxxyyzxy)a
+    = a
+
+    | main = program with scanner1.
+    | 
+    | scanner1 = scan1 with raw.
+    | scan1 = "a" | "b" | "c" | "(" & {xyz with scanner2} & ")" & return list.
+    | 
+    | xyz = "1" & "1" | "1" & "2" | "2" & "3".
+    | 
+    | scanner2 = scan2 with raw.
+    | scan2 = "x" & return 1 | "y" & return 2 | "z" & return 3.
+    | program = "c" & "list" & "a".
+    + c(xxxyyzxy)a
+    = a
+
+    | main = program with scanner1.
+    | 
+    | scanner1 = scan1 with raw.
+    | scan1 = "a" | "b" | "c"
+    |       | "(" & {xyz → R with scanner2} & ")" & return R.
+    | 
+    | xyz = "1" & "1" & return 11 | "1" & "2" & return 12 | "2" & "3" & return 23.
+    | 
+    | scanner2 = scan2 with raw.
+    | scan2 = "x" & return 1 | "y" & return 2 | "z" & return 3.
+    | program = "c" & ("11" | "12" | "23") → R & "a" & return R.
+    + c(xxxyyzxy)a
+    = 12
+
+The production being applied with the production scanner can also switch
+its own scanner.  It switches back to the production scanner when done.
+
+    | main = program with scanner.
+    | 
+    | scanner = scan with raw.
+    | scan = {" "} & set T = 「」 & {("a" | "b" | "c") → S & set T = T • S}.
+    | 
+    | program = "abc" & "cba" & "bac".
+    + abc    cba bac
+    = bac
+
+    | main = program with scanner.
+    | 
+    | scanner = scan with raw.
+    | scan = {" "} & set T = 「」 & {("a" | "b" | "c") → S & set T = T • S}.
+    | 
+    | program = "abc" & (subprogram with subscanner) & "bac".
+    | 
+    | subscanner = subscan with raw.
+    | subscan = {" "} & set T = 「」 & {("s" | "t" | "u") → S & set T = T • S}.
+    | 
+    | subprogram = "stu" & "uuu".
+    + abc    stu   uuu bac
+    = bac
