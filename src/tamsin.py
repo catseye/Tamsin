@@ -160,12 +160,15 @@ class Scanner(EventProducer):
         )
 
     def get_state(self):
-        assert self.position == self.reset_position, "divergent..."
-        return (self.position,)
+        assert self.position == self.reset_position, \
+            "scanner in divergent state: pos=%s, reset=%s" % (
+                self.position, self.reset_position)
+        return (self.position, self.buffer)
 
-    def install_state(self, (position,)):
+    def install_state(self, (position, buffer)):
         self.position = position
         self.reset_position = position
+        self.buffer = buffer
 
     def push_engine(self, engine):
         self.engines.append(engine)
@@ -209,24 +212,18 @@ class Scanner(EventProducer):
                           self.report_buffer(self.position, 20),
                           self.position))
 
-    def clone(self):
-        assert self.position == self.reset_position, "divergent..."
-        # note: for now, does not clone the engines.  they're shared.
-        n = self.__class__(self.buffer, position=self.position,
-                           listeners=self.listeners)
-        n.engines = self.engines
-        return n
-
     def scan(self):
         """Returns the next token from the buffer.
         
         You MUST call either commit() or unscan() after calling this,
         as otherwise the position and reset_position will be divergent
-        (and you will trigger an assert if you try to scan() or clone().)
+        (and you will trigger an assert when you try to scan().)
         If you want to just see what the next token would be, call peek().
 
         """
-        assert self.position == self.reset_position, "divergent..."
+        assert self.position == self.reset_position, \
+            "scanner in divergent state: pos=%s, reset=%s" % (
+                self.position, self.reset_position)
         tok = self.engines[-1].scan_impl(self)
         self.event('scanned', self, tok)
         return tok
@@ -643,7 +640,6 @@ class Interpreter(EventProducer):
 
         """
         self.event('interpret_ast', ast)
-        #print ast
         if ast[0] == 'PROGRAM':
             mains = self.find_productions('main')
             return self.interpret(mains[0])
@@ -671,29 +667,29 @@ class Interpreter(EventProducer):
                     bindings = self.match_all(formals, args)
                     self.event('call_bindings', bindings)
                     if bindings != False:
-                        saved_scanner_state = None
                         if ibuf is not None:
-                            ibuf = ibuf.expand(self.context)
-                            self.event('call_ibuf', ibuf)
-                            saved_scanner = self.scanner
-                            self.scanner = self.scanner.clone()
-                            self.scanner.buffer = str(ibuf)
-                            self.scanner.position = 0
-                            self.scanner.saved_position = 0
-                        x = self.interpret(prod, bindings=bindings)
-                        if ibuf is not None:
-                            self.scanner = saved_scanner
-                        return x
+                            return self.interpret_on_buffer(
+                                prod, str(ibuf.expand(self.context)),
+                                bindings=bindings
+                            )
+                        else:
+                            return self.interpret(prod, bindings=bindings)
                 else:
                     self.event('call_newfangled_parsing_args', prod)
+                    print >>sys.stderr, formals, args, str(args[0])
+                    # XXX bindings may happen as a result of this;
+                    # they'll be in the interpreter's context?
+                    (success, result) = self.interpret_on_buffer(
+                        formals, str(args[0]))
+                    sys.exit(0)
             raise ValueError("No '%s' production matched arguments %r" %
                 (name, args)
             )
         elif ast[0] == 'SEND':
-            (succeded, result) = self.interpret(ast[1])
+            (success, result) = self.interpret(ast[1])
             assert isinstance(ast[2], Variable), ast
             self.context.store(ast[2].name, result)
-            return (succeded, result)
+            return (success, result)
         elif ast[0] == 'SET':
             assert isinstance(ast[1], Variable), ast
             assert isinstance(ast[2], Term), ast
@@ -800,6 +796,18 @@ class Interpreter(EventProducer):
             return (True, self.scanner.consume_any())
         else:
             raise NotImplementedError(repr(ast))
+
+    def interpret_on_buffer(self, ast, buffer, bindings=None):
+        print >>sys.stderr, "???>", self.scanner.peek()
+        self.event('interpret_on_buffer', buffer)
+        saved_scanner_state = self.scanner.get_state()
+        self.scanner.buffer = buffer
+        self.scanner.position = 0
+        self.scanner.saved_position = 0
+        print >>sys.stderr, "???>", self.scanner.peek()
+        result = self.interpret(ast, bindings=bindings)
+        self.scanner.install_state(saved_scanner_state)
+        return result
 
 
 def test_peek_is_idempotent():
