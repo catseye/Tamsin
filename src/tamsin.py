@@ -104,7 +104,7 @@ class DebugEventListener(object):
         if tag in ('leave_interpreter', 'update_scanner'):
             new_scanner = data[0]
             old_scanner = data[1]
-            if (isinstance(new_scanner, RawScanner) and
+            if (isinstance(new_scanner, CharScanner) and
                 isinstance(old_scanner, ProductionScanner)):
                 self.putstr("%s %r" % (tag, data))
                 new_scanner.dump(self.indent)
@@ -293,7 +293,8 @@ class TamsinScannerEngine(ScannerEngine):
             return tok
         
         if scanner.startswith(('=', '(', ')', '[', ']', '{', '}',
-                            '|', '&', u'→', ',', '.', '@', u'•', u'□')):
+                            '|', '&', u'→', ',', '.', '@',
+                            u'•', u'□', u'☆')):
             return scanner.chop(1)
 
         if scanner.startswith(('"',)):
@@ -321,7 +322,7 @@ class TamsinScannerEngine(ScannerEngine):
         scanner.error('identifiable character')
 
 
-class RawScannerEngine(ScannerEngine):
+class CharScannerEngine(ScannerEngine):
     def scan_impl(self, scanner):
         if scanner.eof():
             return EOF
@@ -432,9 +433,14 @@ class Parser(EventProducer):
 
     def expr2(self):
         lhs = self.expr3()
-        if self.consume('with'):
-            scanner_name = self.consume_any()
-            lhs = ('WITH', lhs, scanner_name)
+        if self.consume('using'):
+            if self.consume(u'☆'):
+                # TODO: 'tamsin' or 'char' is all
+                scanner_name = self.consume_any()
+            else:
+                # TODO: a production name only
+                scanner_name = self.consume_any()
+            lhs = ('USING', lhs, scanner_name)
         return lhs
 
     def expr3(self):
@@ -725,13 +731,13 @@ class Interpreter(EventProducer):
             val = ast[1].expand(self.context)
             print val
             return (True, val)
-        elif ast[0] == 'WITH':
+        elif ast[0] == 'USING':
             sub = ast[1]
             scanner_name = ast[2]
             if scanner_name == u'tamsin':
                 new_engine = TamsinScannerEngine()
-            elif scanner_name == u'raw':
-                new_engine = RawScannerEngine()
+            elif scanner_name == u'char':
+                new_engine = CharScannerEngine()
             else:
                 prods = self.find_productions(scanner_name)
                 if len(prods) != 1:
@@ -781,7 +787,7 @@ class Interpreter(EventProducer):
 
 
 def test_peek_is_idempotent():
-    ast = ('PROGRAM', [('PROD', u'main', [], ('WITH', ('CALL', u'program', [], None), u'scanner')), ('PROD', u'scanner', [], ('WITH', ('CALL', u'scan', [], None), u'raw')), ('PROD', u'scan', [], ('AND', ('LITERAL', u'X'), ('OR', ('AND', ('AND', ('AND', ('LITERAL', u'c'), ('LITERAL', u'a')), ('LITERAL', u't')), ('RETURN', Term('cat'))), ('AND', ('AND', ('AND', ('LITERAL', u'd'), ('LITERAL', u'o')), ('LITERAL', u'g')), ('RETURN', Term('dog')))))), ('PROD', u'program', [], ('AND', ('LITERAL', u'cat'), ('LITERAL', u'dog')))])
+    ast = ('PROGRAM', [('PROD', u'main', [], ('USING', ('CALL', u'program', [], None), u'scanner')), ('PROD', u'scanner', [], ('USING', ('CALL', u'scan', [], None), u'char')), ('PROD', u'scan', [], ('AND', ('LITERAL', u'X'), ('OR', ('AND', ('AND', ('AND', ('LITERAL', u'c'), ('LITERAL', u'a')), ('LITERAL', u't')), ('RETURN', Term('cat'))), ('AND', ('AND', ('AND', ('LITERAL', u'd'), ('LITERAL', u'o')), ('LITERAL', u'g')), ('RETURN', Term('dog')))))), ('PROD', u'program', [], ('AND', ('LITERAL', u'cat'), ('LITERAL', u'dog')))])
     scanner = Scanner('XdogXcat')
     scanner.push_engine(TamsinScannerEngine())
     interpreter = Interpreter(ast, scanner)
