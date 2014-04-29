@@ -589,25 +589,20 @@ return the rightmost bottommost leaf.
 ### Implicit Buffer ###
 
 Object-oriented languages sometimes have an "implicit self".  That means
-when you say "foo", it's assumed (at least, to begin with,) to be a
-method on the current object that is in context.
+when you say just `foo`, it's assumed (at least, to begin with,) to be a
+method or field on the current object that is in context.
 
-Tamsin, clearly, has an implicit buffer.  This is the buffer on which
+Tamsin, clearly, has an _implicit buffer_.  This is the buffer on which
 scanning/parsing operations like terminals operate.  When you call another
 production from a production, that production you call gets the same
 implicit buffer you were working on.  And `main` gets standard input as
 its implicit buffer.
 
 So, also clearly, there should be some way to alter the implicit buffer
-when you call another production.
+when you call another production.  And there is.
 
-Here's a "problem": the implicit buffer is a string, and we don't have
-strings in the data domain, we have terms.  This "problem" is easily
-"solvable": we can stringify the term.  This is a terrible "solution",
-but it lets us experiment further.
-
-What's the syntax for this?  How about postfix `@`, because you're
-pointing the production "at" some other text...
+The syntax for this is postfix `@`, because you're pointing the production
+"at" some other text...
 
     | main = set T = tree(a,tree(b,c)) & tree @ T.
     | tree = "tree" & "(" & tree → L & "," & tree → R & ")" & return fwee(L, R)
@@ -615,13 +610,12 @@ pointing the production "at" some other text...
     + doesn't matter
     = fwee(a, fwee(b, c))
 
-This would be nicer if we had a syntax to put arbitrary text in an atom.
-Hey, how about 「this is an atom」?  Hmmm...
+### Case Study: Parsing and Evaluating S-Expressions ###
 
-For now, let's evaluate some backwards S-expressions.
+We now have enough tools at our disposal to parse and evaluate simple
+S-expressions (from Lisp or Scheme).
 
-Whew, finally got `{}` (while) working correctly.  Although, this result isn't
-quite what I had in mind, but it does parse...
+We can write such a parser with `{}`, but the result is a bit messy.
 
     | main = sexp.
     | sexp = symbol | list.
@@ -646,10 +640,13 @@ So let's write it in the less intuitive, recursive way:
     + (a b)
     = pair(b, pair(a, nil))
 
-Reverser.  In Erlang this would be
+Nice.  But it returns a term that's backwards.  So we need to write a
+reverser.  In Erlang, this would be
 
     reverse([H|T], A) -> reverse(T, [H|A]).
     reverse([], A) -> A.
+
+In Tamsin, it's:
 
     | main = sexp → S & reverse(S, nil) → SR & return SR.
     | 
@@ -667,7 +664,7 @@ Reverser.  In Erlang this would be
     + (a b)
     = pair(a, pair(b, nil))
 
-But it's not deep.
+But it's not deep.  It only reverses the top-level list.
 
     | main = sexp → S & reverse(S, nil) → SR & return SR.
     | 
@@ -685,7 +682,7 @@ But it's not deep.
     + (a (c b) b)
     = pair(a, pair(pair(b, pair(c, nil)), pair(b, nil)))
 
-Deep reverser.
+So here's a deep reverser.
 
     | main = sexp → S & reverse(S, nil) → SR & return SR.
     | 
@@ -830,14 +827,13 @@ In this one, we make the evaluator print out some of the steps it takes.
     = y(a, b)
     = pair(a, b)
 
-Implicit Scanner
-----------------
+### Implicit Scanner ###
 
 Not only is there an implicit buffer, there is also, obviously, an implicit
 scanner.  By default, this is the scanner for the Tamsin language.  But
 you can change it!
 
-### A prolix note on implementation ###
+#### A prolix note on implementation ####
 
 Traditionally, scanners for recursive descent parsers pre-emptively scan
 the next token.  This was done because originally, parsers (for languages
@@ -870,7 +866,7 @@ restoring its state, and it has a stack of "engines" which provide the
 actual scanning logic.  In addition, there is only one interpreter object,
 and it only has one scanner object during its lifetime.
 
-### The scanners ###
+### Changing the scanner ###
 
 The default scanner logic implements the scan rules for the Tamsin language.
 
@@ -935,8 +931,9 @@ Because if it does fail and the interpreter reverts the scanner to its
 previous state, its previous state may have been with a different scanning
 logic.  The result may well be eurr.
 
-Aside #2
---------
+### Aside #2 ###
+
+[...]
 
 Well this is all very nice, very pretty I'm sure you'll agree, but it doesn't
 hang together too well.  Figuration is easier than composition.  The thing is
@@ -990,8 +987,7 @@ below.
     + b
     = no
 
-Anyway, back to scanning
-------------------------
+### Anyway, back to scanning ###
 
 Now that we can concatenate terms, we can probably write our own scanner.
 
@@ -1517,25 +1513,6 @@ Some of them will be cleaned up at a future point.
     + dog dog dog
     ? expected 'cat' found 'dog'
 
-### Notes ###
-
-Maybe test-driven language design *not* "for the win" in all cases; it's
-excellent for evolving a design, but not so good for deep debugging.  I had
-to actually write a dedicated test case which directly accessed the internals,
-to find the problem.
-
-This was only after refactoring the implementation two or three times.  One
-of those times, I removed exceptions, so now the interpreter returns
-`(success, result)` tuples, where `success` is a boolean, and propagates
-parse errors itself.
-
-We "raise" a parse error only in the `LITERAL` AST node.
-
-We handle parse errors (backtrack) only in `OR` and `WHILE`, and in the
-ProductionScannerEngine logic (to provide that EOF if the scanning production
-failed.  This can happen even in `peek()` at the end of a string, even after
-we've successfully parsed everything else.)
-
 ### More tests ###
 
 A literal string may contain escape sequences.  Note, I hate escape sequences!
@@ -1685,8 +1662,7 @@ its own scanner.  It switches back to the production scanner when done.
     + abc    stu   uuu bac
     = bac
 
-And now, back to "parse-patterns"
----------------------------------
+### And now, back to "parse-patterns" ###
 
 Now that you can create scanners and parsers to your heart's desire, we
 return to the reason you would even need to: terms vs. rules in the
@@ -1818,6 +1794,35 @@ for this, quite.  Ditto ⟦these⟧.
 
 Ah, well, it may not be a real problem, unless we want to make `return`
 optional (which we do.)  Maybe, onto weirder stuff first.
+
+### stuff about implicit buffer ###
+
+Here's a "problem": the implicit buffer is a string, and we don't have
+strings in the data domain, we have terms.  This "problem" is easily
+"solvable": we can stringify the term.  This is a terrible "solution",
+but it lets us experiment further.
+
+This would be nicer if we had a syntax to put arbitrary text in an atom.
+Hey, how about 「this is an atom」?  Hmmm...
+
+### Implementation Notes ###
+
+Maybe test-driven language design *not* "for the win" in all cases; it's
+excellent for evolving a design, but not so good for deep debugging.  I had
+to actually write a dedicated test case which directly accessed the internals,
+to find the problem.
+
+This was only after refactoring the implementation two or three times.  One
+of those times, I removed exceptions, so now the interpreter returns
+`(success, result)` tuples, where `success` is a boolean, and propagates
+parse errors itself.
+
+We "raise" a parse error only in the `LITERAL` AST node.
+
+We handle parse errors (backtrack) only in `OR` and `WHILE`, and in the
+ProductionScannerEngine logic (to provide that EOF if the scanning production
+failed.  This can happen even in `peek()` at the end of a string, even after
+we've successfully parsed everything else.)
 
 Appendix B. TODO
 ----------------
