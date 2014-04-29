@@ -1505,3 +1505,33 @@ its own scanner.  It switches back to the production scanner when done.
     | subprogram = "stu" & "uuu".
     + abc    stu   uuu bac
     = bac
+
+And now, back to "parse-patterns"
+---------------------------------
+
+Now that you can create scanners and parsers to your heart's desire, we
+return to the reason you would even need to: terms vs. rules in the
+"formal arguments" part of a production definition.
+
+    | main = aorb → C & donkey(「fo go」 • C) → D & return D.
+    | aorb = "a" | "b".
+    | donkey["fo" & "goa"] = return yes.
+    | donkey["fo" & "gob"] = return no.
+    + b
+    ? No 'donkey' production matched arguments [fo gob]
+
+Having thought more about it, I think the easiest way to reconcile terms
+and strings is to have terms be syntactic sugar for strings.  This is
+already the case for ground terms, since `tree(a,b)` stringifies to the
+same string as `「tree(a,b)」`.  It's when variables are involved where it
+differs.  We would like some kind of quasi-quote such that even though
+`「tree(A,b)」` → `tree(A,n)`, `«tree(A,b)»` → `tree(tree(x,y),b)` or
+whatever.
+
+Also todo:
+
+*   `any`
+*   `raw` and `tamsin` → `☆char` and `☆tamsin` or something, so you
+    can have productions by those names (☆ = "builtin" or something)
+*   dictionary values in variables?
+*   `''` and `+` for `「」` and `•`
