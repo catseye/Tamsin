@@ -439,9 +439,15 @@ Back to the examples
 
 A production may be called with arguments.
 
-    | main = blerf(foo).
-    | blerf(X) = return X.
-    = foo
+    | main = blerf(world).
+    | blerf(X) = return hello(X).
+    = hello(world)
+
+No variables from the caller leak into the called production.
+
+    | main = set F = whatever & donkey(world).
+    | donkey(E) = return hello(F).
+    ? KeyError
 
 Note that this makes the «»-form more interesting.
 
@@ -1621,7 +1627,42 @@ super-useful for intermediate representations — abstract syntax trees
 and the like.  I've been thinking about some kind of compromise.  Which
 is, currently, what we sort of have.  A Tamsin term doubles as a string,
 for better or worse.  Mainly, we should sort out the properties of terms,
-then.
+then.  Which we will do.  But first,
+
+Variables that are set in a parse-pattern formals are available to
+the production's rule.
+
+    | main = donkey(world).
+    | donkey[any → E] = return hello(E).
+    = hello(world)
+
+No variables from the caller leak into the called production.
+
+    | main = set F = whatever & donkey(world).
+    | donkey[any → E] = return hello(F).
+    ? KeyError
+
+Terms are stringified before being matched.
+
+    | main = donkey(a(b(c))).
+    | donkey["a" & "(" & "b" & "(" & "c" & ")" & ")"] = return yes.
+    = yes
+
+Thus, in this sense at least, terms are sugar for strings.
+
+    | main = donkey('a(b(c))').
+    | donkey["a" & "(" & "b" & "(" & "c" & ")" & ")"] = return yes.
+    = yes
+
+The rule formals may call on other rules in the program.
+
+    | main = donkey('pair(pair(0,1),1)').
+    | donkey[pair → T] = return its_a_pair(T).
+    | donkey[bit → T] = return its_a_bit(T).
+    | thing = pair | bit.
+    | pair = "pair" & "(" & thing → A & "," & thing → B & ")" & return pair(A,B).
+    | bit = "0" | "1".
+    = its_a_pair(pair(pair(0, 1), 1))
 
 Appendix A. Grammar
 -------------------

@@ -693,13 +693,21 @@ class Interpreter(EventProducer):
                             return self.interpret(prod, bindings=bindings)
                 else:
                     self.event('call_newfangled_parsing_args', prod)
-                    # XXX bindings may happen as a result of this;
-                    # they'll be in the interpreter's context?
+                    # start a new scope.  arg bindings will appear here.
+                    self.context.push_scope(prod[1])
                     (success, result) = self.interpret_on_buffer(
                         formals, str(args[0])
                     )
+                    # we do not want to start a new scope here, and we
+                    # interpret the rule directly, not the prod.
                     if success:
-                        return self.interpret(prod)
+                        self.event('begin_interpret_rule', prod[3])
+                        (success, result) = self.interpret(prod[3])
+                        self.event('end_interpret_rule', prod[3])
+                        self.context.pop_scope(prod[1])
+                        return (success, result)
+                    else:
+                        self.context.pop_scope(prod[1])
             raise ValueError("No '%s' production matched arguments %r" %
                 (name, args)
             )
