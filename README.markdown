@@ -1445,6 +1445,40 @@ we've successfully parsed everything else.)
 
 ### More tests ###
 
+A literal string may contain escape sequences.  Note, I hate escape sequences!
+So I might not leave this feature in, or, at least, not quite like this.
+
+    | main = ("a" & "\"" & "b" & return 'don\'t') using ☆char.
+    + a"b
+    = don't
+
+    | main = ("a" & "\\" & "b" & return 'don\\t') using ☆char.
+    + a\b
+    = don\t
+
+    | main = ("a" & "\n" & "b" & return 'don\nt') using ☆char.
+    + a
+    + b
+    = don
+    = t
+
+    | main = ("a" & "\t" & "b" & return 'don\tt') using ☆char.
+    + a	b
+    = don	t
+
+And note, `"foo"` is syntactic sugar for `«「foo」»`.
+
+    | main = "foo" & «「foo」» & «'foo'» & return yup.
+    + foo foo foo
+    = yup
+
+And note, underscores are allowed in production and variable names,
+and atoms without quotes.
+
+    | main = this_prod.
+    | this_prod = set Var_name = this_atom & return Var_name.
+    = this_atom
+
 A production scanner may contain an embedded `with` and use another
 production scanner.
 
@@ -1590,6 +1624,5 @@ then.
 Also todo:
 
 *   dictionary values in variables?
-*   non-printable characters in terms and such, e.g. "\n"
-*   underscores in names
+*   arbitrary non-printable characters in terms and such
 *   special form that consumes rest of input from the Tamsin source
