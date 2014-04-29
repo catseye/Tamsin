@@ -207,7 +207,7 @@ class Scanner(EventProducer):
         return enc(report)
 
     def error(self, expected):
-        raise ValueError(u"Expected %s' at '%s...' (position %s)" %
+        raise ValueError(u"Expected %s' at '%s' (position %s)" %
                          (enc(expected),
                           self.report_buffer(self.position, 20),
                           self.position))
@@ -276,6 +276,13 @@ class ScannerEngine(object):
     pass
 
 
+CLOSE_QUOTE = {
+    '"': '"',
+    '\'': '\'',
+    u'「': u'」',
+}
+
+
 class TamsinScannerEngine(ScannerEngine):
     def scan_impl(self, scanner):
         while scanner.startswith((' ', '\t', '\r', '\n')):
@@ -290,25 +297,19 @@ class TamsinScannerEngine(ScannerEngine):
             return tok
         
         if scanner.startswith(('=', '(', ')', '[', ']', '{', '}',
-                            '|', '&', u'→', ',', '.', '@',
+                            '|', '&', u'→', ',', '.', '@', '+',
                             u'•', u'□', u'☆', u'«', u'»')):
             return scanner.chop(1)
 
-        if scanner.startswith(('"',)):
-            tok = '"'
-            scanner.chop(1)
-            while not scanner.eof() and not scanner.startswith('"'):
-                tok += scanner.chop(1)
-            scanner.chop(1)  # chop ending quote
-            return tok
-
-        if scanner.startswith((u'「',)):
-            tok = u'「'
-            scanner.chop(1)
-            while not scanner.eof() and not scanner.startswith(u'」'):
-                tok += scanner.chop(1)
-            scanner.chop(1)  # chop ending quote
-            return tok
+        for quote in (CLOSE_QUOTE.keys()):
+            if scanner.startswith((quote,)):
+                tok = quote
+                scanner.chop(1)
+                while (not scanner.eof() and
+                       not scanner.startswith((CLOSE_QUOTE[quote],))):
+                    tok += scanner.chop(1)
+                scanner.chop(1)  # chop ending quote
+                return tok
 
         if not scanner.eof() and scanner.isalnum():
             tok = ''
@@ -509,7 +510,7 @@ class Parser(EventProducer):
 
     def term(self):
         lhs = self.term1()
-        while self.consume(u'•'):
+        while self.consume(u'•') or self.consume('+'):
             rhs = self.term1()
             lhs = Concat(lhs, rhs)
         return lhs
@@ -518,9 +519,9 @@ class Parser(EventProducer):
         if self.peek()[0].isupper():
             return self.variable()
         elif (self.peek()[0].isalnum() or
-              self.peek()[0][0] == u'「'):
+              self.peek()[0][0] in (u'「', '\'')):
             atom = self.consume_any()
-            if atom[0] == u'「':
+            if atom[0] in (u'「', '\''):
                 atom = atom[1:]
             subs = []
             if self.consume('('):

@@ -333,7 +333,7 @@ a sort.  It takes a term, which it uses as the failure message.
     + 0
     = 0
 
-    | main = set E = 「Goodbye, world!」 & fail E.
+    | main = set E = 'Goodbye, world!' & fail E.
     + hsihdsihdsih
     ? Goodbye, world!
 
@@ -853,9 +853,9 @@ This section is just ideas for that.
 
 One is that instead of, or alongside terms, we compose strings.
 
-First, we put arbitrary text in an atom, with 「this syntax」.
-
-Then we allow terms to be concatenated with •.
+First, we put arbitrary text in an atom, with `「this syntax」`.  Then we allow
+terms to be concatenated with `•`.  It looks real cool!  But also, it's kind
+of annoying.  So we also allow `'this ' + 'syntax.'`.
 
 So, something like:
 
@@ -874,8 +874,8 @@ So, something like:
     = za
     = .
 
-    | main = set T = 「」 & {aorb → R & set T = T • R} & "." & return T.
-    | aorb = ("a" | "b") → C & return z • C.
+    | main = set T = '' & {aorb → R & set T = T + R} & "." & return T.
+    | aorb = ("a" | "b") → C & return z + C.
     + a b a.
     = zazbza
 
@@ -890,7 +890,7 @@ below.
     + a
     = yes
 
-    | main = aorb → C & donkey(「fo go」 • C) → D & return D.
+    | main = aorb → C & donkey('fo go' + C) → D & return D.
     | aorb = "a" | "b".
     | donkey["fo" & "goa"] = return yes.
     | donkey["fo" & "gob"] = return no.
@@ -1590,7 +1590,6 @@ then.
 Also todo:
 
 *   dictionary values in variables?
-*   `''` and `+` for `「」` and `•`
 *   non-printable characters in terms and such, e.g. "\n"
 *   underscores in names
 *   special form that consumes rest of input from the Tamsin source
