@@ -223,7 +223,7 @@ class Scanner(EventProducer):
         You MUST call either commit() or unscan() after calling this,
         as otherwise the position and reset_position will be divergent
         (and you will trigger an assert if you try to scan() or clone().)
-        If you want to just see what the next token would be, call next_tok().
+        If you want to just see what the next token would be, call peek().
 
         """
         assert self.position == self.reset_position, "divergent..."
@@ -232,18 +232,17 @@ class Scanner(EventProducer):
         return tok
 
     def unscan(self):
-        #print repr(self), " unscan: %s <- %s" % (self.position, self.reset_position)
         self.position = self.reset_position
 
     def commit(self):
         self.reset_position = self.position
 
-    def next_tok(self):
+    def peek(self):
         before = self.position
         tok = self.scan()
         self.unscan()
         after = self.position
-        assert before == after, "BADNESS %r" % self
+        assert before == after, "unscan did not restore position"
         return tok
 
     def consume(self, t):
@@ -348,32 +347,16 @@ class ProductionScannerEngine(ScannerEngine):
         # it.  we rely on that engine to actually get us the token, and it
         # will update the scanner for us.
         #
-        # it relies on the interpreter
-        # having the same scanner as the scanner we're on.  but note that
-        # we could not rely on this, as an | or {} could restore the scanner
-        # to a previous clone of it!  i noticed then when debugging
-        # next_tok() idempotency.  this has been changed; an intepreter
-        # only ever has one scanner.
-        #
         # BUT the subsidiary scanner may have commited, while WE want to
         # leave the scanner in a divergent state.  So we save the reset
         # position, and restore it when the subsidiary scan is done.
-        #print
-        #print "BEFORE PRODUCTION SCAN"
-        #scanner.dump()
-        
-        # nope!
-        #assert scanner is self.interpreter.scanner
+
+        assert scanner is self.interpreter.scanner
         save_reset_position = scanner.reset_position
         result = self.interpreter.interpret(self.production)
         (success, tok) = result
         subs_reset = scanner.reset_position
         scanner.reset_position = save_reset_position
-        #print
-        #print "AFTER PRODUCTION SCAN, their reset = %s, our reset = %s, result = %r" % (
-        #    subs_reset, save_reset_position, result
-        #)
-        #scanner.dump()
 
         if success:
             #self.event('production_scan', self.production, tok)
@@ -401,8 +384,8 @@ class Parser(EventProducer):
         return self.scanner.isalnum()
     def error(self, expected):
         return self.scanner.error(expected)
-    def next_tok(self):
-        return self.scanner.next_tok()
+    def peek(self):
+        return self.scanner.peek()
     def consume(self, t):
         return self.scanner.consume(t)
     def consume_any(self):
@@ -412,7 +395,7 @@ class Parser(EventProducer):
 
     def grammar(self):
         prods = [self.production()]
-        while self.next_tok() is not EOF:
+        while self.peek() is not EOF:
             prods.append(self.production())
         return ('PROGRAM', prods)
 
@@ -420,7 +403,7 @@ class Parser(EventProducer):
         name = self.consume_any()
         args = []
         if self.consume('('):
-            if self.next_tok() != ')':
+            if self.peek() != ')':
                 args.append(self.term())
                 while self.consume(','):
                     args.append(self.term())
@@ -474,8 +457,8 @@ class Parser(EventProducer):
             e = self.expr0()
             self.expect('}')
             return ('WHILE', e)
-        elif (self.next_tok() is not None and
-              self.next_tok()[0] == '"'):
+        elif (self.peek() is not None and
+              self.peek()[0] == '"'):
             literal = self.consume_any()[1:]
             return ('LITERAL', literal)
         elif self.consume('set'):
@@ -497,7 +480,7 @@ class Parser(EventProducer):
             name = self.consume_any()
             args = []
             if self.consume('('):
-                if self.next_tok() != ')':
+                if self.peek() != ')':
                     args.append(self.term())
                     while self.consume(','):
                         args.append(self.term())
@@ -508,7 +491,7 @@ class Parser(EventProducer):
             return ('CALL', name, args, ibuf)
 
     def variable(self):
-        if self.next_tok()[0].isupper():
+        if self.peek()[0].isupper():
             var = self.consume_any()
             return Variable(var)
         else:
@@ -522,16 +505,16 @@ class Parser(EventProducer):
         return lhs
 
     def term1(self):
-        if self.next_tok()[0].isupper():
+        if self.peek()[0].isupper():
             return self.variable()
-        elif (self.next_tok()[0].isalnum() or
-              self.next_tok()[0][0] == u'「'):
+        elif (self.peek()[0].isalnum() or
+              self.peek()[0][0] == u'「'):
             atom = self.consume_any()
             if atom[0] == u'「':
                 atom = atom[1:]
             subs = []
             if self.consume('('):
-                if self.next_tok() != ')':
+                if self.peek() != ')':
                     subs.append(self.term())
                 while self.consume(','):
                     subs.append(self.term())
@@ -736,7 +719,7 @@ class Interpreter(EventProducer):
                 return (True, EOF)
             else:
                 return (False, Term("expected EOF found '%s'" %
-                                    self.scanner.next_tok())
+                                    self.scanner.peek())
                        )
         elif ast[0] == 'PRINT':
             val = ast[1].expand(self.context)
@@ -782,22 +765,22 @@ class Interpreter(EventProducer):
             self.event('end_while', result)
             return (True, successful_result)
         elif ast[0] == 'LITERAL':
-            next_tok = self.scanner.next_tok()
-            self.event('try_literal', ast[1], self.scanner, next_tok)
+            upcoming_token = self.scanner.peek()
+            self.event('try_literal', ast[1], self.scanner, upcoming_token)
             if self.scanner.consume(ast[1]):
                 self.event('consume_literal', ast[1], self.scanner)
                 return (True, Term(ast[1]))
             else:
                 self.event('fail_literal', ast[1], self.scanner)
                 s = ("expected '%s' found '%s' (at '%s')" %
-                     (ast[1], next_tok,
+                     (ast[1], upcoming_token,
                       self.scanner.report_buffer(self.scanner.position, 20)))
                 return (False, Term(s))
         else:
             raise NotImplementedError(repr(ast))
 
 
-def test_next_tok_is_idempotent():
+def test_peek_is_idempotent():
     ast = ('PROGRAM', [('PROD', u'main', [], ('WITH', ('CALL', u'program', [], None), u'scanner')), ('PROD', u'scanner', [], ('WITH', ('CALL', u'scan', [], None), u'raw')), ('PROD', u'scan', [], ('AND', ('LITERAL', u'X'), ('OR', ('AND', ('AND', ('AND', ('LITERAL', u'c'), ('LITERAL', u'a')), ('LITERAL', u't')), ('RETURN', Term('cat'))), ('AND', ('AND', ('AND', ('LITERAL', u'd'), ('LITERAL', u'o')), ('LITERAL', u'g')), ('RETURN', Term('dog')))))), ('PROD', u'program', [], ('AND', ('LITERAL', u'cat'), ('LITERAL', u'dog')))])
     scanner = Scanner('XdogXcat')
     scanner.push_engine(TamsinScannerEngine())
@@ -814,8 +797,8 @@ def test_next_tok_is_idempotent():
     print repr(interpreter)
     print
 
-    print "---INITIAL CALL TO next_tok---"
-    token = scanner.next_tok()
+    print "---INITIAL CALL TO peek---"
+    token = scanner.peek()
     print token
     scanner.dump()
     print repr(interpreter)
@@ -823,8 +806,8 @@ def test_next_tok_is_idempotent():
 
     for i in xrange(0, 4):
         sav_tok = token
-        print "---SUBSEQUENT CALL TO next_tok---"
-        token = scanner.next_tok()
+        print "---SUBSEQUENT CALL TO peek---"
+        token = scanner.peek()
         print token
         scanner.dump()
         print repr(interpreter)
@@ -842,7 +825,7 @@ def main(args):
         listeners.append(DebugEventListener())
         args = args[1:]
     if args[0] == 'test':
-        test_next_tok_is_idempotent()
+        test_peek_is_idempotent()
         return
     if args[0] == 'parse':
         with codecs.open(args[1], 'r', 'UTF-8') as f:

@@ -698,16 +698,44 @@ Implicit Scanner
 
 Not only is there an implicit buffer, there is also, obviously, an implicit
 scanner.  By default, this is the scanner for the Tamsin language.  But
-you can change it!  Ideally, you could define your own scanner, but for
-now, you'll only be able to select from the Tamsin scanner and a "raw"
-scanner that only gives back characters.
+you can change it!
 
-As an implementation note: scanners for recursive descent parsers commonly
-pre-emptively scan the next token.  So when we switch scanners, we'd have a
-"leftover" token from the previous scanner, unless we deal with it in some
-way.  The way we deal with it is to rewind the scanner by the length of
-the last token scanned just before switching, then after switching, scan
-again (by the new rules.)
+### A prolix note on implementation ###
+
+Traditionally, scanners for recursive descent parsers pre-emptively scan
+the next token.  This was done because originally, parsers (for languages
+like Pascal, say,) were distinctly one-pass beasts, reading the source code
+off of a stream from disk (or maybe even from a tape), and you might need
+to refer to the current token several times in the code and you don't want
+to have to read it more than once.
+
+This setup makes writing a parser with a "hot-swappable" scanner tricky,
+because when we switch scanner, we have to deal with this "cached" token
+somehow.  We could rewind the scanner by the length of the token (plus
+the length of any preceding whitespace and comments), switch the scanner,
+then scan again (by the new rules.)  But this is messy and error-prone.
+
+Luckily, not many of us are reading files off tape these days, and we have
+plenty of core, so it's no problem reading the whole file into memory.
+In fact, I've seen it argued that the best way to write a scanner nowadays
+is to `mmap()` the file.  We don't do this in the implementation of Tamsin,
+but we do read the entire file into memory.
+
+This makes the cache-the-next-token method less useful, and so we don't
+do it.  Instead, we look for the next token only when we need it, and we
+have a method `peek()` that returns what the next token would be, and we
+don't cache this value.
+
+There are a couple of other points about the scanner implementation.
+A scanner only ever has one buffer (the entire string it's scanning); this
+never changes over it's lifetime.  It provides methods for saving and
+restoring its state, and it has a stack of "engines" which provide the
+actual scanning logic.  In addition, there is only one interpreter object,
+and it only has one scanner object during its lifetime.
+
+### The scanners ###
+
+The default scanner logic implements the scan rules for the Tamsin language.
 
     | main = cat.
     | cat = "cat" & return ok.
@@ -718,6 +746,8 @@ again (by the new rules.)
     | cat = "c" & "a" & "t" & return ok.
     + cat
     ? expected 'c' found 'cat'
+
+You can select the `raw` scanner, which returns one character at a time.
 
     | main = cat with raw.
     | cat = "c" & "a" & "t" & return ok.
@@ -737,7 +767,7 @@ spaces.
     + dog cat
     ? expected 'c' found ' '
 
-But we can make it skip spaces...
+But we can tell it to skip spaces...
 
     | main = "dog" with tamsin & ({" "} & "c" & "a" & "t") with raw & return ok.
     + dog        cat
@@ -848,10 +878,19 @@ But we're not there yet.
 
 Well, the best way to get there is to make that a test, see it fail, then
 improve the implementation so that it passes,  Test-driven language design
-for the win!
+for the win!  (But maybe not in all cases.  See my notes below...)
+
+If this seems like an excessive number of tests, it's because I was chasing
+a horribly deep bug for more than a day.  (They all pass now, though!  See
+notes below.)
+
+### Writing your own scanner ###
 
 When you name a production in the program with `with`, that production
-should return a token each time it is called.
+should return a token each time it is called.  We call this scanner a
+"production-defined scanner" or just "production scanner".  In the
+following, we use a production scanner based on the `scanner` production.
+(But we use the Tamsin scanner to implement it, so it's not that interesting.)
 
     | main = program with scanner.
     | scanner = scan with tamsin.
@@ -860,6 +899,10 @@ should return a token each time it is called.
     + cat dog
     = dog
 
+Note that while it's conventional for a production scanner to return terms
+similar to the strings it scanned, this is just a convention, and may be
+subverted:
+
     | main = program with scanner.
     | scanner = scan with tamsin.
     | scan = "cat" & return meow | "dog" & return woof.
@@ -867,14 +910,60 @@ should return a token each time it is called.
     + cat dog
     = woof
 
+We can also implement a production scanner with the raw scanner.  This is
+more useful.
+
     | main = program with scanner.
     | scanner = scan with raw.
-    | scan = {" "} & (
-    |            "c" & "a" & "t" & return meow | "d" & "o" & "g" & return woof
+    | scan = "a" | "b" | "@".
+    | program = "a" & "@" & "b" & return ok.
+    + a@b
+    = ok
+
+If the production scanner fails to match the input text, it will return an EOF.
+This is a little weird, but.  Well.  Watch this space.
+
+    | main = program with scanner.
+    | scanner = scan with raw.
+    | scan = "a" | "b" | "@".
+    | program = "a" & "@" & "b" & return ok.
+    + x
+    ? expected 'a' found 'EOF'
+
+On the other hand, if the scanner understands all the tokens, but the parser
+doesn't see the tokens it expects, you get the usual error.
+
+    | main = program with scanner.
+    | scanner = scan with raw.
+    | scan = "a" | "b" | "@".
+    | program = "a" & "@" & "b" & return ok.
+    + b@a
+    ? expected 'a' found 'b'
+
+We can write a slightly more realistic scanner, too.
+
+    | main = program with scanner.
+    | scanner = scan with raw.
+    | scan = "c" & "a" & "t" & return cat
+    |      | "d" & "o" & "g" & return dog.
+    | program = "cat" & "dog".
+    + catdog
+    = dog
+
+Parsing using a production scanner ignores any extra text given to it,
+just like the built-in parser.
+
+    | main = program with scanner.
+    | scanner = scan with raw.
+    | scan = (
+    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
     |        ).
-    | program = "meow".
-    + cat
-    = meow
+    | program = "cat" & "dog".
+    + catdogfoobar
+    = dog
+
+Herein lie an excessive number of tests that I wrote while I was debugging.
+Some of them will be cleaned up at a future point.
 
     | main = program with scanner.
     | scanner = scan with raw.
@@ -1077,8 +1166,6 @@ should return a token each time it is called.
     +  cat dog
     = dog
 
-OK
-
     | main = program with scanner.
     | scanner = scan with raw.
     | scan = " " & animal → A & return A.
@@ -1088,8 +1175,6 @@ OK
     | program = "cat" & ("dog" | "cat").
     +  cat dog
     = dog
-
-OK
 
     | main = program with scanner.
     | scanner = scan with raw.
@@ -1101,8 +1186,6 @@ OK
     +  cat cat
     = cat
 
-OK
-
     | main = program with scanner.
     | scanner = scan with raw.
     | scan = " " & animal → A & return A.
@@ -1113,8 +1196,6 @@ OK
     +  cat cat dog
     = dog
 
-NO.......
-
     | main = program with scanner.
     | scanner = (scan | return unknown) with raw.
     | scan = " " & animal → A & return A.
@@ -1125,8 +1206,6 @@ NO.......
     +  cat dog dog
     = dog
 
-MMMMM???
-
     | main = program with scanner.
     | scanner = (scan | return unknown) with raw.
     | scan = " " & animal → A & return A.
@@ -1136,8 +1215,6 @@ MMMMM???
     | program = "cat" & ("cat" | "dog") & "dog".
     +  cat dog dog
     = dog
-
-NO.......?
 
     | main = program with scanner.
     | scanner = (scan | return unknown) with raw.
@@ -1150,8 +1227,6 @@ NO.......?
     +  cat dog dog .
     = .
 
-OK
-
     | main = program with scanner.
     | scanner = (scan | return unknown) with raw.
     | scan = " " & animal → A & return A.
@@ -1161,8 +1236,6 @@ OK
     | program = "cat" & ("dog" | "cat") & "dog".
     +  cat cat dog
     = dog
-
-NO............
 
     | main = program with scanner.
     | scanner = scan with raw.
@@ -1174,87 +1247,50 @@ NO............
     +  cat dog dog
     = dog
 
-Notes:
+    | main = program with scanner.
+    | scanner = scan with raw.
+    | scan = " " & animal → A & return A.
+    | animal = (
+    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    |          ).
+    | program = "cat" & print 1 &
+    |           ("cat" & print 2 | "dog" & print 3) &
+    |           "dog" & print 4 & return ok.
+    +  cat dog dog
+    = 1
+    = 3
+    = 4
+    = ok
 
-    we raise TamsinParseError in 'LITERAL' only.
-    we catch TamsinParseError in: 'OR', 'WITH', and 'WHILE'.
-    we can rule out 'WHILE'.
-    
-    in `"c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog`,
-    the `|` should catch any failures raised by any of c,a,t missing.
+    | main = program with scanner.
+    | scanner = scan with raw.
+    | scan = "X" & animal → A & return A.
+    | animal = (
+    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    |          ).
+    | program = "cat" & print 1 &
+    |           ("cat" & print 2 | "dog" & print 3) &
+    |           "dog" & print 4 & return ok.
+    + XcatXdogXdog
+    = 1
+    = 3
+    = 4
+    = ok
 
-    indeed it seems like the problem is when the LHS of | matches
-    and then there is something after it in the production
-    
-    OK so it looks like it *might* have to do with when
-    ProductionScanner couldn't scan anything.  This could
-    happen even in next_tok() at the end of a string, even after
-    we've successfully parsed everything else.
-    
-    Will think about it.
-    
-    OK, it's that the ProductionScanner can't unscan correctly!
-    In fact, the position number on a ProductionScanner is a bit
-    artificial.  There is a real underlying scanner (usually a
-    RawScanner) doing the actual scanning, and ProductionScanner
-    is sort of a shell or driver for it.
-    
-    ProductionScanner needs to update its position from the
-    slave-scanner's position, but it's not immediatel clear to
-    me how to do that.
-
-Nope, does not like a space in front.
-
-    @| main = program with scanner.
-    @| scanner = scan with raw.
-    @| scan = " " & animal → A & return A.
-    @| animal = (
-    @|            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
-    @|          ).
-    @| program = "cat" & print 1 &
-    @|           ("cat" & print 2 | "dog" & print 3) &
-    @|           "dog" & print 4 & return ok.
-    @+  cat dog dog
-    @= 1
-    @= 3
-    @= 4
-    @= ok
-
-Does not like an X in front either.
-
-    @| main = program with scanner.
-    @| scanner = scan with raw.
-    @| scan = "X" & animal → A & return A.
-    @| animal = (
-    @|            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
-    @|          ).
-    @| program = "cat" & print 1 &
-    @|           ("cat" & print 2 | "dog" & print 3) &
-    @|           "dog" & print 4 & return ok.
-    @+ XcatXdogXdog
-    @= 1
-    @= 3
-    @= 4
-    @= ok
-
-Parens asking too much?
-
-    @| main = program with scanner.
-    @| scanner = scan with raw.
-    @| scan = "(" & animal → A & ")" & return A.
-    @| animal = (
-    @|            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
-    @|          ).
-    @| program = "cat" & print 1 &
-    @|           ("cat" & print 2 | "dog" & print 3) &
-    @|           "dog" & print 4 & return ok.
-    @+ (cat)(dog)(dog)
-    @= 1
-    @= 3
-    @= 4
-    @= ok
-
-Solve this & I bet you solve the two following.
+    | main = program with scanner.
+    | scanner = scan with raw.
+    | scan = "(" & animal → A & ")" & return A.
+    | animal = (
+    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    |          ).
+    | program = "cat" & print 1 &
+    |           ("cat" & print 2 | "dog" & print 3) &
+    |           "dog" & print 4 & return ok.
+    + (cat)(dog)(dog)
+    = 1
+    = 3
+    = 4
+    = ok
 
     | main = program with scanner.
     | scanner = scan with raw.
@@ -1265,35 +1301,33 @@ Solve this & I bet you solve the two following.
     + cat dog
     = dog
 
-    @| main = program with scanner.
-    @| scanner = scan with raw.
-    @| scan = {" "} & (
-    @|            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
-    @|        ).
-    @| program = "cat" & print 1 &
-    @|           ("cat" & print 2 | "dog" & print 3) &
-    @|           "dog" & print 4 & return ok.
-    @+ cat cat dog
-    @= 1
-    @= 2
-    @= 4
-    @= ok
-    @
-    @| main = program with scanner.
-    @| scanner = scan with raw.
-    @| scan = {" "} & (
-    @|            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
-    @|        ).
-    @| program = "cat" & print 1 &
-    @|           ("cat" & print 2 | "dog" & print 3) &
-    @|           "dog" & print 4 & return ok.
-    @+ cat dog dog
-    @= 1
-    @= 3
-    @= 4
-    @= ok
-
-Am I losing my mind?
+    | main = program with scanner.
+    | scanner = scan with raw.
+    | scan = {" "} & (
+    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    |        ).
+    | program = "cat" & print 1 &
+    |           ("cat" & print 2 | "dog" & print 3) &
+    |           "dog" & print 4 & return ok.
+    + cat cat dog
+    = 1
+    = 2
+    = 4
+    = ok
+    
+    | main = program with scanner.
+    | scanner = scan with raw.
+    | scan = {" "} & (
+    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    |        ).
+    | program = "cat" & print 1 &
+    |           ("cat" & print 2 | "dog" & print 3) &
+    |           "dog" & print 4 & return ok.
+    + cat dog dog
+    = 1
+    = 3
+    = 4
+    = ok
 
     | main = "cat" & print 1 &
     |        ("cat" & print 2 | "dog" & print 3) &
@@ -1313,8 +1347,6 @@ Am I losing my mind?
     = 4
     = ok
 
-No, eh?
-
     | main = program with scanner.
     | scanner = scan with raw.
     | scan = {" "} & (
@@ -1332,3 +1364,22 @@ No, eh?
     | program = "cat" & ("cat" | "dog") & "dog".
     + dog dog dog
     ? expected 'cat' found 'dog'
+
+### Notes ###
+
+Maybe test-driven language design *not* "for the win" in all cases; it's
+excellent for evolving a design, but not so good for deep debugging.  I had
+to actually write a dedicated test case which directly accessed the internals,
+to find the problem.
+
+This was only after refactoring the implementation two or three times.  One
+of those times, I removed exceptions, so now the interpreter returns
+`(success, result)` tuples, where `success` is a boolean, and propagates
+parse errors itself.
+
+We "raise" a parse error only in the `LITERAL` AST node.
+
+We handle parse errors (backtrack) only in `OR` and `WHILE`, and in the
+ProductionScannerEngine logic (to provide that EOF if the scanning production
+failed.  This can happen even in `peek()` at the end of a string, even after
+we've successfully parsed everything else.)
