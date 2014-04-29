@@ -36,6 +36,7 @@ Grammar
            | "return" Term
            | "fail" Term
            | "print" Term
+           | "any"
            | "□"
            | LitToken
            | ProdName ["(" [Term {"," Term} ")"] ["@" Term].
@@ -101,8 +102,8 @@ identical to it to be on the input.  If that expectation is met, it evaluates
 to that token.  If not, it raises an error.
 
 Note that input into a Tamsin program is first broken up into tokens as
-specified by the gammar of Tamsin itself.  This is a little restrictive for
-general use, but later on you'll see how to alter the scanner to something
+specified by the lexical rules of Tamsin itself.  This is a little restrictive
+for general use, but later on you'll see how to alter the scanner to something
 more tuned for your needs.
 
     | main = blerp.
@@ -231,6 +232,16 @@ as many as you like, and it continues to succeed.
     | main = "sure" & "begorrah" & □ & □ & □.
     + sure begorrah
     = EOF
+
+The symbol `any` matches any token defined by the scanner.
+
+    | main = any & any & any.
+    + (@)
+    = )
+
+    | main = any & any & any.
+    + words words words
+    = words
 
 When a production is called, the result that it evaluates to may be stored
 in a variable.  Variables are local to the production.
@@ -372,6 +383,18 @@ the word "simpler", but we can... write it differently.
     + 0 0 0 0
     = zero(zero(zero(zero(nil))))
 
+As mentioned, `"foo"` matches a literal token `foo` in the buffer.  But
+what if you want to match something dynamic, something you have in a
+variable?  You can do that with `«»`:
+
+    | main = set E = foo & «E».
+    + foo
+    = foo
+
+    | main = set E = foo & «E».
+    + bar
+    ? expected 'foo' found 'bar'
+
 Aside
 -----
 
@@ -417,6 +440,18 @@ A production may be called with arguments.
     | main = blerf(foo).
     | blerf(X) = return X.
     = foo
+
+Note that this makes the «»-form more interesting.
+
+    | main = bracketed(a) & bracketed(b) & return ok.
+    | bracketed(X) = «X» & "stuff" & «X».
+    + a stuff a b stuff b
+    = ok
+
+    | main = bracketed(a) & bracketed(b) & return ok.
+    | bracketed(X) = «X» & "stuff" & «X».
+    + a stuff a b stuff a
+    ? expected 'b' found 'a'
 
 We need to be able to test arguments somehow.  Well... how about we
 pattern match the term?  Hahaha.
@@ -1542,8 +1577,7 @@ whatever.
 
 Also todo:
 
-*   `any`
 *   dictionary values in variables?
 *   `''` and `+` for `「」` and `•`
-*   way to match terms with e.g. variables against implicit buffer
 *   non-printable characters in terms and such, e.g. "\n"
+*   underscores in names

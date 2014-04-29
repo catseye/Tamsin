@@ -294,7 +294,7 @@ class TamsinScannerEngine(ScannerEngine):
         
         if scanner.startswith(('=', '(', ')', '[', ']', '{', '}',
                             '|', '&', u'→', ',', '.', '@',
-                            u'•', u'□', u'☆')):
+                            u'•', u'□', u'☆', u'«', u'»')):
             return scanner.chop(1)
 
         if scanner.startswith(('"',)):
@@ -467,6 +467,10 @@ class Parser(EventProducer):
               self.peek()[0] == '"'):
             literal = self.consume_any()[1:]
             return ('LITERAL', literal)
+        elif self.consume(u'«'):
+            t = self.term()
+            self.expect(u'»')
+            return ('EXPECT', t)
         elif self.consume('set'):
             v = self.variable()
             self.expect("=")
@@ -483,6 +487,8 @@ class Parser(EventProducer):
         elif self.consume('print'):
             t = self.term()
             return ('PRINT', t)
+        elif self.consume('any'):
+            return ('ANY',)
         else:
             name = self.consume_any()
             args = []
@@ -747,13 +753,8 @@ class Interpreter(EventProducer):
             self.scanner.push_engine(new_engine)
             self.event('enter_with')
             (succeeded, result) = self.interpret(sub)
-            #print >>sys.stderr, succeeded, result
             self.event('leave_with', succeeded, result)
             self.scanner.pop_engine()
-            #assert new_scanner.position == new_scanner.reset_position            
-            #self.scanner.position = new_scanner.position
-            #self.scanner.reset_position = self.scanner.position
-            #self.event('update_scanner', new_scanner, self.scanner)
             return (succeeded, result)
         elif ast[0] == 'WHILE':
             result = Term('nil')
@@ -783,6 +784,20 @@ class Interpreter(EventProducer):
                      (ast[1], upcoming_token,
                       self.scanner.report_buffer(self.scanner.position, 20)))
                 return (False, Term(s))
+        elif ast[0] == 'EXPECT':
+            upcoming_token = self.scanner.peek()
+            term = ast[1].expand(self.context)
+            token = str(term)
+            if self.scanner.consume(token):
+                return (True, term)
+            else:
+                self.event('fail_term', ast[1], self.scanner)
+                s = ("expected '%s' found '%s' (at '%s')" %
+                     (token, upcoming_token,
+                      self.scanner.report_buffer(self.scanner.position, 20)))
+                return (False, Term(s))
+        elif ast[0] == 'ANY':
+            return (True, self.scanner.consume_any())
         else:
             raise NotImplementedError(repr(ast))
 
