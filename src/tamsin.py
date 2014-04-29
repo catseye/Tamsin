@@ -101,6 +101,18 @@ class DebugEventListener(object):
         if tag == 'leave_interpreter':
             self.indent -= 1
 
+        if tag in ('leave_interpreter', 'update_scanner'):
+            new_scanner = data[0]
+            old_scanner = data[1]
+            if (isinstance(new_scanner, RawScanner) and
+                isinstance(old_scanner, ProductionScanner)):
+                self.putstr("%s %r" % (tag, data))
+                new_scanner.dump(self.indent)
+                old_scanner.dump(self.indent)
+                self.putstr("")
+        else:
+            return
+
         # EVERYTHING
         self.putstr("%s %r" % (tag, data))
         for d in data:
@@ -137,13 +149,17 @@ class Scanner(EventProducer):
         self.listeners = listeners
         self.event('set_buffer', buffer)
         self.buffer = buffer
+        assert buffer is not None
         self.position = position
         self.reset_position = position
+        self.engines = []
 
-    def set_interpreter(self, interpreter):
-        # ignored by all but ProductionScanner
-        pass
+    def push_engine(self, engine):
+        self.engines.append(engine)
 
+    def pop_engine(self):
+        self.engines.pop()
+    
     def eof(self):
         return self.position >= len(self.buffer)
 
@@ -182,8 +198,11 @@ class Scanner(EventProducer):
 
     def clone(self):
         assert self.position == self.reset_position, "divergent..."
-        return self.__class__(self.buffer, position=self.position,
-                              listeners=self.listeners)
+        # note: for now, does not clone the engines.  they're shared.
+        n = self.__class__(self.buffer, position=self.position,
+                           listeners=self.listeners)
+        n.engines = self.engines
+        return n
 
     def scan(self):
         """Returns the next token from the buffer.
@@ -195,33 +214,37 @@ class Scanner(EventProducer):
 
         """
         assert self.position == self.reset_position, "divergent..."
-        tok = self.scan_impl()
+        tok = self.engines[-1].scan_impl(self)
         self.event('scanned', self, tok)
         return tok
 
     def unscan(self):
+        #print repr(self), " unscan: %s <- %s" % (self.position, self.reset_position)
         self.position = self.reset_position
 
     def commit(self):
         self.reset_position = self.position
 
-    #def next_tok(self):
-    #    scanner1 = self.clone()
-    #    a = self.next_token()
-    #    scanner2 = self.clone()
-    #    b = self.next_token()
-    #    if a != b:
-    #        print "before scanning " + a
-    #        scanner1.dump()
-    #        print "after scanning " + a + " and before scanning " + b
-    #        scanner2.dump()
-    #        print "after scanning " + b
-    #        self.dump()
-    #        print "%s != %s, BADNESS, MUCH BADNESS" % (a, b)
-    #        sys.exit(1)
-    #    return a
-
     def next_tok(self):
+        return self.next_token()
+        scanner1 = self.clone()
+        a = self.next_token()
+        scanner2 = self.clone()
+        b = self.next_token()
+        if a != b:
+            print
+            print "BADNESS DUMP"
+            print "before scanning " + str(a)
+            scanner1.dump()
+            print "after scanning " + str(a) + " and before scanning " + str(b)
+            scanner2.dump()
+            print "after scanning " + str(b)
+            self.dump()
+            print "%s != %s, BADNESS, MUCH BADNESS" % (a, b)
+            sys.exit(1)
+        return a
+
+    def next_token(self):
         before = self.position
         tok = self.scan()
         self.unscan()
@@ -251,6 +274,7 @@ class Scanner(EventProducer):
     
     def dump(self, indent=1):
         print "==" * indent + "%r" % self
+        print "--" * indent + "engines: %r" % repr(self.engines)
         print "--" * indent + "buffer: '%s'" % enc(self.buffer)
         print "--" * indent + "position: %s" % self.position
         print "--" * indent + "buffer at position: '%s'" % self.report_buffer(self.position, 40)
@@ -258,99 +282,111 @@ class Scanner(EventProducer):
         print "--" * indent + "buffer at reset_pos: '%s'" % self.report_buffer(self.reset_position, 40)
 
 
-class TamsinScanner(Scanner):
-    def scan_impl(self):
-        while self.startswith((' ', '\t', '\r', '\n')):
-            self.chop(1)
+class ScannerEngine(object):
+    pass
 
-        if self.eof():
+
+class TamsinScannerEngine(ScannerEngine):
+    def scan_impl(self, scanner):
+        while scanner.startswith((' ', '\t', '\r', '\n')):
+            scanner.chop(1)
+
+        if scanner.eof():
             return EOF
 
-        if self.startswith(('&&', '||')):
-            tok = self.chop(1)
-            self.chop(1)
+        if scanner.startswith(('&&', '||')):
+            tok = scanner.chop(1)
+            scanner.chop(1)
             return tok
         
-        if self.startswith(('=', '(', ')', '[', ']', '{', '}',
+        if scanner.startswith(('=', '(', ')', '[', ']', '{', '}',
                             '|', '&', u'→', ',', '.', '@', u'•', u'□')):
-            return self.chop(1)
+            return scanner.chop(1)
 
-        if self.startswith(('"',)):
+        if scanner.startswith(('"',)):
             tok = '"'
-            self.chop(1)
-            while not self.eof() and not self.startswith('"'):
-                tok += self.chop(1)
-            self.chop(1)  # chop ending quote
+            scanner.chop(1)
+            while not scanner.eof() and not scanner.startswith('"'):
+                tok += scanner.chop(1)
+            scanner.chop(1)  # chop ending quote
             return tok
 
-        if self.startswith((u'「',)):
+        if scanner.startswith((u'「',)):
             tok = u'「'
-            self.chop(1)
-            while not self.eof() and not self.startswith(u'」'):
-                tok += self.chop(1)
-            self.chop(1)  # chop ending quote
+            scanner.chop(1)
+            while not scanner.eof() and not scanner.startswith(u'」'):
+                tok += scanner.chop(1)
+            scanner.chop(1)  # chop ending quote
             return tok
 
-        if not self.eof() and self.isalnum():
+        if not scanner.eof() and scanner.isalnum():
             tok = ''
-            while not self.eof() and self.isalnum():
-                tok += self.chop(1)
+            while not scanner.eof() and scanner.isalnum():
+                tok += scanner.chop(1)
             return tok
 
-        self.error('identifiable character')
+        scanner.error('identifiable character')
 
 
-class RawScanner(Scanner):
-    def scan_impl(self):
-        if self.eof():
+class RawScannerEngine(ScannerEngine):
+    def scan_impl(self, scanner):
+        if scanner.eof():
             return EOF
-        return self.chop(1)
+        return scanner.chop(1)
 
 
-class ProductionScanner(Scanner):
-    """A Scanner that uses a production of the Tamsin program to
+class ProductionScannerEngine(ScannerEngine):
+    """A ScannerEngine that uses a production of the Tamsin program to
     scan the input.
-    
-    Uses its own Interpreter.  Let's see if that helps.
 
     """
-    def __init__(self, buffer, production, position=0, listeners=None):
-        Scanner.__init__(
-            self, buffer, position=position, listeners=listeners
-        )
-        self.interpreter = None
+    def __init__(self, interpreter, production):
+        self.interpreter = interpreter
+        #assert self.interpreter.scanner = my scanner
         self.production = production
 
-    def set_interpreter(self, interpreter):
-        self.interpreter = interpreter
-
-    def clone(self):
-        assert self.position == self.reset_position, "divergent..."
-        n = self.__class__(
-            self.buffer, self.production, position=self.position,
-            listeners=self.listeners
-        )
-        n.set_interpreter(self.interpreter)
-        return n
-
-    def scan_impl(self):
-        if self.eof():
+    def scan_impl(self, scanner):
+        if scanner.eof():
             return EOF
         # if we ever go back to exceptions, we would have a try/catch here
-        (success, tok) = self.interpreter.interpret(self.production)
+        
+        # this will cause the scanner to have another engine pushed onto
+        # it.  we rely on that engine to actually get us the token, and it
+        # will update the scanner for us.  it relies on the interpreter
+        # having the same scanner as the scanner we're on.
+        #
+        # BUT the subsidiary scanner may have commited, while WE want to
+        # leave the scanner in a divergent state.  So we save the reset
+        # position, and restore it when the subsidiary scan is done.
+        print
+        print "BEFORE PRODUCTION SCAN"
+        scanner.dump()
+        save_reset_position = scanner.reset_position
+        result = self.interpreter.interpret(self.production)
+        (success, tok) = result
+        subs_reset = scanner.reset_position
+        scanner.reset_position = save_reset_position
+        print
+        print "AFTER PRODUCTION SCAN, their reset = %s, our reset = %s, result = %r" % (
+            subs_reset, save_reset_position, result
+        )
+        scanner.dump()
+
         if success:
-            self.event('production_scan', self.production, tok)
+            #self.event('production_scan', self.production, tok)
             return str(tok)
         else:
-            raise ValueError("ProductionScanner FAILED.  Production used "
-                             "by ProductionScanner MUST NOT FAIL, or "
-                             "THIS HAPPENS.")
+            return EOF
+            #raise ValueError("ProductionScanner FAILED.  Production used "
+            #                 "by ProductionScanner MUST NOT FAIL, or "
+            #                 "THIS HAPPENS.")
 
 
 class Parser(EventProducer):
     def __init__(self, buffer, listeners=None):
         self.listeners = listeners
-        self.scanner = TamsinScanner(buffer, listeners=self.listeners)
+        self.scanner = Scanner(buffer, listeners=self.listeners)
+        self.scanner.push_engine(TamsinScannerEngine())
 
     def eof(self):
         return self.scanner.eof()
@@ -435,8 +471,8 @@ class Parser(EventProducer):
             e = self.expr0()
             self.expect('}')
             return ('WHILE', e)
-        elif (self.scanner.next_tok() is not None and
-              self.scanner.next_tok()[0] == '"'):
+        elif (self.next_tok() is not None and
+              self.next_tok()[0] == '"'):
             literal = self.consume_any()[1:]
             return ('LITERAL', literal)
         elif self.consume('set'):
@@ -458,7 +494,7 @@ class Parser(EventProducer):
             name = self.consume_any()
             args = []
             if self.consume('('):
-                if self.scanner.next_tok() != ')':
+                if self.next_tok() != ')':
                     args.append(self.term())
                     while self.consume(','):
                         args.append(self.term())
@@ -469,7 +505,7 @@ class Parser(EventProducer):
             return ('CALL', name, args, ibuf)
 
     def variable(self):
-        if self.scanner.next_tok()[0].isupper():
+        if self.next_tok()[0].isupper():
             var = self.consume_any()
             return Variable(var)
         else:
@@ -483,16 +519,16 @@ class Parser(EventProducer):
         return lhs
 
     def term1(self):
-        if self.scanner.next_tok()[0].isupper():
+        if self.next_tok()[0].isupper():
             return self.variable()
-        elif (self.scanner.next_tok()[0].isalnum() or
-              self.scanner.next_tok()[0][0] == u'「'):
+        elif (self.next_tok()[0].isalnum() or
+              self.next_tok()[0][0] == u'「'):
             atom = self.consume_any()
             if atom[0] == u'「':
                 atom = atom[1:]
             subs = []
             if self.consume('('):
-                if self.scanner.next_tok() != ')':
+                if self.next_tok() != ')':
                     subs.append(self.term())
                 while self.consume(','):
                     subs.append(self.term())
@@ -539,7 +575,6 @@ class Interpreter(EventProducer):
         self.listeners = listeners
         self.program = ast
         self.scanner = scanner
-        self.scanner.set_interpreter(self)
         self.context = Context(listeners=self.listeners)
 
     ### grammar stuff ---------------------------------------- ###
@@ -599,6 +634,7 @@ class Interpreter(EventProducer):
 
         """
         self.event('interpret_ast', ast)
+        #print ast
         if ast[0] == 'PROGRAM':
             mains = self.find_productions('main')
             return self.interpret(mains[0])
@@ -699,34 +735,24 @@ class Interpreter(EventProducer):
             scanner_name = ast[2]
             interpreter_to_use = self
             if scanner_name == u'tamsin':
-                new_scanner = TamsinScanner(self.scanner.buffer,
-                    position=self.scanner.position,
-                    listeners=self.listeners
-                )
+                new_engine = TamsinScannerEngine()
             elif scanner_name == u'raw':
-                new_scanner = RawScanner(self.scanner.buffer,
-                    position=self.scanner.position,
-                    listeners=self.listeners
-                )
+                new_engine = RawScannerEngine()
             else:
                 prods = self.find_productions(scanner_name)
                 if len(prods) != 1:
                     raise ValueError("No such scanner '%s'" % scanner_name)
-                new_scanner = ProductionScanner(
-                    self.scanner.buffer, prods[0],
-                    position=self.scanner.position,
-                    listeners=self.listeners
-                )
-            new_interpreter = Interpreter(
-                self.program, new_scanner, listeners=self.listeners
-            )
-            self.event('enter_interpreter', new_scanner, new_interpreter)
-            (succeeded, result) = new_interpreter.interpret(sub)
+                new_engine = ProductionScannerEngine(self, prods[0])
+            self.scanner.push_engine(new_engine)
+            self.event('enter_with')
+            (succeeded, result) = self.interpret(sub)
             #print >>sys.stderr, succeeded, result
-            self.event('leave_interpreter', self.scanner, self)
-            assert new_scanner.position == new_scanner.reset_position
-            self.scanner.position = new_scanner.position
-            self.scanner.reset_position = self.scanner.position
+            self.event('leave_with', succeeded, result)
+            self.scanner.pop_engine()
+            #assert new_scanner.position == new_scanner.reset_position            
+            #self.scanner.position = new_scanner.position
+            #self.scanner.reset_position = self.scanner.position
+            #self.event('update_scanner', new_scanner, self.scanner)
             return (succeeded, result)
         elif ast[0] == 'WHILE':
             result = Term('nil')
@@ -779,10 +805,10 @@ def main(args):
             parser = Parser(contents, listeners=listeners)
             ast = parser.grammar()
             #print repr(ast)
+            scanner = Scanner(sys.stdin.read(), listeners=listeners)
+            scanner.push_engine(TamsinScannerEngine())
             interpreter = Interpreter(
-                ast,
-                TamsinScanner(sys.stdin.read(), listeners=listeners),
-                listeners=listeners
+                ast, scanner, listeners=listeners
             )
             (succeeded, result) = interpreter.interpret(ast)
             if not succeeded:
