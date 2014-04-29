@@ -154,6 +154,18 @@ class Scanner(EventProducer):
         self.reset_position = position
         self.engines = []
 
+    def __repr__(self):
+        return "Scanner(%r, position=%r)" % (
+            self.buffer, self.position
+        )
+
+    def get_state(self):
+        assert self.position == self.reset_position, "divergent..."        
+        return (self.position,)
+
+    def install_state(self, (position,)):
+        self.position = position
+
     def push_engine(self, engine):
         self.engines.append(engine)
 
@@ -352,25 +364,34 @@ class ProductionScannerEngine(ScannerEngine):
         
         # this will cause the scanner to have another engine pushed onto
         # it.  we rely on that engine to actually get us the token, and it
-        # will update the scanner for us.  it relies on the interpreter
-        # having the same scanner as the scanner we're on.
+        # will update the scanner for us.
+        #
+        # it relies on the interpreter
+        # having the same scanner as the scanner we're on.  but note that
+        # we could not rely on this, as an | or {} could restore the scanner
+        # to a previous clone of it!  i noticed then when debugging
+        # next_tok() idempotency.  this has been changed; an intepreter
+        # only ever has one scanner.
         #
         # BUT the subsidiary scanner may have commited, while WE want to
         # leave the scanner in a divergent state.  So we save the reset
         # position, and restore it when the subsidiary scan is done.
-        print
-        print "BEFORE PRODUCTION SCAN"
-        scanner.dump()
+        #print
+        #print "BEFORE PRODUCTION SCAN"
+        #scanner.dump()
+        
+        # nope!
+        #assert scanner is self.interpreter.scanner
         save_reset_position = scanner.reset_position
         result = self.interpreter.interpret(self.production)
         (success, tok) = result
         subs_reset = scanner.reset_position
         scanner.reset_position = save_reset_position
-        print
-        print "AFTER PRODUCTION SCAN, their reset = %s, our reset = %s, result = %r" % (
-            subs_reset, save_reset_position, result
-        )
-        scanner.dump()
+        #print
+        #print "AFTER PRODUCTION SCAN, their reset = %s, our reset = %s, result = %r" % (
+        #    subs_reset, save_reset_position, result
+        #)
+        #scanner.dump()
 
         if success:
             #self.event('production_scan', self.production, tok)
@@ -543,6 +564,11 @@ class Context(EventProducer):
         self.listeners = listeners
         self.scopes = []
 
+    def __repr__(self):
+        return "Context(%r)" % (
+            self.scopes
+        )
+
     def push_scope(self, purpose):
         self.scopes.append({})
         self.event('push_scope', self)
@@ -571,11 +597,16 @@ class Context(EventProducer):
 
 
 class Interpreter(EventProducer):
-    def __init__(self, ast, scanner, listeners=None):
+    def __init__(self, program, scanner, listeners=None):
         self.listeners = listeners
-        self.program = ast
+        self.program = program
         self.scanner = scanner
         self.context = Context(listeners=self.listeners)
+
+    def __repr__(self):
+        return "Interpreter(%r, %r, %r)" % (
+            self.program, self.scanner, self.context
+        )
 
     ### grammar stuff ---------------------------------------- ###
     
@@ -703,8 +734,8 @@ class Interpreter(EventProducer):
             lhs = ast[1]
             rhs = ast[2]
             saved_context = self.context.clone()
-            saved_scanner = self.scanner.clone()
-            self.event('begin_or', lhs, rhs, saved_context, saved_scanner)
+            saved_scanner_state = self.scanner.get_state()
+            self.event('begin_or', lhs, rhs, saved_context, saved_scanner_state)
             (succeeded, result) = self.interpret(lhs)
             if succeeded:
                 self.event('succeed_or', result)
@@ -712,8 +743,7 @@ class Interpreter(EventProducer):
             else:
                 self.event('fail_or', self.context, self.scanner, result)
                 self.context = saved_context
-                assert self.scanner.__class__ == saved_scanner.__class__
-                self.scanner = saved_scanner
+                self.scanner.install_state(saved_scanner_state)
                 return self.interpret(rhs)
         elif ast[0] == 'RETURN':
             return (True, ast[1].expand(self.context))
@@ -733,7 +763,6 @@ class Interpreter(EventProducer):
         elif ast[0] == 'WITH':
             sub = ast[1]
             scanner_name = ast[2]
-            interpreter_to_use = self
             if scanner_name == u'tamsin':
                 new_engine = TamsinScannerEngine()
             elif scanner_name == u'raw':
@@ -761,14 +790,13 @@ class Interpreter(EventProducer):
             successful_result = result
             while succeeded:
                 saved_context = self.context.clone()
-                saved_scanner = self.scanner.clone()
+                saved_scanner_state = self.scanner.get_state()
                 (succeeded, result) = self.interpret(ast[1])
                 if succeeded:
                     successful_result = result
                     self.event('repeating_while', result)
             self.context = saved_context
-            assert self.scanner.__class__ == saved_scanner.__class__
-            self.scanner = saved_scanner
+            self.scanner.install_state(saved_scanner_state)
             self.event('end_while', result)
             return (True, successful_result)
         elif ast[0] == 'LITERAL':
@@ -787,12 +815,53 @@ class Interpreter(EventProducer):
             raise NotImplementedError(repr(ast))
 
 
+def test_next_tok_is_idempotent():
+    ast = ('PROGRAM', [('PROD', u'main', [], ('WITH', ('CALL', u'program', [], None), u'scanner')), ('PROD', u'scanner', [], ('WITH', ('CALL', u'scan', [], None), u'raw')), ('PROD', u'scan', [], ('AND', ('LITERAL', u'X'), ('OR', ('AND', ('AND', ('AND', ('LITERAL', u'c'), ('LITERAL', u'a')), ('LITERAL', u't')), ('RETURN', Term('cat'))), ('AND', ('AND', ('AND', ('LITERAL', u'd'), ('LITERAL', u'o')), ('LITERAL', u'g')), ('RETURN', Term('dog')))))), ('PROD', u'program', [], ('AND', ('LITERAL', u'cat'), ('LITERAL', u'dog')))])
+    scanner = Scanner('XdogXcat')
+    scanner.push_engine(TamsinScannerEngine())
+    interpreter = Interpreter(ast, scanner)
+    
+    prod = interpreter.find_productions('scanner')[0]
+    print repr(prod)
+
+    new_engine = ProductionScannerEngine(interpreter, prod)
+    scanner.push_engine(new_engine)
+    
+    print "---INITIAL STATE---"
+    scanner.dump()
+    print repr(interpreter)
+    print
+
+    print "---INITIAL CALL TO next_tok---"
+    token = scanner.next_tok()
+    print token
+    scanner.dump()
+    print repr(interpreter)
+    print
+
+    for i in xrange(0, 4):
+        sav_tok = token
+        print "---SUBSEQUENT CALL TO next_tok---"
+        token = scanner.next_tok()
+        print token
+        scanner.dump()
+        print repr(interpreter)
+        print
+
+        if sav_tok != token:
+            print "FAILED"
+            break
+
+
 def main(args):
     debug = None
     listeners = []
     if args[0] == '--debug':
         listeners.append(DebugEventListener())
         args = args[1:]
+    if args[0] == 'test':
+        test_next_tok_is_idempotent()
+        return
     if args[0] == 'parse':
         with codecs.open(args[1], 'r', 'UTF-8') as f:
             contents = f.read()
@@ -812,7 +881,7 @@ def main(args):
             )
             (succeeded, result) = interpreter.interpret(ast)
             if not succeeded:
-                sys.stderr.write(str(result))
+                sys.stderr.write(str(result) + "\n")
                 sys.exit(1)
             print str(result)
     else:
