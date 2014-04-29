@@ -20,105 +20,105 @@ to be written as recursive-descent parsers?  Then all code will be pretty!
 Where I'm going with this, I don't exactly know yet.  It is a work in
 progress and will definitely change.
 
-Grammar
--------
+Teaser Examples
+---------------
 
-    Grammar ::= {Production "."}.
-    Production ::= ProdName ["(" [Term {"," Term} ")" | "[" Expr0 "]"] "=" Expr0.
-    Expr0 := Expr1 {("||" | "|") Expr1}.
-    Expr1 := Expr2 {("&&" | "&") Expr2}.
-    Expr2 := Expr3 ["using" ScannerSpec].
-    Expr3 := Expr4 ["→" Variable].
-    Expr4 := "(" Expr0 ")"
-           | "[" Expr0 "]"
-           | "{" Expr0 "}"
-           | "set" Variable "=" Term
-           | "return" Term
-           | "fail" Term
-           | "print" Term
-           | "any"
-           | "□"
-           | LitToken
-           | ProdName ["(" [Term {"," Term} ")"] ["@" Term].
-    Term  := Term0.
-    Term0 := Term1 {"•" Term1}.
-    Term1 := Atom ["(" {Term0} ")"]
-           | Variable.
-    ScannerSpec = "☆" ("tamsin" | "char") | ProdName.
-    Atom  := ("'" {any} "'" | { "a".."z" | "0".."9" }) using ☆char.
-    Variable := ("A".."Z" { "a".."z" | "0".."9" }) using ☆char.
-    ProdName ::= { "a".."z" | "0".."9" } using ☆char.
-
-Examples
---------
-
-    -> Tests for functionality "Parse Tamsin program"
-    
-    -> Functionality "Parse Tamsin program" is implemented by
-    -> shell command "./src/tamsin.py parse %(test-body-file) | head -c 13"
-
-Note that we're just concerned that it actually parsed; we don't care about
-the representation of the internal AST.  So we truncate the output.
-
-A Tamsin program consists of productions.  A production consists of a name
-and a rule.  A rule may consist of a name of a production, or a terminal in
-double quotes.
-
-    | main = blerp.
-    | blerp = "blerp".
-    = ('PROGRAM', [
-
-A rule may consist of two rules joined by `&`.
-
-    | main = zeroes.
-    | zeroes = "0" & zeroes.
-    = ('PROGRAM', [
-
-A rule may consist of two rules joined by `|`.
-
-    | main = zeroes.
-    | zeroes = "0" | "1".
-    = ('PROGRAM', [
-
-If you're too used to C or Javascript or `sh`, you can double up those symbols
-to `&&` and `||`.  Note also that `&` has a higher precedence than `|`.
-
-    | main = "0" && "1" || "2".
-    = ('PROGRAM', [
-
-A rule may consist of a bunch of other stuff.
-
-    | main = zeroes.
-    | zeroes(X) = ("0" & zeroes → E & return zero(E)) | return nil.
-    = ('PROGRAM', [
+In these, the stuff prefixed with `|` is the Tamsin program, `+` is the
+input to the program, and `=` is the expected output.
 
     -> Tests for functionality "Intepret Tamsin program"
     
     -> Functionality "Intepret Tamsin program" is implemented by
     -> shell command "./src/tamsin.py run %(test-body-file) < %(test-input-file)"
 
-When run, a Tamsin program parses the input.  A terminal expects a token
+Parse an algebraic expression for correctness.
+
+    | main = (expr0 & □ & return ok) using ☆char.
+    | expr0 = expr1 & {"+" & expr1}.
+    | expr1 = term & {"*" & term}.
+    | term = "x" | "y" | "z" | "(" & expr0 & ")".
+    + x+y*(z+x+y)
+    = ok
+
+    | main = (expr0 & □ & return ok) using ☆char.
+    | expr0 = expr1 & {"+" & expr1}.
+    | expr1 = term & {"*" & term}.
+    | term = "x" | "y" | "z" | "(" & expr0 & ")".
+    + x+xy
+    ? expected EOF found 'y'
+
+Parse an algebraic expression to a syntax tree.
+
+    | main = expr0 using ☆char.
+    | expr0 = expr1 → E1 & {"+" & expr1 → E2 & set E1 = add(E1,E2)} & return E1.
+    | expr1 = term → E1 & {"*" & term → E2 & set E1 = mul(E1,E2)} & return E1.
+    | term = "x" | "y" | "z" | "(" & expr0 → E & ")" & return E.
+    + x+y*(z+x+y)
+    = add(x, mul(y, add(add(z, x), y)))
+
+Reverse a list.
+
+    | main = reverse(pair(a, pair(b, pair(c, nil))), nil).
+    | reverse(pair(H, T), A) =
+    |   reverse(T, pair(H, A)) → TR &
+    |   return TR.
+    | reverse(nil, A) =
+    |   return A.
+    = pair(c, pair(b, pair(a, nil)))
+
+Parse and evaluate a Boolean expression.
+
+    | main = expr0 → E using ☆tamsin & eval(E).
+    | expr0 = expr1 → E1 & {"or" & expr1 → E2 & set E1 = or(E1,E2)} & return E1.
+    | expr1 = term → E1 & {"and" & term → E2 & set E1 = and(E1,E2)} & return E1.
+    | term = "true" | "false" | "(" & expr0 → E & ")" & return E.
+    | eval(and(A, B)) = eval(A) → EA & eval(B) → EB & and(EA, EB).
+    | eval(or(A, B)) = eval(A) → EA & eval(B) → EB & or(EA, EB).
+    | eval(true) = return true.
+    | eval(false) = return false.
+    | and(true, true) = return true.
+    | and(A, B) = return false.
+    | or(false, false) = return false.
+    | or(A, B) = return true.
+    + (false or true) and true
+    = true
+
+Language Definition
+-------------------
+
+A Tamsin program consists of one or more productions.  A production consists
+of a name and a rule.  Among other things, a rule may be a "non-terminal",
+in which case it consists of the name of a production, or a "terminal",
+in which case it is a literal string in double-quotes (or one of a number
+of other things we'll get to in a moment.)
+
+When run, a Tamsin program processes its input.  It starts at the production
+named `main`, and evaluates its rule.  A non-terminal in a rule "calls" the
+production of that name in the program.  A terminal in a a rule expects a token
 identical to it to be on the input.  If that expectation is met, it evaluates
-to that token.  If not, it raises an error.
+to that token.  If not, it raises an error.  The final result of evaluating a
+Tamsin program is sent to its output.
 
-Note that input into a Tamsin program is first broken up into tokens as
-specified by the lexical rules of Tamsin itself.  This is a little restrictive
-for general use, but later on you'll see how to alter the scanner to something
-more tuned for your needs.
+(If it makes it easier to think about, consider "its input" to mean "stdin",
+and "token" to mean "character"; so the terminal `"x"` is a command that either
+reads the character `x` from stdin and returns it (whence it is printed to
+stdout by the main program), or errors out if it read something else.)
 
-    | main = blerp.
-    | blerp = "blerp".
-    + blerp
-    = blerp
+    | main = blerf.
+    | blerf = "p".
+    + p
+    = p
 
-    | main = blerp.
-    | blerp = "blerp".
-    + noodles
-    ? expected 'blerp' found 'noodles'
+    | main = blerf.
+    | blerf = "p".
+    + k
+    ? expected 'p' found 'k'
 
-Well, actually it doesn't have to look at its input.  The `return` keyword
-forces evaluation to result in a particular value.  This program outputs 'blerp'
-no matter what the input is.
+A Tamsin program only looks at its input when evaluating a terminal.  A
+rule may also consist of the keyword `return`, followed a term; this expression
+forces the entire production to evaluates to that term.
+
+So, the following program always outputs `blerp`, no matter what the input is.
 
     | main = blerp.
     | blerp = return blerp.
@@ -130,6 +130,8 @@ no matter what the input is.
     + foo
     + foo 0 0 0 0 0
     = blerp
+
+...
 
 And like any good language, you can print things.
 
@@ -1621,7 +1623,37 @@ is, currently, what we sort of have.  A Tamsin term doubles as a string,
 for better or worse.  Mainly, we should sort out the properties of terms,
 then.
 
-Also todo:
+Appendix A. Grammar
+-------------------
+
+    Grammar ::= {Production "."}.
+    Production ::= ProdName ["(" [Term {"," Term} ")" | "[" Expr0 "]"] "=" Expr0.
+    Expr0 := Expr1 {("||" | "|") Expr1}.
+    Expr1 := Expr2 {("&&" | "&") Expr2}.
+    Expr2 := Expr3 ["using" ScannerSpec].
+    Expr3 := Expr4 ["→" Variable].
+    Expr4 := "(" Expr0 ")"
+           | "[" Expr0 "]"
+           | "{" Expr0 "}"
+           | "set" Variable "=" Term
+           | "return" Term
+           | "fail" Term
+           | "print" Term
+           | "any"
+           | "□"
+           | LitToken
+           | ProdName ["(" [Term {"," Term} ")"] ["@" Term].
+    Term  := Term0.
+    Term0 := Term1 {"•" Term1}.
+    Term1 := Atom ["(" {Term0} ")"]
+           | Variable.
+    ScannerSpec = "☆" ("tamsin" | "char") | ProdName.
+    Atom  := ("'" {any} "'" | { "a".."z" | "0".."9" }) using ☆char.
+    Variable := ("A".."Z" { "a".."z" | "0".."9" }) using ☆char.
+    ProdName ::= { "a".."z" | "0".."9" } using ☆char.
+
+Appendix B. TODO
+----------------
 
 *   dictionary values in variables?
 *   arbitrary non-printable characters in terms and such
