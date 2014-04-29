@@ -27,21 +27,27 @@ Grammar
     Production ::= ProdName ["(" [Term {"," Term} ")" | "[" Expr0 "]"] "=" Expr0.
     Expr0 := Expr1 {("||" | "|") Expr1}.
     Expr1 := Expr2 {("&&" | "&") Expr2}.
-    Expr2 := Expr3 ["with" Scanner].
+    Expr2 := Expr3 ["using" ScannerSpec].
     Expr3 := Expr4 ["→" Variable].
     Expr4 := "(" Expr0 ")"
            | "[" Expr0 "]"
            | "{" Expr0 "}"
            | "set" Variable "=" Term
            | "return" Term
-           | "fail"
+           | "fail" Term
            | "print" Term
+           | "any"
+           | "□"
            | LitToken
            | ProdName ["(" [Term {"," Term} ")"] ["@" Term].
     Term  := Term0.
     Term0 := Term1 {"•" Term1}.
     Term1 := Atom ["(" {Term0} ")"]
-           | Variable
+           | Variable.
+    ScannerSpec = "☆" ("tamsin" | "char") | ProdName.
+    Atom  := ("'" {any} "'" | { "a".."z" | "0".."9" }) using ☆char.
+    Variable := ("A".."Z" { "a".."z" | "0".."9" }) using ☆char.
+    ProdName ::= { "a".."z" | "0".."9" } using ☆char.
 
 Examples
 --------
@@ -96,8 +102,8 @@ identical to it to be on the input.  If that expectation is met, it evaluates
 to that token.  If not, it raises an error.
 
 Note that input into a Tamsin program is first broken up into tokens as
-specified by the gammar of Tamsin itself.  This is a little restrictive for
-general use, but later on you'll see how to alter the scanner to something
+specified by the lexical rules of Tamsin itself.  This is a little restrictive
+for general use, but later on you'll see how to alter the scanner to something
 more tuned for your needs.
 
     | main = blerp.
@@ -201,6 +207,42 @@ Alternatives can select code to be executed, basically.
     = cord
     = ok
 
+If there is more input than we asked to parse, it still succeeds.
+
+    | main = "sure" & "begorrah".
+    + sure begorrah tis a fine day
+    = begorrah
+
+The symbol `□` may be used to match against the end of the input
+(colloquially called "EOF".)
+
+    | main = "sure" & "begorrah" & □.
+    + sure begorrah
+    = EOF
+
+This is how you can error if there is extra input remaining.
+
+    | main = "sure" & "begorrah" & □.
+    + sure begorrah tis a fine day
+    ? expected EOF found 'tis'
+
+The end of the input is a virtual infinite stream of □'s.  You can match
+as many as you like, and it continues to succeed.
+
+    | main = "sure" & "begorrah" & □ & □ & □.
+    + sure begorrah
+    = EOF
+
+The symbol `any` matches any token defined by the scanner.
+
+    | main = any & any & any.
+    + (@)
+    = )
+
+    | main = any & any & any.
+    + words words words
+    = words
+
 When a production is called, the result that it evaluates to may be stored
 in a variable.  Variables are local to the production.
 
@@ -245,7 +287,7 @@ This program expects an infinite number of 0's.  It will be disappointed.
     | main = zeroes.
     | zeroes = "0" & zeroes.
     + 0 0 0 0 0
-    ? expected '0' found 'None'
+    ? expected '0' found 'EOF'
 
 This program expects a finite number of 0's, and returns a term representing
 how many it found.  It will not be disappointed.
@@ -279,17 +321,21 @@ alternative.
     = original
 
 The rule `fail` always fails.  This lets you establish global flags, of
-a sort.
+a sort.  It takes a term, which it uses as the failure message.
 
     | debug = return ok.
     | main = (debug & return walla | "0").
     + 0
     = walla
 
-    | debug = fail.
+    | debug = fail notdebugging.
     | main = (debug & return walla | "0").
     + 0
     = 0
+
+    | main = set E = 'Goodbye, world!' & fail E.
+    + hsihdsihdsih
+    ? Goodbye, world!
 
 The rule `[FOO]` is a short form for `(FOO | return nil)`.
 
@@ -337,6 +383,18 @@ the word "simpler", but we can... write it differently.
     + 0 0 0 0
     = zero(zero(zero(zero(nil))))
 
+As mentioned, `"foo"` matches a literal token `foo` in the buffer.  But
+what if you want to match something dynamic, something you have in a
+variable?  You can do that with `«»`:
+
+    | main = set E = foo & «E».
+    + foo
+    = foo
+
+    | main = set E = foo & «E».
+    + bar
+    ? expected 'foo' found 'bar'
+
 Aside
 -----
 
@@ -382,6 +440,18 @@ A production may be called with arguments.
     | main = blerf(foo).
     | blerf(X) = return X.
     = foo
+
+Note that this makes the «»-form more interesting.
+
+    | main = bracketed(a) & bracketed(b) & return ok.
+    | bracketed(X) = «X» & "stuff" & «X».
+    + a stuff a b stuff b
+    = ok
+
+    | main = bracketed(a) & bracketed(b) & return ok.
+    | bracketed(X) = «X» & "stuff" & «X».
+    + a stuff a b stuff a
+    ? expected 'b' found 'a'
 
 We need to be able to test arguments somehow.  Well... how about we
 pattern match the term?  Hahaha.
@@ -672,16 +742,44 @@ Implicit Scanner
 
 Not only is there an implicit buffer, there is also, obviously, an implicit
 scanner.  By default, this is the scanner for the Tamsin language.  But
-you can change it!  Ideally, you could define your own scanner, but for
-now, you'll only be able to select from the Tamsin scanner and a "raw"
-scanner that only gives back characters.
+you can change it!
 
-As an implementation note: scanners for recursive descent parsers commonly
-pre-emptively scan the next token.  So when we switch scanners, we'd have a
-"leftover" token from the previous scanner, unless we deal with it in some
-way.  The way we deal with it is to rewind the scanner by the length of
-the last token scanned just before switching, then after switching, scan
-again (by the new rules.)
+### A prolix note on implementation ###
+
+Traditionally, scanners for recursive descent parsers pre-emptively scan
+the next token.  This was done because originally, parsers (for languages
+like Pascal, say,) were distinctly one-pass beasts, reading the source code
+off of a stream from disk (or maybe even from a tape), and you might need
+to refer to the current token several times in the code and you don't want
+to have to read it more than once.
+
+This setup makes writing a parser with a "hot-swappable" scanner tricky,
+because when we switch scanner, we have to deal with this "cached" token
+somehow.  We could rewind the scanner by the length of the token (plus
+the length of any preceding whitespace and comments), switch the scanner,
+then scan again (by the new rules.)  But this is messy and error-prone.
+
+Luckily, not many of us are reading files off tape these days, and we have
+plenty of core, so it's no problem reading the whole file into memory.
+In fact, I've seen it argued that the best way to write a scanner nowadays
+is to `mmap()` the file.  We don't do this in the implementation of Tamsin,
+but we do read the entire file into memory.
+
+This makes the cache-the-next-token method less useful, and so we don't
+do it.  Instead, we look for the next token only when we need it, and we
+have a method `peek()` that returns what the next token would be, and we
+don't cache this value.
+
+There are a couple of other points about the scanner implementation.
+A scanner only ever has one buffer (the entire string it's scanning); this
+never changes over it's lifetime.  It provides methods for saving and
+restoring its state, and it has a stack of "engines" which provide the
+actual scanning logic.  In addition, there is only one interpreter object,
+and it only has one scanner object during its lifetime.
+
+### The scanners ###
+
+The default scanner logic implements the scan rules for the Tamsin language.
 
     | main = cat.
     | cat = "cat" & return ok.
@@ -693,44 +791,56 @@ again (by the new rules.)
     + cat
     ? expected 'c' found 'cat'
 
-    | main = cat with raw.
+You can select a different scanner for a rule with `using`.  Here we select
+the builtin `☆char` scanner, which returns one character at a time.
+
+    | main = cat using ☆char.
     | cat = "c" & "a" & "t" & return ok.
     + cat
     = ok
 
-    | main = cat with raw.
+    | main = cat using ☆char.
     | cat = "cat" & return ok.
     + cat
     ? expected 'cat' found 'c'
 
-You can mix two scanners in one production.  Note that the Tamsin scanner
-doesn't consume spaces after a token, and that the raw scanner doesn't skip
+You can mix two scanners in one production.  Note that the ☆tamsin scanner
+doesn't consume spaces after a token, and that the ☆char scanner doesn't skip
 spaces.
 
-    | main = "dog" with tamsin & ("c" & "a" & "t") with raw & return ok.
+    | main = "dog" using ☆tamsin & ("c" & "a" & "t") using ☆char & return ok.
     + dog cat
     ? expected 'c' found ' '
 
-But we can make it skip spaces...
+But we can tell it to skip spaces...
 
-    | main = "dog" with tamsin & ({" "} & "c" & "a" & "t") with raw & return ok.
+    | main = "dog" using ☆tamsin
+    |      & ({" "} & "c" & "a" & "t") using ☆char
+    |      & return ok.
     + dog        cat
     = ok
 
-Note that the scanner in force is lexically contained in the `with`.  Outside
-of the `with`, scanning returns to whatever scanner was in force before the
-`with`.
+Note that the scanner in force is lexically contained in the `using`.  Outside
+of the `using`, scanning returns to whatever scanner was in force before the
+`using`.
 
-    | main = ("c" & "a" & "t" & " ") with raw & "dog".
+    | main = ("c" & "a" & "t" & " ") using ☆char & "dog".
     + cat dog
     = dog
 
-But you need to be careful with `with`!  You should not put `with` inside
-a rule that can fail, i.e. the LHS of `|` or inside a `{}`.  Because if it
-does fail and the interpreter reverts the scanner to its previous state,
-its previous state may have been a different scanner.  The result may well
-be eurr.  I could make this a static error, but... for now, just remember
-this and be careful.
+On the other hand, variables set with one scanner can be accessed by another
+scanner, as long as they're in the same production.
+
+    | main = ("c" & "a" & "t" → G) using ☆char
+    |      & ("dog" & return G) using ☆tamsin.
+    + cat dog
+    = t
+
+**Note**: you need to be careful when using `using`!  Beware putting
+`using` inside a rule that can fail, i.e. the LHS of `|` or inside a `{}`.
+Because if it does fail and the interpreter reverts the scanner to its
+previous state, its previous state may have been with a different scanning
+logic.  The result may well be eurr.
 
 Aside #2
 --------
@@ -743,9 +853,9 @@ This section is just ideas for that.
 
 One is that instead of, or alongside terms, we compose strings.
 
-First, we put arbitrary text in an atom, with 「this syntax」.
-
-Then we allow terms to be concatenated with •.
+First, we put arbitrary text in an atom, with `「this syntax」`.  Then we allow
+terms to be concatenated with `•`.  It looks real cool!  But also, it's kind
+of annoying.  So we also allow `'this ' + 'syntax.'`.
 
 So, something like:
 
@@ -764,30 +874,36 @@ So, something like:
     = za
     = .
 
-    | main = set T = 「」 & {aorb → R & set T = T • R} & "." & return T.
-    | aorb = ("a" | "b") → C & return z • C.
+    | main = set T = '' & {aorb → R & set T = T + R} & "." & return T.
+    | aorb = ("a" | "b") → C & return z + C.
     + a b a.
     = zazbza
 
 Then we no longer pattern-match terms.  They're just strings.  So we... we
-parse them.
-
-Well, we can parse the putative syntax for this, anyway, but it's not
-implemented yet.
+parse them.  Here's a preview, and we'll get more serious about this further
+below.
 
     | main = aorb → C & donkey(「fo go」 • C) → D & return D.
     | aorb = "a" | "b".
     | donkey["fo" & "goa"] = return yes.
     | donkey["fo" & "gob"] = return no.
+    + a
+    = yes
+
+    | main = aorb → C & donkey('fo go' + C) → D & return D.
+    | aorb = "a" | "b".
+    | donkey["fo" & "goa"] = return yes.
+    | donkey["fo" & "gob"] = return no.
     + b
-    ? No 'donkey' production matched arguments [fo gob]
+    = no
 
 Anyway, back to scanning
 ------------------------
 
 Now that we can concatenate terms, we can probably write our own scanner.
 
-    | main = ({scan → A & print A} & ".") with raw.
+    | main = scanner using ☆char.
+    | scanner = {scan → A & print A} & ".".
     | scan = {" "} & ("-" & ">" & return 「->」 | "(" | ")" | "," | ";" | word).
     | word = letter → L & {letter → M & set L = L • M}.
     | letter = "a" | "b" | "c" | "d" | "e" | "f" | "g".
@@ -812,8 +928,8 @@ Indeed we can.
 
 The next logical step would be to be able to say
 
-    main = program with scanner.
-    scanner = scan with raw.
+    main = program using scanner.
+    scanner = scan using ☆char.
     scan = {" "} & (...)
     program = "token" & ";" & "token" & ...
 
@@ -821,13 +937,431 @@ But we're not there yet.
 
 Well, the best way to get there is to make that a test, see it fail, then
 improve the implementation so that it passes,  Test-driven language design
-for the win!
+for the win!  (But maybe not in all cases.  See my notes below...)
 
-When you name a production in the program with `with`, that production
-should return a token each time it is called.
+If this seems like an excessive number of tests, it's because I was chasing
+a horribly deep bug for more than a day.  (They all pass now, though!  See
+notes below.)
 
-    | main = program with scanner.
-    | scanner = scan with raw.
+### Writing your own scanner ###
+
+When you name a production in the program with `using`, that production
+should return a token each time it is called.  We call this scanner a
+"production-defined scanner" or just "production scanner".  In the
+following, we use a production scanner based on the `scanner` production.
+(But we use the Tamsin scanner to implement it, so it's not that interesting.)
+
+    | main = program using scanner.
+    | scanner = scan using ☆tamsin.
+    | scan = "cat" | "dog".
+    | program = "cat" & "dog".
+    + cat dog
+    = dog
+
+Note that while it's conventional for a production scanner to return terms
+similar to the strings it scanned, this is just a convention, and may be
+subverted:
+
+    | main = program using scanner.
+    | scanner = scan using ☆tamsin.
+    | scan = "cat" & return meow | "dog" & return woof.
+    | program = "meow" & "woof".
+    + cat dog
+    = woof
+
+We can also implement a production scanner with the ☆char scanner.  This is
+more useful.
+
+    | main = program using scanner.
+    | scanner = scan using ☆char.
+    | scan = "a" | "b" | "@".
+    | program = "a" & "@" & "b" & return ok.
+    + a@b
+    = ok
+
+If the production scanner fails to match the input text, it will return an EOF.
+This is a little weird, but.  Well.  Watch this space.
+
+    | main = program using scanner.
+    | scanner = scan using ☆char.
+    | scan = "a" | "b" | "@".
+    | program = "a" & "@" & "b" & return ok.
+    + x
+    ? expected 'a' found 'EOF'
+
+On the other hand, if the scanner understands all the tokens, but the parser
+doesn't see the tokens it expects, you get the usual error.
+
+    | main = program using scanner.
+    | scanner = scan using ☆char.
+    | scan = "a" | "b" | "@".
+    | program = "a" & "@" & "b" & return ok.
+    + b@a
+    ? expected 'a' found 'b'
+
+We can write a slightly more realistic scanner, too.
+
+    | main = program using scanner.
+    | scanner = scan using ☆char.
+    | scan = "c" & "a" & "t" & return cat
+    |      | "d" & "o" & "g" & return dog.
+    | program = "cat" & "dog".
+    + catdog
+    = dog
+
+Parsing using a production scanner ignores any extra text given to it,
+just like the built-in parser.
+
+    | main = program using scanner.
+    | scanner = scan using ☆char.
+    | scan = (
+    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    |        ).
+    | program = "cat" & "dog".
+    + catdogfoobar
+    = dog
+
+Herein lie an excessive number of tests that I wrote while I was debugging.
+Some of them will be cleaned up at a future point.
+
+    | main = program using scanner.
+    | scanner = scan using ☆char.
+    | scan = {" "} & (
+    |            "c" & "a" & "t" & return meow | "d" & "o" & "g" & return woof
+    |        ).
+    | program = "woof".
+    + dog
+    = woof
+
+    | main = program using scanner.
+    | scanner = scan using ☆char.
+    | scan = {" "} & (
+    |            "c" & "a" & "t" & return meow | "d" & "o" & "g" & return woof
+    |        ).
+    | program = "meow" | "woof".
+    + cat
+    = meow
+
+    | main = program using scanner.
+    | scanner = scan using ☆char.
+    | scan = {" "} & (
+    |            "c" & "a" & "t" & return meow | "d" & "o" & "g" & return woof
+    |        ).
+    | program = "meow" | "woof".
+    + dog
+    = woof
+
+    | main = program using scanner.
+    | scanner = scan using ☆char.
+    | scan = (
+    |            "c" & "a" & "t" & return meow | "d" & "o" & "g" & return woof
+    |        ).
+    | program = "meow" & "woof".
+    + catdog
+    = woof
+
+    | main = program using scanner.
+    | scanner = scan using ☆char.
+    | scan = (
+    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    |        ).
+    | program = "cat" & "dog".
+    + catdog
+    = dog
+
+    | main = program using scanner.
+    | scanner = scan using ☆char.
+    | scan = (
+    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    |        ).
+    | program = "cat" & print 1 &
+    |           ("cat" & print 2 | "dog" & print 3) &
+    |           "dog" & print 4 & return ok.
+    + catcatdog
+    = 1
+    = 2
+    = 4
+    = ok
+
+    | main = program using scanner.
+    | scanner = scan using ☆char.
+    | scan = (
+    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    |        ).
+    | program = "cat" & print 1 &
+    |           ("cat" & print 2 | "dog" & print 3) &
+    |           "dog" & print 4 & return ok.
+    + catdogdog
+    = 1
+    = 3
+    = 4
+    = ok
+
+    | main = program using scanner.
+    | scanner = scan using ☆char.
+    | scan = animal → A & return A.
+    | animal = (
+    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    |          ).
+    | program = "cat" & print 1 &
+    |           ("cat" & print 2 | "dog" & print 3) &
+    |           "dog" & print 4 & return ok.
+    + catdogdog
+    = 1
+    = 3
+    = 4
+    = ok
+
+    | main = program using scanner.
+    | scanner = scan using ☆char.
+    | scan = animal → A & " " & return A.
+    | animal = (
+    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    |          ).
+    | program = "cat" & print 1 &
+    |           ("cat" & print 2 | "dog" & print 3) &
+    |           "dog" & print 4 & return ok.
+    + cat dog dog 
+    = 1
+    = 3
+    = 4
+    = ok
+
+    | main = program using scanner.
+    | scanner = scan using ☆char.
+    | scan = animal → A & "," & return A.
+    | animal = (
+    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    |          ).
+    | program = "cat" & print 1 &
+    |           ("cat" & print 2 | "dog" & print 3) &
+    |           "dog" & print 4 & return ok.
+    + cat,dog,dog,
+    = 1
+    = 3
+    = 4
+    = ok
+
+    | main = program using scanner.
+    | scanner = scan using ☆char.
+    | scan = animal → A & "-" & ">" & return A.
+    | animal = (
+    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    |          ).
+    | program = "cat" & print 1 &
+    |           ("cat" & print 2 | "dog" & print 3) &
+    |           "dog" & print 4 & return ok.
+    + cat->dog->dog->
+    = 1
+    = 3
+    = 4
+    = ok
+
+    | main = program using scanner.
+    | scanner = scan using ☆char.
+    | scan = "X" & (
+    |          "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    |        ).
+    | program = "cat" & "dog".
+    + XcatXdog
+    = dog
+
+    | main = program using scanner.
+    | scanner = scan using ☆char.
+    | scan = " " & (
+    |          "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    |        ).
+    | program = "cat" & "dog".
+    +  cat dog
+    = dog
+
+    | main = program using scanner.
+    | scanner = scan using ☆char.
+    | scan = " " & animal.
+    | animal = (
+    |          "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    |        ).
+    | program = "cat" & "dog".
+    +  cat dog
+    = dog
+
+    | main = program using scanner.
+    | scanner = scan using ☆char.
+    | scan = "(" & animal.
+    | animal = (
+    |          "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    |        ).
+    | program = "cat" & "dog".
+    + (cat(dog
+    = dog
+
+    | main = program using scanner.
+    | scanner = scan using ☆char.
+    | scan = "(" & animal → A & ")" & return A.
+    | animal = (
+    |          "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    |        ).
+    | program = "cat" & "dog".
+    + (cat)(dog)
+    = dog
+
+    | main = program using scanner.
+    | scanner = scan using ☆char.
+    | scan = " " & animal → A & ")" & return A.
+    | animal = (
+    |          "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    |        ).
+    | program = "cat" & "dog".
+    +  cat) dog)
+    = dog
+
+    | main = program using scanner.
+    | scanner = scan using ☆char.
+    | scan = " " & animal → A & return A.
+    | animal = (
+    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    |          ).
+    | program = "cat" & "dog".
+    +  cat dog
+    = dog
+
+    | main = program using scanner.
+    | scanner = scan using ☆char.
+    | scan = " " & animal → A & return A.
+    | animal = (
+    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    |          ).
+    | program = "cat" & ("dog" | "cat").
+    +  cat dog
+    = dog
+
+    | main = program using scanner.
+    | scanner = scan using ☆char.
+    | scan = " " & animal → A & return A.
+    | animal = (
+    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    |          ).
+    | program = "cat" & ("dog" | "cat").
+    +  cat cat
+    = cat
+
+    | main = program using scanner.
+    | scanner = scan using ☆char.
+    | scan = " " & animal → A & return A.
+    | animal = (
+    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    |          ).
+    | program = "cat" & ("cat" | "dog") & "dog".
+    +  cat cat dog
+    = dog
+
+    | main = program using scanner.
+    | scanner = (scan | return unknown) using ☆char.
+    | scan = " " & animal → A & return A.
+    | animal = (
+    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    |          ).
+    | program = "cat" & ("cat" | "dog") & "dog".
+    +  cat dog dog
+    = dog
+
+    | main = program using scanner.
+    | scanner = (scan | return unknown) using ☆char.
+    | scan = " " & animal → A & return A.
+    | animal = "c" & "a" & "t" & return cat
+    |        | "d" & "o" & "g" & return dog
+    |        | return unknown.
+    | program = "cat" & ("cat" | "dog") & "dog".
+    +  cat dog dog
+    = dog
+
+    | main = program using scanner.
+    | scanner = (scan | return unknown) using ☆char.
+    | scan = " " & animal → A & return A.
+    | animal = (
+    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    |            | "."
+    |          ).
+    | program = "cat" & ("cat" | "dog") & "dog" & ".".
+    +  cat dog dog .
+    = .
+
+    | main = program using scanner.
+    | scanner = (scan | return unknown) using ☆char.
+    | scan = " " & animal → A & return A.
+    | animal = (
+    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    |          ).
+    | program = "cat" & ("dog" | "cat") & "dog".
+    +  cat cat dog
+    = dog
+
+    | main = program using scanner.
+    | scanner = scan using ☆char.
+    | scan = " " & animal → A & return A.
+    | animal = (
+    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    |          ).
+    | program = "cat" & ("dog" | "cat") & "dog".
+    +  cat dog dog
+    = dog
+
+    | main = program using scanner.
+    | scanner = scan using ☆char.
+    | scan = " " & animal → A & return A.
+    | animal = (
+    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    |          ).
+    | program = "cat" & print 1 &
+    |           ("cat" & print 2 | "dog" & print 3) &
+    |           "dog" & print 4 & return ok.
+    +  cat dog dog
+    = 1
+    = 3
+    = 4
+    = ok
+
+    | main = program using scanner.
+    | scanner = scan using ☆char.
+    | scan = "X" & animal → A & return A.
+    | animal = (
+    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    |          ).
+    | program = "cat" & print 1 &
+    |           ("cat" & print 2 | "dog" & print 3) &
+    |           "dog" & print 4 & return ok.
+    + XcatXdogXdog
+    = 1
+    = 3
+    = 4
+    = ok
+
+    | main = program using scanner.
+    | scanner = scan using ☆char.
+    | scan = "(" & animal → A & ")" & return A.
+    | animal = (
+    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    |          ).
+    | program = "cat" & print 1 &
+    |           ("cat" & print 2 | "dog" & print 3) &
+    |           "dog" & print 4 & return ok.
+    + (cat)(dog)(dog)
+    = 1
+    = 3
+    = 4
+    = ok
+
+    | main = program using scanner.
+    | scanner = scan using ☆char.
+    | scan = {" "} & (
+    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    |        ).
+    | program = "cat" & "dog".
+    + cat dog
+    = dog
+
+    | main = program using scanner.
+    | scanner = scan using ☆char.
     | scan = {" "} & (
     |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
     |        ).
@@ -839,9 +1373,9 @@ should return a token each time it is called.
     = 2
     = 4
     = ok
-
-    | main = program with scanner.
-    | scanner = scan with raw.
+    
+    | main = program using scanner.
+    | scanner = scan using ☆char.
     | scan = {" "} & (
     |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
     |        ).
@@ -854,8 +1388,26 @@ should return a token each time it is called.
     = 4
     = ok
 
-    | main = program with scanner.
-    | scanner = scan with raw.
+    | main = "cat" & print 1 &
+    |        ("cat" & print 2 | "dog" & print 3) &
+    |        "dog" & print 4 & return ok.
+    + cat cat dog
+    = 1
+    = 2
+    = 4
+    = ok
+
+    | main = "cat" & print 1 &
+    |        ("cat" & print 2 | "dog" & print 3) &
+    |        "dog" & print 4 & return ok.
+    + cat dog dog
+    = 1
+    = 3
+    = 4
+    = ok
+
+    | main = program using scanner.
+    | scanner = scan using ☆char.
     | scan = {" "} & (
     |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
     |        ).
@@ -863,11 +1415,181 @@ should return a token each time it is called.
     + cat cat cat
     ? expected 'dog' found 'cat'
 
-    | main = program with scanner.
-    | scanner = scan with raw.
+    | main = program using scanner.
+    | scanner = scan using ☆char.
     | scan = {" "} & (
     |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
     |        ).
     | program = "cat" & ("cat" | "dog") & "dog".
     + dog dog dog
     ? expected 'cat' found 'dog'
+
+### Notes ###
+
+Maybe test-driven language design *not* "for the win" in all cases; it's
+excellent for evolving a design, but not so good for deep debugging.  I had
+to actually write a dedicated test case which directly accessed the internals,
+to find the problem.
+
+This was only after refactoring the implementation two or three times.  One
+of those times, I removed exceptions, so now the interpreter returns
+`(success, result)` tuples, where `success` is a boolean, and propagates
+parse errors itself.
+
+We "raise" a parse error only in the `LITERAL` AST node.
+
+We handle parse errors (backtrack) only in `OR` and `WHILE`, and in the
+ProductionScannerEngine logic (to provide that EOF if the scanning production
+failed.  This can happen even in `peek()` at the end of a string, even after
+we've successfully parsed everything else.)
+
+### More tests ###
+
+A production scanner may contain an embedded `with` and use another
+production scanner.
+
+    | main = program using scanner1.
+    | 
+    | scanner1 = scan1 using ☆char.
+    | scan1 = "a" | "b" | "c" | "(" & other & ")" & return list.
+    | 
+    | other = xyz using scanner2.
+    | xyz = "1" & "1" | "1" & "2" | "2" & "3".
+    | 
+    | scanner2 = scan2 using ☆char.
+    | scan2 = "x" & return 1 | "y" & return 2 | "z" & return 3.
+    | program = "c" & "list" & "a".
+    + c(xx)a
+    = a
+
+    | main = program using scanner1.
+    | 
+    | scanner1 = scan1 using ☆char.
+    | scan1 = "a" | "b" | "c" | "(" & other & ")" & return list.
+    | 
+    | other = xyz using scanner2.
+    | xyz = "1" & "1" | "1" & "2" | "2" & "3".
+    | 
+    | scanner2 = scan2 using ☆char.
+    | scan2 = "x" & return 1 | "y" & return 2 | "z" & return 3.
+    | program = "c" & "list" & "a".
+    + c(yy)a
+    ? expected 'list' found 'EOF'
+
+Maybe an excessive number of minor variations on that...
+
+    | main = program using scanner1.
+    | 
+    | scanner1 = scan1 using ☆char.
+    | scan1 = "a" | "b" | "c" | "(" & xyz using scanner2 & ")" & return list.
+    | 
+    | xyz = "1" & "1" | "1" & "2" | "2" & "3".
+    | 
+    | scanner2 = scan2 using ☆char.
+    | scan2 = "x" & return 1 | "y" & return 2 | "z" & return 3.
+    | program = "c" & "list" & "a".
+    + c(xx)a
+    = a
+
+    | main = program using scanner1.
+    | 
+    | scanner1 = scan1 using ☆char.
+    | scan1 = "a" | "b" | "c" | "(" & {other} & ")" & return list.
+    | 
+    | other = xyz using scanner2.
+    | xyz = "1" & "1" | "1" & "2" | "2" & "3".
+    | 
+    | scanner2 = scan2 using ☆char.
+    | scan2 = "x" & return 1 | "y" & return 2 | "z" & return 3.
+    | program = "c" & "list" & "a".
+    + c(xxxyyzxy)a
+    = a
+
+    | main = program using scanner1.
+    | 
+    | scanner1 = scan1 using ☆char.
+    | scan1 = "a" | "b" | "c" | "(" & {xyz using scanner2} & ")" & return list.
+    | 
+    | xyz = "1" & "1" | "1" & "2" | "2" & "3".
+    | 
+    | scanner2 = scan2 using ☆char.
+    | scan2 = "x" & return 1 | "y" & return 2 | "z" & return 3.
+    | program = "c" & "list" & "a".
+    + c(xxxyyzxy)a
+    = a
+
+    | main = program using scanner1.
+    | 
+    | scanner1 = scan1 using ☆char.
+    | scan1 = "a" | "b" | "c"
+    |       | "(" & {xyz → R using scanner2} & ")" & return R.
+    | 
+    | xyz = "1" & "1" & return 11 | "1" & "2" & return 12 | "2" & "3" & return 23.
+    | 
+    | scanner2 = scan2 using ☆char.
+    | scan2 = "x" & return 1 | "y" & return 2 | "z" & return 3.
+    | program = "c" & ("11" | "12" | "23") → R & "a" & return R.
+    + c(xxxyyzxy)a
+    = 12
+
+The production being applied with the production scanner can also switch
+its own scanner.  It switches back to the production scanner when done.
+
+    | main = program using scanner.
+    | 
+    | scanner = scan using ☆char.
+    | scan = {" "} & set T = 「」 & {("a" | "b" | "c") → S & set T = T • S}.
+    | 
+    | program = "abc" & "cba" & "bac".
+    + abc    cba bac
+    = bac
+
+    | main = program using scanner.
+    | 
+    | scanner = scan using ☆char.
+    | scan = {" "} & set T = 「」 & {("a" | "b" | "c") → S & set T = T • S}.
+    | 
+    | program = "abc" & (subprogram using subscanner) & "bac".
+    | 
+    | subscanner = subscan using ☆char.
+    | subscan = {" "} & set T = 「」 & {("s" | "t" | "u") → S & set T = T • S}.
+    | 
+    | subprogram = "stu" & "uuu".
+    + abc    stu   uuu bac
+    = bac
+
+And now, back to "parse-patterns"
+---------------------------------
+
+Now that you can create scanners and parsers to your heart's desire, we
+return to the reason you would even need to: terms vs. rules in the
+"formal arguments" part of a production definition.
+
+    | main = aorb → C & donkey(「fo go」 • C) → D & return D.
+    | aorb = "a" | "b".
+    | donkey["fo" & "goa"] = return yes.
+    | donkey["fo" & "gob"] = return no.
+    + a
+    = yes
+
+Having thought more about it, I think the easiest way to reconcile terms
+and strings is to have terms be syntactic sugar for strings.  This is
+already the case for ground terms, since `tree(a,b)` stringifies to the
+same string as `「tree(a,b)」`.  It's when variables are involved where it
+differs.  We would like some kind of quasi-quote such that even though
+`「tree(A,b)」` → `tree(A,n)`, `«tree(A,b)»` → `tree(tree(x,y),b)` or
+whatever.
+
+Although, I still don't know.  The thing about terms is that they are
+super-useful for intermediate representations — abstract syntax trees
+and the like.  I've been thinking about some kind of compromise.  Which
+is, currently, what we sort of have.  A Tamsin term doubles as a string,
+for better or worse.  Mainly, we should sort out the properties of terms,
+then.
+
+Also todo:
+
+*   dictionary values in variables?
+*   non-printable characters in terms and such, e.g. "\n"
+*   underscores in names
+*   special form that consumes rest of input from the Tamsin source
