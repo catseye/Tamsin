@@ -36,6 +36,7 @@ Grammar
            | "return" Term
            | "fail" Term
            | "print" Term
+           | "□"
            | LitToken
            | ProdName ["(" [Term {"," Term} ")"] ["@" Term].
     Term  := Term0.
@@ -309,17 +310,21 @@ alternative.
     = original
 
 The rule `fail` always fails.  This lets you establish global flags, of
-a sort.
+a sort.  It takes a term, which it uses as the failure message.
 
     | debug = return ok.
     | main = (debug & return walla | "0").
     + 0
     = walla
 
-    | debug = fail.
+    | debug = fail notdebugging.
     | main = (debug & return walla | "0").
     + 0
     = 0
+
+    | main = set E = 「Goodbye, world!」 & fail E.
+    + hsihdsihdsih
+    ? Goodbye, world!
 
 The rule `[FOO]` is a short form for `(FOO | return nil)`.
 

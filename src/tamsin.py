@@ -476,7 +476,8 @@ class Parser(EventProducer):
             t = self.term()
             return ('RETURN', t)
         elif self.consume('fail'):
-            return ('FAIL',)
+            t = self.term()
+            return ('FAIL', t)
         elif self.consume(u'□'):
             return ('EOF',)
         elif self.consume('print'):
@@ -719,7 +720,7 @@ class Interpreter(EventProducer):
         elif ast[0] == 'RETURN':
             return (True, ast[1].expand(self.context))
         elif ast[0] == 'FAIL':
-            return (False, Term("fail"))
+            return (False, ast[1].expand(self.context))
         elif ast[0] == 'EOF':
             if self.scanner.eof():
                 return (True, EOF)
