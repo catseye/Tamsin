@@ -160,11 +160,12 @@ class Scanner(EventProducer):
         )
 
     def get_state(self):
-        assert self.position == self.reset_position, "divergent..."        
+        assert self.position == self.reset_position, "divergent..."
         return (self.position,)
 
     def install_state(self, (position,)):
         self.position = position
+        self.reset_position = position
 
     def push_engine(self, engine):
         self.engines.append(engine)
@@ -238,25 +239,6 @@ class Scanner(EventProducer):
         self.reset_position = self.position
 
     def next_tok(self):
-        return self.next_token()
-        scanner1 = self.clone()
-        a = self.next_token()
-        scanner2 = self.clone()
-        b = self.next_token()
-        if a != b:
-            print
-            print "BADNESS DUMP"
-            print "before scanning " + str(a)
-            scanner1.dump()
-            print "after scanning " + str(a) + " and before scanning " + str(b)
-            scanner2.dump()
-            print "after scanning " + str(b)
-            self.dump()
-            print "%s != %s, BADNESS, MUCH BADNESS" % (a, b)
-            sys.exit(1)
-        return a
-
-    def next_token(self):
         before = self.position
         tok = self.scan()
         self.unscan()
