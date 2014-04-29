@@ -880,17 +880,22 @@ So, something like:
     = zazbza
 
 Then we no longer pattern-match terms.  They're just strings.  So we... we
-parse them.
+parse them.  Here's a preview, and we'll get more serious about this further
+below.
 
-Well, we can parse the putative syntax for this, anyway, but it's not
-implemented yet.
+    | main = aorb → C & donkey(「fo go」 • C) → D & return D.
+    | aorb = "a" | "b".
+    | donkey["fo" & "goa"] = return yes.
+    | donkey["fo" & "gob"] = return no.
+    + a
+    = yes
 
     | main = aorb → C & donkey(「fo go」 • C) → D & return D.
     | aorb = "a" | "b".
     | donkey["fo" & "goa"] = return yes.
     | donkey["fo" & "gob"] = return no.
     + b
-    ? No 'donkey' production matched arguments [fo gob]
+    = no
 
 Anyway, back to scanning
 ------------------------
@@ -1564,8 +1569,8 @@ return to the reason you would even need to: terms vs. rules in the
     | aorb = "a" | "b".
     | donkey["fo" & "goa"] = return yes.
     | donkey["fo" & "gob"] = return no.
-    + b
-    ? No 'donkey' production matched arguments [fo gob]
+    + a
+    = yes
 
 Having thought more about it, I think the easiest way to reconcile terms
 and strings is to have terms be syntactic sugar for strings.  This is
@@ -1575,9 +1580,17 @@ differs.  We would like some kind of quasi-quote such that even though
 `「tree(A,b)」` → `tree(A,n)`, `«tree(A,b)»` → `tree(tree(x,y),b)` or
 whatever.
 
+Although, I still don't know.  The thing about terms is that they are
+super-useful for intermediate representations — abstract syntax trees
+and the like.  I've been thinking about some kind of compromise.  Which
+is, currently, what we sort of have.  A Tamsin term doubles as a string,
+for better or worse.  Mainly, we should sort out the properties of terms,
+then.
+
 Also todo:
 
 *   dictionary values in variables?
 *   `''` and `+` for `「」` and `•`
 *   non-printable characters in terms and such, e.g. "\n"
 *   underscores in names
+*   special form that consumes rest of input from the Tamsin source

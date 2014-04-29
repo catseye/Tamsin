@@ -676,12 +676,13 @@ class Interpreter(EventProducer):
                             return self.interpret(prod, bindings=bindings)
                 else:
                     self.event('call_newfangled_parsing_args', prod)
-                    print >>sys.stderr, formals, args, str(args[0])
                     # XXX bindings may happen as a result of this;
                     # they'll be in the interpreter's context?
                     (success, result) = self.interpret_on_buffer(
-                        formals, str(args[0]))
-                    sys.exit(0)
+                        formals, str(args[0])
+                    )
+                    if success:
+                        return self.interpret(prod)
             raise ValueError("No '%s' production matched arguments %r" %
                 (name, args)
             )
@@ -798,13 +799,11 @@ class Interpreter(EventProducer):
             raise NotImplementedError(repr(ast))
 
     def interpret_on_buffer(self, ast, buffer, bindings=None):
-        print >>sys.stderr, "???>", self.scanner.peek()
         self.event('interpret_on_buffer', buffer)
         saved_scanner_state = self.scanner.get_state()
         self.scanner.buffer = buffer
         self.scanner.position = 0
-        self.scanner.saved_position = 0
-        print >>sys.stderr, "???>", self.scanner.peek()
+        self.scanner.reset_position = 0
         result = self.interpret(ast, bindings=bindings)
         self.scanner.install_state(saved_scanner_state)
         return result
