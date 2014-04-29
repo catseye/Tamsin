@@ -102,6 +102,8 @@ Parse and evaluate a Boolean expression.
 Language Definition
 -------------------
 
+### Fundaments ###
+
 A Tamsin program consists of one or more productions.  A production consists
 of a name and a rule.  Among other things, a rule may be a "non-terminal",
 in which case it consists of the name of a production, or a "terminal",
@@ -118,7 +120,9 @@ Tamsin program is sent to its output.
 (If it makes it easier to think about, consider "its input" to mean "stdin",
 and "token" to mean "character"; so the terminal `"x"` is a command that either
 reads the character `x` from stdin and returns it (whence it is printed to
-stdout by the main program), or errors out if it read something else.)
+stdout by the main program), or errors out if it read something else.
+Or, thinking about it from the other angle, we have here the rudiments for
+defining a grammar for parsing a trivial language.)
 
     | main = blerf.
     | blerf = "p".
@@ -136,29 +140,39 @@ forces the entire production to evaluates to that term.
 
 So, the following program always outputs `blerp`, no matter what the input is.
 
-    | main = blerp.
-    | blerp = return blerp.
+    | main = return blerp.
     + fadda wadda badda kadda nadda sadda hey
     = blerp
 
-    | main = return blerp.
+Note that in the following, `blerp` refers to the production named "blerp"
+in one place, and in the other place, it refers to a term which is basically
+the literal string `blerp`.  Tamsin sees the difference because of the
+context; `return` is followed by a term, and a production cannot be part of
+a term.  (More on terms in a moment.)
+
+    | main = blerp.
+    | blerp = return blerp.
     + foo
     + foo
     + foo 0 0 0 0 0
     = blerp
 
-...
+A rule may also consist of the keyword `print` followed by a term, which,
+when evaluated, sends the term to the output, and evaluates to the term.
+(Mostly this is useful for debugging.  In the following, `world` is
+repeated because it is both printed, and the result of the evaluation.)
 
-And like any good language, you can print things.
-
-    | main = print hello & return world.
+    | main = print hello & print world.
     + ahoshoshohspohdphs
     = hello
     = world
+    = world
 
-But back to parsing.  The `&` operator processes its left-hand side on the
-input, then the right-hand side.  It returns the result of its RHS.  But if
-the LHS fails, the whole thing fails.
+A rule may also consist of two subrules joined by the `&` operator.
+The `&` operator processes the left-hand side rule.  If the LHS fails, then
+the `&` expression fails; otherwise, it continues and processes the
+right-hand side rule.  If the RHS fails, the `&` expression fails; otherwise
+it evaluates to what the RHS evaluated to.
 
     | main = "sure" & "begorrah".
     + sure begorrah
@@ -172,10 +186,14 @@ the LHS fails, the whole thing fails.
     + sari begorrah
     ? expected 'sure' found 'sari'
 
-The `|` operator processes its left-hand side and returns the result of
-that — unless it fails, in which case it processes its right-hand side
-and returns the result of that.  For example, this program accepts `0` or
-`1` but nothing else.
+A rule may also consist of two subrules joined by the `|` operator.
+The `&` operator processes the left-hand side rule.  If the LHS succeeds,
+then the `|` expression evaluates to what the LHS evaluted to, and the
+RHS is ignored.  But if the LHS fails, it processes the RHS; if the RHS
+fails, the `|` expression fails, but otherwise it evaluates to what the
+RHS evaluated to.
+
+For example, this program accepts `0` or `1` but nothing else.
 
     | main = "0" | "1".
     + 0
@@ -190,7 +208,7 @@ and returns the result of that.  For example, this program accepts `0` or
     ? expected '1' found '2'
 
 Using `return` described above, this program accepts 0 or 1 and evaluates
-to the opposite.
+to the opposite.  (Note here also that `&` has a higher precedence than `|`.)
 
     | main = "0" & return 1 | "1" & return 0.
     + 0
@@ -204,8 +222,14 @@ to the opposite.
     + 2
     ? expected '1' found '2'
 
+Evaluation order can be altered by using parentheses, as per usual.
+
+    | main = "0" & ("0" | "1") & "1" & return ok.
+    + 0 1 1
+    = ok
+
 Note that if the LHS of `|` fails, the RHS is tried at the position of
-the stream that the LHS started on.  So basically, it's "backtracking".
+the stream that the LHS started on.  This property is called "backtracking".
 
     | ohone = "0" & "1".
     | ohtwo = "0" & "2".
@@ -213,7 +237,22 @@ the stream that the LHS started on.  So basically, it's "backtracking".
     + 0 2
     = 2
 
-Alternatives can select code to be executed, basically.
+Note that `print` and `return` never fail.  Thus, code like the following
+is "useless":
+
+    | main = foo & print hi | return useless.
+    | foo = return bar | print useless.
+    = hi
+    = hi
+
+Note that `return` does not exit the production immediately — although
+this behaviour may be re-considered...
+
+    | main = return hello & print not_useless.
+    = not_useless
+    = not_useless
+
+Alternatives can select code to be executed, based on the input.
 
     | main = aorb & print aorb | cord & print cord & return ok.
     | aorb = "a" & print ay | "b" & print bee.
@@ -225,27 +264,85 @@ Alternatives can select code to be executed, basically.
     = cord
     = ok
 
-If there is more input than we asked to parse, it still succeeds.
+If there is more input available than what we wrote the program to consume,
+the program still succeeds.
 
     | main = "sure" & "begorrah".
     + sure begorrah tis a fine day
     = begorrah
 
-The symbol `□` may be used to match against the end of the input
+And that's the basics.  With these tools, you can write simple
+recursive-descent parsers.  For example, to consume nested parentheses
+containing a zero:
+
+    | main = parens & "." & return ok.
+    | parens = "(" & parens & ")" | "0".
+    + 0.
+    = ok
+
+    | main = parens & "." & return ok.
+    | parens = "(" & parens & ")" | "0".
+    + (((0))).
+    = ok
+
+(the error message on this test case is a little weird; it's because of
+the backtracking.  It tries to match `(((0)))` against the beginning of
+input, and fails, because the last `)` is not present.  So it tries to
+match `0` at the beginning instead, and fails that too.)
+
+    | main = parens & "." & return ok.
+    | parens = "(" & parens & ")" | "0".
+    + (((0)).
+    ? expected '0' found '('
+
+(the error message on this one is much more reasonable...)
+
+    | main = parens & "." & return ok.
+    | parens = "(" & parens & ")" | "0".
+    + ((0))).
+    ? expected '.' found ')'
+
+To consume a comma-seperated list of one or more bits:
+
+    | main = bit & {"," & bit} & ".".
+    | bit = "0" | "1".
+    + 1.
+    = .
+
+    | main = bit & {"," & bit} & ".".
+    | bit = "0" | "1".
+    + 0,1,1,0,1,1,1,1,0,0,0,0,1.
+    = .
+
+(again, backtracking makes the error a little odd)
+
+    | main = bit & {"," & bit} & ".".
+    | bit = "0" | "1".
+    + 0,,1,0.
+    ? expected '.' found ','
+
+    | main = bit & {"," & bit} & ".".
+    | bit = "0" | "1".
+    + 0,10,0.
+    ? expected '.' found ','
+
+### EOF and any ###
+
+The keyword `□` may be used to match against the end of the input
 (colloquially called "EOF".)
 
     | main = "sure" & "begorrah" & □.
     + sure begorrah
     = EOF
 
-This is how you can error if there is extra input remaining.
+This is how you can make it error out if there is extra input remaining.
 
     | main = "sure" & "begorrah" & □.
     + sure begorrah tis a fine day
     ? expected EOF found 'tis'
 
 The end of the input is a virtual infinite stream of □'s.  You can match
-as many as you like, and it continues to succeed.
+against them until the cows come home.  The cows never come home.
 
     | main = "sure" & "begorrah" & □ & □ & □.
     + sure begorrah
@@ -265,6 +362,8 @@ The symbol `any` matches any token defined by the scanner except □.
     + words
     ? expected any token, found EOF
 
+### Variables ###
+
 When a production is called, the result that it evaluates to may be stored
 in a variable.  Variables are local to the production.
 
@@ -273,14 +372,14 @@ in a variable.  Variables are local to the production.
     + blerp
     = blerp
 
-Variables must be capitalized.
+Names of Variables must be Capitalized.
 
     | main = blerp → b & return b.
     | blerp = "blerp".
     ? Expected variable
 
-In fact, the result of anything may be sent into a variable by `→`.  But
-note that `→` has a higher precence than `&`.
+In fact, the result of not just a production, but any rule, may be sent
+into a variable by `→`.  Note that `→` has a higher precedence than `&`.
 
     | main = ("0" | "1") → B & return itsa(B).
     + 0
@@ -319,7 +418,8 @@ how many it found.  It will not be disappointed.
     + 0 0 0 0
     = zero(zero(zero(zero(nil))))
 
-This isn't the only way to set a variable.  You can also do so unconditionally.
+This isn't the only way to set a variable.  You can also do so unconditionally
+with `set`.
 
     | main = eee.
     | eee = set E = whatever && set F = stuff && return pair(E ,F).
@@ -342,22 +442,7 @@ alternative.
     + 0 2
     = original
 
-The rule `fail` always fails.  This lets you establish global flags, of
-a sort.  It takes a term, which it uses as the failure message.
-
-    | debug = return ok.
-    | main = (debug & return walla | "0").
-    + 0
-    = walla
-
-    | debug = fail notdebugging.
-    | main = (debug & return walla | "0").
-    + 0
-    = 0
-
-    | main = set E = 'Goodbye, world!' & fail E.
-    + hsihdsihdsih
-    ? Goodbye, world!
+### Optional rules and Asterated rules ###
 
 The rule `[FOO]` is a short form for `(FOO | return nil)`.
 
@@ -405,6 +490,25 @@ the word "simpler", but we can... write it differently.
     + 0 0 0 0
     = zero(zero(zero(zero(nil))))
 
+### fail and dynamic matching ###
+
+The rule `fail` always fails.  This lets you establish global flags, of
+a sort.  It takes a term, which it uses as the failure message.
+
+    | debug = return ok.
+    | main = (debug & return walla | "0").
+    + 0
+    = walla
+
+    | debug = fail notdebugging.
+    | main = (debug & return walla | "0").
+    + 0
+    = 0
+
+    | main = set E = 'Goodbye, world!' & fail E.
+    + hsihdsihdsih
+    ? Goodbye, world!
+
 As mentioned, `"foo"` matches a literal token `foo` in the buffer.  But
 what if you want to match something dynamic, something you have in a
 variable?  You can do that with `«»`:
@@ -417,45 +521,7 @@ variable?  You can do that with `«»`:
     + bar
     ? expected 'foo' found 'bar'
 
-Aside
------
-
-OK!  So... here is a problem: if you haven't noticed yet,
-
-*   what a rule consumes, is a string.
-*   what a rule evaluates to, is a term.
-*   the symbol `(` means something different in a rule (where it expresses
-    precendence) than in a term (where it signifies the list of subterms.)
-*   the symbol `foo` means something different in a rule (where it denotes
-    a production) than in a term (where it is an atom.)
-
-This is probably unacceptable.  Which syntax do we want to change?
-
-    PRODUCTION = set V = foo & return ⟨atom V production⟩.
-
-i.e. productions are distinguished from atoms and variables by being
-all-caps.  Lists are distinguished from precedence by being ⟨ ⟩.
-
-    production = set V = 'foo & return '(atom V production).
-
-i.e. `'` acts a bit like quote, or rather quasi-quote, as Variables get
-expanded.
-
-    production = set V = :foo & return :smth(:atom Var :production).
-
-i.e. atoms are prefixed with `:`, like Ruby, and terms are constructors
-with a leading atom, like real terms and not like lists.
-
-    production = set V = 「foo」 & return 「(atom Var anotheratom)」.
-
-A funky, Japanese-influenced version of quote.  Nice, but really not suited
-for this, quite.  Ditto ⟦these⟧.
-
-Ah, well, it may not be a real problem, unless we want to make `return`
-optional (which we do.)  Maybe, onto weirder stuff first.
-
-Back to the examples
---------------------
+### Arguments to Productions ###
 
 A production may be called with arguments.
 
@@ -481,8 +547,9 @@ Note that this makes the «»-form more interesting.
     + a stuff a b stuff a
     ? expected 'b' found 'a'
 
-We need to be able to test arguments somehow.  Well... how about we
-pattern match the term?  Hahaha.
+We need to be able to test arguments somehow.  We can do that with
+pattern-matching, which works in Tamsin very similarly to how it
+works in Erlang (except here, there are no guards or list sugar.)
 
     | main = blerf(tree(a, b)).
     | blerf(tree(X, Y)) = return X.
@@ -508,7 +575,8 @@ terminate on the base case.
     | blerf(Other) = return Other.
     = a
 
-What does this get us?  I DON'T KNOW.  Oh, heck.  Let's parse a tree.
+What does this get us?  Functional programming!  Let's parse a tree, then
+return the rightmost bottommost leaf.
 
     | main = tree → T & rightmost(T).
     | tree = "tree" & "(" & tree → L & "," & tree → R & ")" & return tree(L, R)
@@ -518,17 +586,14 @@ What does this get us?  I DON'T KNOW.  Oh, heck.  Let's parse a tree.
     + tree(tree(0,1),tree(0,tree(1,2)))
     = 2
 
-Implicit Buffer
----------------
-
-OK, this section is mostly thoughts, until I come up with something.
+### Implicit Buffer ###
 
 Object-oriented languages sometimes have an "implicit self".  That means
 when you say "foo", it's assumed (at least, to begin with,) to be a
 method on the current object that is in context.
 
 Tamsin, clearly, has an implicit buffer.  This is the buffer on which
-scanning/parsing operations like `"tree"` operate.  When you call another
+scanning/parsing operations like terminals operate.  When you call another
 production from a production, that production you call gets the same
 implicit buffer you were working on.  And `main` gets standard input as
 its implicit buffer.
@@ -1713,10 +1778,50 @@ Appendix A. Grammar
     Variable := ("A".."Z" { "a".."z" | "0".."9" }) using ☆char.
     ProdName ::= { "a".."z" | "0".."9" } using ☆char.
 
+Appendix B. Notes
+-----------------
+
+These are now out of context, and kept here for historical purposes.
+
+### an aside, written a while back ###
+
+OK!  So... here is a problem: if you haven't noticed yet,
+
+*   what a rule consumes, is a string.
+*   what a rule evaluates to, is a term.
+*   the symbol `(` means something different in a rule (where it expresses
+    precendence) than in a term (where it signifies the list of subterms.)
+*   the symbol `foo` means something different in a rule (where it denotes
+    a production) than in a term (where it is an atom.)
+
+This is probably unacceptable.  Which syntax do we want to change?
+
+    PRODUCTION = set V = foo & return ⟨atom V production⟩.
+
+i.e. productions are distinguished from atoms and variables by being
+all-caps.  Lists are distinguished from precedence by being ⟨ ⟩.
+
+    production = set V = 'foo & return '(atom V production).
+
+i.e. `'` acts a bit like quote, or rather quasi-quote, as Variables get
+expanded.
+
+    production = set V = :foo & return :smth(:atom Var :production).
+
+i.e. atoms are prefixed with `:`, like Ruby, and terms are constructors
+with a leading atom, like real terms and not like lists.
+
+    production = set V = 「foo」 & return 「(atom Var anotheratom)」.
+
+A funky, Japanese-influenced version of quote.  Nice, but really not suited
+for this, quite.  Ditto ⟦these⟧.
+
+Ah, well, it may not be a real problem, unless we want to make `return`
+optional (which we do.)  Maybe, onto weirder stuff first.
+
 Appendix B. TODO
 ----------------
 
 *   dictionary values in variables?
 *   arbitrary non-printable characters in terms and such
 *   special form that consumes rest of input from the Tamsin source
-*   `any` matches EOF; it probably shouldn't.
