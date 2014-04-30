@@ -68,20 +68,20 @@ class Parser(EventProducer):
             
     def production(self):
         name = self.consume_any()
-        args = []
+        formals = []
         if self.consume('('):
             if self.peek() != ')':
-                args.append(self.term())
+                formals.append(self.term())
                 while self.consume(','):
-                    args.append(self.term())
+                    formals.append(self.term())
             self.expect(')')
         elif self.consume('['):
-            args = self.expr0()
+            formals = self.expr0()
             self.expect(']')
         self.expect('=')
-        e = self.expr0()
+        body = self.expr0()
         self.expect('.')
-        return ('PROD', name, args, e)
+        return ('PROD', name, formals, body)
 
     def expr0(self):
         lhs = self.expr1()

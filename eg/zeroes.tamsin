@@ -1,2 +1,2 @@
 main = zeroes.
-zeroes = ("0" & zeroes → E & return (zero E)) | return nil.
+zeroes = ("0" & zeroes → E & return zero(E)) | return nil.

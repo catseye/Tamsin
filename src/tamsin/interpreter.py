@@ -270,13 +270,6 @@ class Interpreter(EventProducer):
                 self.context = saved_context
                 self.scanner.install_state(saved_scanner_state)
                 return self.interpret(rhs)
-        elif ast[0] == 'EOF':
-            if self.scanner.eof():
-                return (True, EOF)
-            else:
-                return (False, Term("expected EOF found '%s'" %
-                                    self.scanner.peek())
-                       )
         elif ast[0] == 'USING':
             sub = ast[1]
             prodref = ast[2]

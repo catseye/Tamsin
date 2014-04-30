@@ -40,5 +40,12 @@ def main(args):
                 sys.stderr.write(str(result) + "\n")
                 sys.exit(1)
             print str(result)
+    elif args[0] == 'compile':
+        from tamsin.compiler import compile
+        with codecs.open(args[1], 'r', 'UTF-8') as f:
+            contents = f.read()
+            parser = Parser(contents)
+            ast = parser.grammar()
+            compile(ast, sys.stdout)
     else:
         raise ValueError("first argument must be 'parse' or 'run'")
