@@ -2,10 +2,10 @@ Tamsin
 ======
 
 Tamsin is a strange little language that can't decide if it's a
-language-definition language like CoCo/R or a functional language
-like Erlang or a practical extraction and reporting language like...
-that one practical extraction and reporting language whose name
-escapes me at the moment.
+language-definition language like [CoCo/R](http://www.scifac.ru.ac.za/coco/)
+or a functional language like [Erlang](http://erlang.org/) or a practical
+extraction and reporting language like... that one practical extraction and
+reporting language whose name escapes me at the moment.
 
 Basically, every time I see someone use a compiler-compiler like `yacc`
 or a parser combinator library, part of me thinks, "Well why didn't
@@ -57,7 +57,7 @@ Make a story more exciting!
 
     | main = collect using ☆char.
     | collect = set S = '' & {translate → C & set S = S + C} & return S.
-    | translate = □ & fail done | "." & return '!' | "?" & return '?!' | any.
+    | translate = "." & return '!' | "?" & return '?!' | any.
     + Chapter 1
     + ---------
     + It was raining.  She knocked on the door.  She heard
@@ -99,7 +99,25 @@ Parse and evaluate a Boolean expression.
 For more information
 --------------------
 
+If the above has piqued your curiosity, you may want to read the specification,
+which contains many more small examples written to demonstrate (and test) the
+syntax and behavior of Tamsin:
+
 *   [The Tamsin Language Specification](doc/Tamsin.markdown)
+
+Quick Start
+-----------
+
+*   Install [toolshelf](https://github.com/catseye/toolshelf).
+*   `toolshelf dock gh:catseye/tamsin`
+
+Or just clone this repo and make a symbolic link to `bin/tamsin` somewhere
+on your path (or alter your path to contain the `bin/` directory of this repo.)
+
+License
+-------
+
+BSD-style license; see the file [LICENSE](LICENSE).
 
 TODO
 ----
@@ -107,3 +125,12 @@ TODO
 *   dictionary values in variables?
 *   arbitrary non-printable characters in terms and such
 *   special form that consumes rest of input from the Tamsin source
+*   comments
+*   modules; specifically the `$` module
+*   make `return` optional when token is unambiguously the start of a term
+*   make `set` optional
+*   numeric values... somehow.  decode(ascii, 'A') = 65.
+*   token classes... somehow
+*   don't consume stdin until asked to scan.
+*   IR: map program a map from prod name -> [prod AST].
+*   ASCII digraphs for all the unicode cheekiness
