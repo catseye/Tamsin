@@ -22,7 +22,7 @@ class Parser(EventProducer):
             'print': (1, ('PRODREF', '$', 'print')),
             'fail': (1, ('PRODREF', '$', 'fail')),
             'return': (1, ('PRODREF', '$', 'return')),
-            'not': (1, ('PRODREF', '$', 'return')),
+            'not': (1, ('PRODREF', '$', 'not')),
         }
 
     def eof(self):

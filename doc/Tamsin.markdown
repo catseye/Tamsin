@@ -1185,6 +1185,26 @@ Expect...
     + l
     ? expected 'k' found 'l'
 
+Not...
+
+    | main = not k.
+    + l
+    = l
+
+    | main = not k.
+    + k
+    ? expected anything except 'k', found 'k'
+
+This can be used to parse strings and comments.
+
+    | main = "'" & T ← '' & {not '\'' → S & T ← T + S} & "'" & return T.
+    + 'any bloody
+    +   gobbledegook *!^*(^@)(@* (*@#(*^*(^(!^
+    + you like.'
+    = any bloody
+    =   gobbledegook *!^*(^@)(@* (*@#(*^*(^(!^
+    = you like.
+
 Appendix A. Grammar
 -------------------
 
@@ -1234,10 +1254,12 @@ Approximate.  Written in Tamsin.
 Appendix C. System Module
 -------------------------
 
-*   `$.char` -- character scanner production
-*   `$.tamsin` -- character scanner production
-*   `$.eof` -- succeeds on eof and returns eof, otherwise fails
 *   `$.any` -- fails on eof, succeeds and returns token on any other token
-*   `$.print(X)` -- prints X to output as a side-effect, returns X
+*   `$.char` -- character scanner production
+*   `$.eof` -- succeeds on eof and returns eof, otherwise fails
+*   `$.expect(X)` -- succeeds if token is X and returns it, otherwise fails
 *   `$.fail(X)` -- always fails, giving X as the error message
+*   `$.not(X)` -- succeeds only if token is not X or EOF, and returns token
 *   `$.return(X)` -- always succeeds, returning X
+*   `$.print(X)` -- prints X to output as a side-effect, returns X
+*   `$.tamsin` -- Tamsin language scanner production
