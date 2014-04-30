@@ -12,10 +12,11 @@ far from normative.
 Fundaments
 ----------
 
-A Tamsin program consists of one or more productions.  A production consists
-of a name and a rule.  Among other things, a rule may be a _non-terminal_,
-which is the name of a production, or a _terminal_, which is a literal string
-in double quotes.  (A full grammar for Tamsin can be found in Appendix A.)
+A Tamsin program consists of one or more _productions_.  A production consists
+of a name and a _parsing rule_ (or just "rule" for short).  Among other things,
+a rule may be a _non-terminal_, which is the name of a production, or a
+_terminal_, which is a literal string in double quotes.  (A full grammar for
+Tamsin can be found in Appendix A.)
 
 When run, a Tamsin program processes its input.  It starts at the production
 named `main`, and evaluates its rule.  A non-terminal in a rule "calls" the
@@ -41,9 +42,10 @@ defining a grammar for parsing a trivial language.)
     + k
     ? expected 'p' found 'k'
 
-A Tamsin program only looks at its input when evaluating a terminal.  A
-rule may also consist of the keyword `return`, followed a term; this expression
-forces the entire production to evaluates to that term.
+Productions can be written that don't look at the input.  A rule may also
+consist of the keyword `return`, followed a _term_; this expression simply
+evaluates to that term and returns it.  (More on terms later; for now,
+think of them as strings.)
 
 So, the following program always outputs `blerp`, no matter what the input is.
 
@@ -52,10 +54,9 @@ So, the following program always outputs `blerp`, no matter what the input is.
     = blerp
 
 Note that in the following, `blerp` refers to the production named "blerp"
-in one place, and in the other place, it refers to a term which is basically
-the literal string `blerp`.  Tamsin sees the difference because of the
-context; `return` is followed by a term, and a production cannot be part of
-a term.  (More on terms in a moment.)
+in one place, and in the other place, it refers to the term `blerp`.  Tamsin
+sees the difference because of the context; `return` must be followed by a
+term, while a parsing rule cannot be part of a term.
 
     | main = blerp.
     | blerp = return blerp.
@@ -338,12 +339,12 @@ A term is called _ground_ if it does not contain any variables.
 Terms support an operation called _expansion_, which also requires a
 context C (a map from variable names to ground terms.)
 
-*   expand(T, C) when T is an atom, results in that atom;
-*   expand(T, C) when T is a constructor S(T1,...,Tn) results in a new
-    term S(expand(T1, C), ... expand(Tn, C);
-*   expand(T, C) when T is a variable results in C[T] (look up T in C
-    and evaluate to that.  If T is not present in C, the result is
-    not defined.)
+*   expand(T, C) when T is an atom evaluates to the atom T;
+*   expand(T, C) when T is a constructor S(T1,...,Tn) evaluates to a new
+    term S(expand(T1, C), ... expand(Tn, C));
+*   expand(T, C) when T is a variable looks up T in C and, if there is
+    a ground term T' associated with T in C, evaluates to T'; otherwise
+    the result is not defined.
 
 The result of expansion will always be a ground term.
 
@@ -352,7 +353,9 @@ stringification).
 
 *   flatten(T) when T is an atom, results in that atom;
 *   flatten(T) when T is a constructor results in
+    
         S · "(" · flatten(T1) · "," · ... · "," · flatten(Tn) · ")"
+    
     where `·` is string concatenation.
 
 The result of flattening is always an atom.
@@ -362,13 +365,12 @@ atomic.)
 
 The contexts in Tamsin which expect a term expression are `return`, and
 `set`.  (and arguments to productions, but you haven't seen those yet.)
-
-In these contexts, a bareword evaluates to an atom.
+In these contexts, a bareword evaluates to an atom (rather than a non-terminal.)
 
     | main = return hello.
     = hello
 
-But an atom can contain arbitrary text.  To include an atom which contains
+But an atom can contain arbitrary text.  To write an atom which contains
 spaces or other things which are not "bareword", enclose it in single quotes.
 
     | main = return Hello, world!
@@ -376,6 +378,9 @@ spaces or other things which are not "bareword", enclose it in single quotes.
 
     | main = return 'Hello, world!'.
     = Hello, world!
+
+Note that the atom `'X'` is not the same as the variable `X`.  Nor is the
+atom `'tree(a,b)'` the same as the constructor `tree(a,b)`.
 
 In a term context, a constuctor may be given with parentheses after the
 string.
@@ -467,17 +472,6 @@ We can also use concatenation to construct the resulting term as an atom.
     | zeroes = ("0" & zeroes → E & return E + 'Z') | return ''.
     + 0000
     = ZZZZ
-
-Modules
--------
-
-This section needs to be written.  Basically, a module is a set of
-productions inside a namespace.  In the future you may be able to write
-and import modules, but for now, there is one built-in module called `$`
-and it is always in scope.
-
-The module `$` contains a number of built-in productions which would not
-be possible or practical to implement in Tamsin.  See Appendix B for a list.
 
 Advanced Parsing
 ----------------
@@ -594,6 +588,28 @@ global flags, of a sort.  It takes a term, which it uses as the failure message.
     + hsihdsihdsih
     ? Goodbye, world!
 
+### not ###
+
+Not...
+
+    | main = not k.
+    + l
+    = l
+
+    | main = not k.
+    + k
+    ? expected anything except 'k', found 'k'
+
+This can be used to parse strings and comments.
+
+    | main = "'" & T ← '' & {not '\'' → S & T ← T + S} & "'" & return T.
+    + 'any bloody
+    +   gobbledegook *!^*(^@)(@* (*@#(*^*(^(!^
+    + you like.'
+    = any bloody
+    =   gobbledegook *!^*(^@)(@* (*@#(*^*(^(!^
+    = you like.
+
 ### Dynamic Terminals ###
 
 As mentioned, the terminal `"foo"` matches a literal token `foo` in the buffer.
@@ -621,6 +637,31 @@ syntactic sugar for `«'foo'»`.
     | main = «'f'».
     + f
     = f
+
+Modules
+-------
+
+This section needs to be written.  Basically, a module is a set of
+productions inside a namespace.  In the future you may be able to write
+and import modules, but for now, there is one built-in module called `$`
+and it is always in scope.
+
+The module `$` contains a number of built-in productions which would not
+be possible or practical to implement in Tamsin.  See Appendix C for a list.
+
+In fact, we have been using the `$` module already!  But our usage of it
+has been hidden under syntactic sugar (which you'll learn more about in
+the "Aliases" section below.)
+
+    | main = $.expect(k).     # same as "k"
+    + k
+    = k
+
+    | main = $.expect(k).     # same as "k"
+    + l
+    ? expected 'k' found 'l'
+
+The section about aliases needs to be written too.
 
 Advanced Scanning
 -----------------
@@ -815,9 +856,9 @@ Herein lie an excessive number of tests that I wrote while I was debugging.
 Some of them will be cleaned up at a future point.
 
     | main = scan using $.tamsin.
-    | scan = "cat" & $.print(1) &
-    |        ("cat" & $.print(2) | "dog" & $.print(3)) &
-    |        "dog" & $.print(4) & return ok.
+    | scan = "cat" & print 1 &
+    |        ("cat" & print 2 | "dog" & print 3) &
+    |        "dog" & print 4 & return ok.
     + cat cat dog
     = 1
     = 2
@@ -825,9 +866,9 @@ Some of them will be cleaned up at a future point.
     = ok
 
     | main = scan using $.tamsin.
-    | scan = "cat" & $.print(1) &
-    |        ("cat" & $.print(2) | "dog" & $.print(3)) &
-    |        "dog" & $.print(4) & return ok.
+    | scan = "cat" & print 1 &
+    |        ("cat" & print 2 | "dog" & print 3) &
+    |        "dog" & print 4 & return ok.
     + cat dog dog
     = 1
     = 3
@@ -1175,35 +1216,6 @@ Can't unalias an alias that isn't established.
     | main = return ok.
     ? KeyError
 
-Expect...
-
-    | main = $.expect(k).
-    + k
-    = k
-
-    | main = $.expect(k).
-    + l
-    ? expected 'k' found 'l'
-
-Not...
-
-    | main = not k.
-    + l
-    = l
-
-    | main = not k.
-    + k
-    ? expected anything except 'k', found 'k'
-
-This can be used to parse strings and comments.
-
-    | main = "'" & T ← '' & {not '\'' → S & T ← T + S} & "'" & return T.
-    + 'any bloody
-    +   gobbledegook *!^*(^@)(@* (*@#(*^*(^(!^
-    + you like.'
-    = any bloody
-    =   gobbledegook *!^*(^@)(@* (*@#(*^*(^(!^
-    = you like.
 
 Appendix A. Grammar
 -------------------

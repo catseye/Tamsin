@@ -173,11 +173,11 @@ ESCAPE_SEQUENCE = {
 
 class TamsinScannerEngine(ScannerEngine):
     def scan_impl(self, scanner):
-        while scanner.startswith(('#', ' ', '\t', '\r', '\n')):
-            while scanner.startswith((' ', '\t', '\r', '\n')):
+        while not scanner.eof() and scanner.startswith(('#', ' ', '\t', '\r', '\n')):
+            while not scanner.eof() and scanner.startswith((' ', '\t', '\r', '\n')):
                 scanner.chop(1)
-            while scanner.startswith(('#',)):
-                while not scanner.startswith(('\n',)):
+            while not scanner.eof() and scanner.startswith(('#',)):
+                while not scanner.eof() and not scanner.startswith(('\n',)):
                     scanner.chop(1)
                 scanner.chop(1)
 
