@@ -10,8 +10,6 @@ PRELUDE = r'''
 /* an example of what I would hope a Tamsin->C compiler to produce.
    but this was written by hand. */
 
-/* scanner */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -20,43 +18,6 @@ PRELUDE = r'''
 
 int ok;
 struct term *result;
-
-/* scanner */
-
-struct scanner {
-    char *buffer;
-    int position;
-    int reset_position;
-};
-
-char scan(struct scanner *s) {
-    char c = s->buffer[s->position];
-    if (c == '\0') {
-        return '\0';
-    } else {
-        s->position++;
-        return c;
-    }
-};
-
-void unscan(struct scanner *s) {
-    s->position = s->reset_position;
-}
-
-void commit(struct scanner *s) {
-    s->reset_position = s->position;
-}
-
-void consume(struct scanner *s, char *token) {
-    char c = scan(s);
-    if (c == token[0]) {
-        commit(s);
-        ok = 1;
-    } else {
-        unscan(s);
-        ok = 0;
-    }
-};
 
 /* terms */
 
@@ -73,7 +34,7 @@ struct term_list {
 struct term *new_term(const char *atom) {
     struct term *t;
     t = malloc(sizeof(struct term));
-    t->atom = atom;
+    t->atom = strdup(atom);
     t->subterms = NULL;
 }
 
@@ -111,6 +72,50 @@ char *term_format(struct term *t) {
     return fmtbuf;
 }
 
+/* scanner */
+
+struct scanner {
+    char *buffer;
+    int position;
+    int reset_position;
+};
+
+char scan(struct scanner *s) {
+    char c = s->buffer[s->position];
+    if (c == '\0') {
+        return '\0';
+    } else {
+        s->position++;
+        return c;
+    }
+};
+
+void unscan(struct scanner *s) {
+    s->position = s->reset_position;
+}
+
+void commit(struct scanner *s) {
+    s->reset_position = s->position;
+}
+
+void consume(struct scanner *s, char *token) {
+    char c = scan(s);
+    if (c == token[0]) {
+        commit(s);
+        char s[10];
+        strcpy(s, "a");
+        s[0] = c;
+        result = new_term(s);
+        ok = 1;
+    } else {
+        unscan(s);
+        char s[100];
+        sprintf(s, "expected '%c' found '%c'", token[0], c);
+        result = new_term(s);
+        ok = 0;
+    }
+};
+
 struct scanner * scanner;
 '''
 
@@ -131,7 +136,7 @@ int main(int argc, char **argv) {
         fprintf(stdout, "%s\n", term_format(result));
         exit(0);
     } else {
-        fprintf(stderr, "Error message\n");
+        fprintf(stderr, "%s\n", term_format(result));
         exit(1);
     }
 }
