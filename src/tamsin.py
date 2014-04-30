@@ -908,7 +908,3 @@ def main(args):
             print str(result)
     else:
         raise ValueError("first argument must be 'parse' or 'run'")
-
-
-if __name__ == '__main__':
-    main(sys.argv[1:])

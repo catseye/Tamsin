@@ -1,3 +1,3 @@
 #!/bin/sh
 
-falderal --substring-error README.markdown
+falderal --substring-error doc/Tamsin.markdown README.markdown 
