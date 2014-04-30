@@ -22,6 +22,7 @@ class Parser(EventProducer):
             'print': (1, ('PRODREF', '$', 'print')),
             'fail': (1, ('PRODREF', '$', 'fail')),
             'return': (1, ('PRODREF', '$', 'return')),
+            'not': (1, ('PRODREF', '$', 'return')),
         }
 
     def eof(self):
@@ -128,11 +129,11 @@ class Parser(EventProducer):
         elif (self.peek() is not None and
               self.peek()[0] == '"'):
             literal = self.consume_any()[1:-1]
-            return ('LITERAL', literal)
+            return ('CALL', ('PRODREF', '$', 'expect'), [Term(literal)], None)
         elif self.consume(u'«') or self.consume('<<'):
             t = self.term()
             if self.consume(u'»') or self.consume('>>'):
-                return ('EXPECT', t)
+                return ('CALL', ('PRODREF', '$', 'expect'), [t], None)
             else:
                 self.error("'>>'")
         elif self.consume('set'):

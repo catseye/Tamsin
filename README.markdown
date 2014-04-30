@@ -147,6 +147,10 @@ BSD-style license; see the file [LICENSE](LICENSE).
 TODO
 ----
 
+*   `$.not`
+*   `$.alpha`
+*   `$.alnum`
+*   `$.digit`
 *   arbitrary non-printable characters in terms and such
 *   make `return` optional when token is unambiguously the start of a term
 *   don't consume stdin until asked to scan.
@@ -159,13 +163,15 @@ TODO
 *   tamsin scanner sanity
 *   implied `set` -- maybe get rid of `set` entirely
 *   implied `return`
+*   «» is just sugar for $.expect -- could be an alias w/right sym
 
 ### experimental ###
 
 *   non-backtracking versions of `|` and `{}`?  (very advanced)
 *   dictionary values in variables?
 *   special form that consumes rest of input from the Tamsin source
-*   meta-circular implementation
+*   meta-circular implementation of scanner
+*   meta-circular implementation of parser
 
 ### performance ###
 

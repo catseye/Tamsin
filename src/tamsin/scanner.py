@@ -185,8 +185,7 @@ class TamsinScannerEngine(ScannerEngine):
             return EOF
 
         if scanner.startswith(('&&', '||', '->', '<-', '<<', '>>')):
-            tok = scanner.chop(2)
-            return tok
+            return scanner.chop(2)
 
         if scanner.startswith(('=', '(', ')', '[', ']', '{', '}',
                             '|', '&', u'→', u'←', ',', '.', '@', '+', '$',
@@ -211,7 +210,7 @@ class TamsinScannerEngine(ScannerEngine):
                 tok += CLOSE_QUOTE[quote]  # we add specific, in cas it was EOF
                 return tok
 
-        if not scanner.eof() and scanner.isalnum():
+        if scanner.isalnum():
             tok = ''
             while not scanner.eof() and (scanner.isalnum() or
                                          scanner.startswith(('_',))):

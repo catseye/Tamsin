@@ -77,6 +77,7 @@ class Interpreter(EventProducer):
         elif mod == '$':
             formals = {
                 'fail': [Variable('X')],
+                'expect': [Variable('X')],
                 'print': [Variable('X')],
                 'return': [Variable('X')]
             }.get(name, [])
@@ -129,12 +130,23 @@ class Interpreter(EventProducer):
         """
         self.event('interpret_ast', ast)
         if ast[0] == 'PROGRAM':
-            self.process_pragmas(ast[1])
             mains = self.find_productions(('PRODREF', '', 'main'))
             return self.interpret(mains[0])
         elif ast[0] == 'PROD':
             name = ast[1]
-            if name == '$.return':
+            if name == '$.expect':
+                upcoming_token = self.scanner.peek()
+                term = bindings['X']
+                token = str(term)
+                if self.scanner.consume(token):
+                    return (True, term)
+                else:
+                    self.event('fail_term', ast[1], self.scanner)
+                    s = ("expected '%s' found '%s' (at '%s')" %
+                         (token, upcoming_token,
+                          self.scanner.report_buffer(self.scanner.position, 20)))
+                    return (False, Term(s))
+            elif name == '$.return':
                 return (True, bindings['X'])
             elif name == '$.eof':
                 if self.scanner.eof():
@@ -284,34 +296,6 @@ class Interpreter(EventProducer):
             self.scanner.install_state(saved_scanner_state)
             self.event('end_while', result)
             return (True, successful_result)
-        elif ast[0] == 'LITERAL':
-            upcoming_token = self.scanner.peek()
-            self.event('try_literal', ast[1], self.scanner, upcoming_token)
-            if self.scanner.consume(ast[1]):
-                self.event('consume_literal', ast[1], self.scanner)
-                return (True, Term(ast[1]))
-            else:
-                self.event('fail_literal', ast[1], self.scanner)
-                s = ("expected '%s' found '%s' (at '%s')" %
-                     (ast[1], upcoming_token,
-                      self.scanner.report_buffer(self.scanner.position, 20)))
-                return (False, Term(s))
-        elif ast[0] == 'EXPECT':
-            upcoming_token = self.scanner.peek()
-            term = ast[1].expand(self.context)
-            token = str(term)
-            if self.scanner.consume(token):
-                return (True, term)
-            else:
-                self.event('fail_term', ast[1], self.scanner)
-                s = ("expected '%s' found '%s' (at '%s')" %
-                     (token, upcoming_token,
-                      self.scanner.report_buffer(self.scanner.position, 20)))
-                return (False, Term(s))
-        elif ast[0] == 'ANY':
-            if self.scanner.eof():
-                return (False, Term("expected any token, found EOF"))
-            return (True, self.scanner.consume_any())
         else:
             raise NotImplementedError(repr(ast))
 
@@ -324,12 +308,3 @@ class Interpreter(EventProducer):
         result = self.interpret(ast, bindings=bindings)
         self.scanner.install_state(saved_scanner_state)
         return result
-
-    def process_pragmas(self, pragmas):
-        for pragma in pragmas:
-            if pragma[0] == 'ALIAS':
-                print 'alias'
-            elif pragma[0] == 'UNALIAS':
-                print 'unalias'
-            else:
-                raise NotImplementedError(repr(pragma))
