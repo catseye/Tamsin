@@ -135,6 +135,9 @@ class Parser(EventProducer):
                 return ('CALL', ('PRODREF', '$', 'expect'), [t], None)
             else:
                 self.error("'>>'")
+        elif self.consume('!'):
+            e = self.expr4()
+            return ('NOT', e)
         elif self.consume('set'):
             v = self.variable()
             self.expect("=")

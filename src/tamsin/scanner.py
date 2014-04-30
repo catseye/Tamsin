@@ -187,7 +187,7 @@ class TamsinScannerEngine(ScannerEngine):
         if scanner.startswith(('&&', '||', '->', '<-', '<<', '>>')):
             return scanner.chop(2)
 
-        if scanner.startswith(('=', '(', ')', '[', ']', '{', '}',
+        if scanner.startswith(('=', '(', ')', '[', ']', '{', '}', '!',
                             '|', '&', u'→', u'←', ',', '.', '@', '+', '$',
                             u'«', u'»')):
             return scanner.chop(1)

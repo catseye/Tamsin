@@ -270,6 +270,21 @@ class Interpreter(EventProducer):
                 self.context = saved_context
                 self.scanner.install_state(saved_scanner_state)
                 return self.interpret(rhs)
+        elif ast[0] == 'NOT':
+            expr = ast[1]
+            saved_context = self.context.clone()
+            saved_scanner_state = self.scanner.get_state()
+            self.event('begin_not', expr, saved_context, saved_scanner_state)
+            (succeeded, result) = self.interpret(expr)
+            self.context = saved_context
+            self.scanner.install_state(saved_scanner_state)
+            if succeeded:
+                return (False,
+                   Term("expected anything except '%s', found '%s'" %
+                        (repr(expr), self.scanner.peek()))
+                )
+            else:
+                return (True, Term("nil"))
         elif ast[0] == 'USING':
             sub = ast[1]
             prodref = ast[2]

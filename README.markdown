@@ -117,22 +117,21 @@ Parse and evaluate a Boolean expression.
     = true
 
 Parse a CSV file and write out the 2nd-last field of each record.  Handles
-commas and double-quotes inside quotes, but doesn't quite work with EOLs yet
-(the last field needs to be quoted).  (and we need to improve `not`.)
+commas and double-quotes inside quotes.
 
     | main = line → L & L ← lines(nil, L) &
     |        {"\n" & line → M & L ← lines(L, M)} & L & extract(L) & ''.
     | line = field → F & {"," & field → G & F ← fields(G, F)} & F.
     | field = strings | bare.
     | strings = string → T & {string → S & T ← T + '"' + S} & T.
-    | string = "\"" & T ← '' & {not '"' → S & T ← T + S} & "\"" & T.
-    | bare = T ← '' & {not ',' → S & T ← T + S} & T.
+    | string = "\"" & T ← '' & {!"\"" & any → S & T ← T + S} & "\"" & T.
+    | bare = T ← '' & {!(","|"\n") & any → S & T ← T + S} & T.
     | extract(lines(Lines, Line)) = extract(Lines) & extract_field(Line).
     | extract(L) = L.
     | extract_field(fields(Last, fields(This, X))) = print This.
-    + Harold,1850,"21 Baxter Street","burgundy"
-    + Smythe,1833,"31 Little Street, St. James","mauve"
-    + Jones,1791,"41 ""The Gardens""","crimson"
+    + Harold,1850,"21 Baxter Street",burgundy
+    + Smythe,1833,"31 Little Street, St. James",mauve
+    + Jones,1791,"41 ""The Gardens""",crimson
     = 21 Baxter Street
     = 31 Little Street, St. James
     = 41 "The Gardens"

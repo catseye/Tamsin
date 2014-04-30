@@ -610,6 +610,36 @@ This can be used to parse strings and comments.
     =   gobbledegook *!^*(^@)(@* (*@#(*^*(^(!^
     = you like.
 
+### ! ###
+
+    | main = !"k" & any.
+    + l
+    = l
+
+    | main = !"k" & any.
+    + k
+    ? expected anything except
+
+    | main = !("k" | "r") & any.
+    + l
+    = l
+
+    | main = !("k" | "r") & any.
+    + k
+    ? expected anything except
+
+    | main = !("k" | "r") & any.
+    + r
+    ? expected anything except
+
+    | main = "'" & T ← '' & {!"'" & any → S & T ← T + S} & "'" & return T.
+    + 'any bloody
+    +   gobbledegook *!^*(^@)(@* (*@#(*^*(^(!^
+    + you like.'
+    = any bloody
+    =   gobbledegook *!^*(^@)(@* (*@#(*^*(^(!^
+    = you like.
+
 ### Dynamic Terminals ###
 
 As mentioned, the terminal `"foo"` matches a literal token `foo` in the buffer.
@@ -1263,7 +1293,7 @@ Approximate.  Written in Tamsin.
 
     tamsin = [skippable] & ($.eof | symbol | str('\'') | str('"') | word).
     symbol = "&&" | "||" | "->" | "<-" | "<<" | ">>"
-           | "=" | "(" | ")" | "[" | "]" | "{" | "}" | "|" | "&"
+           | "=" | "(" | ")" | "[" | "]" | "{" | "}" | "!" | "|" | "&"
            | "," | "." | "@" | "+" | "$" | "→" | "←" | "«" | "»".
     str(Q) = «Q» & {escape | not Q} & «Q».
     escape = "\\" & ("n" | "r" | "t" | "\\" | "'" | "\"").
