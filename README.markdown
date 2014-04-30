@@ -30,14 +30,14 @@ input to the program, and `=` is the expected output.
 
 Parse an algebraic expression for correctness.
 
-    | main = (expr0 & □ & return ok) using $.char.
+    | main = (expr0 & $.eof & return ok) using $.char.
     | expr0 = expr1 & {"+" & expr1}.
     | expr1 = term & {"*" & term}.
     | term = "x" | "y" | "z" | "(" & expr0 & ")".
     + x+y*(z+x+y)
     = ok
 
-    | main = (expr0 & □ & return ok) using $.char.
+    | main = (expr0 & $.eof & return ok) using $.char.
     | expr0 = expr1 & {"+" & expr1}.
     | expr1 = term & {"*" & term}.
     | term = "x" | "y" | "z" | "(" & expr0 & ")".
@@ -57,7 +57,7 @@ Make a story more exciting!
 
     | main = collect using $.char.
     | collect = set S = '' & {translate → C & set S = S + C} & return S.
-    | translate = "." & return '!' | "?" & return '?!' | any.
+    | translate = "." & return '!' | "?" & return '?!' | $.any.
     + Chapter 1
     + ---------
     + It was raining.  She knocked on the door.  She heard

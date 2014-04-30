@@ -211,7 +211,7 @@ class Scanner(EventProducer):
         return enc(report)
 
     def error(self, expected):
-        raise ValueError(u"Expected %s' at '%s' (position %s)" %
+        raise ValueError(u"Expected %s at '%s' (position %s)" %
                          (enc(expected),
                           self.report_buffer(self.position, 20),
                           self.position))
