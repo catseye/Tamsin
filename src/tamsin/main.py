@@ -7,10 +7,10 @@
 import codecs
 import sys
 
-from tamsin.term import Term, Variable, Concat
-from tamsin.event import EventProducer, DebugEventListener
+from tamsin.term import Term
+from tamsin.event import DebugEventListener
 from tamsin.scanner import (
-    EOF, enc, Scanner,
+    Scanner,
     TamsinScannerEngine, CharScannerEngine, ProductionScannerEngine
 )
 from tamsin.parser import Parser
@@ -57,7 +57,6 @@ def test_peek_is_idempotent():
 
 
 def main(args):
-    debug = None
     listeners = []
     if args[0] == '--debug':
         listeners.append(DebugEventListener())

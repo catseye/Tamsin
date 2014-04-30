@@ -4,16 +4,12 @@
 # Copyright (c)2014 Chris Pressey, Cat's Eye Technologies.
 # Distributed under a BSD-style license; see LICENSE for more information.
 
-import codecs
-import sys
-
-from tamsin.term import Term, Variable, Concat
-from tamsin.event import EventProducer, DebugEventListener
+from tamsin.term import Term, Variable
+from tamsin.event import EventProducer
 from tamsin.scanner import (
-    EOF, enc, Scanner,
+    EOF,
     TamsinScannerEngine, CharScannerEngine, ProductionScannerEngine
 )
-from tamsin.parser import Parser
 
 
 class Context(EventProducer):
@@ -171,7 +167,7 @@ class Interpreter(EventProducer):
             return (succeeded, x)
         elif ast[0] == 'CALL':
             prodref = ast[1]
-            prodmod = prodref[1]
+            #prodmod = prodref[1]
             name = prodref[2]
             args = ast[2]
             ibuf = ast[3]

@@ -4,11 +4,7 @@
 # Copyright (c)2014 Chris Pressey, Cat's Eye Technologies.
 # Distributed under a BSD-style license; see LICENSE for more information.
 
-import codecs
-import sys
-
-from tamsin.term import Term, Variable, Concat
-from tamsin.event import EventProducer, DebugEventListener
+from tamsin.event import EventProducer
 
 
 class EOF(object):
@@ -259,7 +255,6 @@ class ProductionScannerEngine(ScannerEngine):
         save_reset_position = scanner.reset_position
         result = self.interpreter.interpret(self.production)
         (success, tok) = result
-        subs_reset = scanner.reset_position
         scanner.reset_position = save_reset_position
 
         if success:

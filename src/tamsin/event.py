@@ -4,6 +4,8 @@
 # Copyright (c)2014 Chris Pressey, Cat's Eye Technologies.
 # Distributed under a BSD-style license; see LICENSE for more information.
 
+import sys
+
 
 class EventProducer(object):
     def event(self, tag, *data):
@@ -34,18 +36,6 @@ class DebugEventListener(object):
             self.indent += 1
         if tag == 'leave_interpreter':
             self.indent -= 1
-
-        if tag in ('leave_interpreter', 'update_scanner'):
-            new_scanner = data[0]
-            old_scanner = data[1]
-            if (isinstance(new_scanner, CharScanner) and
-                isinstance(old_scanner, ProductionScanner)):
-                self.putstr("%s %r" % (tag, data))
-                new_scanner.dump(self.indent)
-                old_scanner.dump(self.indent)
-                self.putstr("")
-        else:
-            pass
 
         # EVERYTHING
         self.putstr("%s %r" % (tag, data))

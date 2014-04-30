@@ -4,14 +4,10 @@
 # Copyright (c)2014 Chris Pressey, Cat's Eye Technologies.
 # Distributed under a BSD-style license; see LICENSE for more information.
 
-import codecs
-import sys
-
 from tamsin.term import Term, Variable, Concat
-from tamsin.event import EventProducer, DebugEventListener
+from tamsin.event import EventProducer
 from tamsin.scanner import (
-    EOF, enc, Scanner,
-    TamsinScannerEngine, CharScannerEngine, ProductionScannerEngine
+    EOF, Scanner, TamsinScannerEngine
 )
 
 
