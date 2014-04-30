@@ -55,6 +55,7 @@ class Interpreter(EventProducer):
         self.program = program
         self.scanner = scanner
         self.context = Context(listeners=self.listeners)
+        self.prodmap = {}
 
     def __repr__(self):
         return "Interpreter(%r, %r, %r)" % (
@@ -67,13 +68,10 @@ class Interpreter(EventProducer):
         mod = prodref[1]
         name = prodref[2]
         if mod == '':
-            productions = []
-            for ast in self.program[2]:
-                if ast[1] == name:
-                    productions.append(ast)
-            if not productions:
+            try:
+                return self.prodmap[name]
+            except KeyError:
                 raise ValueError("No '%s' production defined" % name)
-            return productions
         elif mod == '$':
             formals = {
                 'expect': [Variable('X')],
@@ -131,6 +129,8 @@ class Interpreter(EventProducer):
         """
         self.event('interpret_ast', ast)
         if ast[0] == 'PROGRAM':
+            for prod in ast[2]:
+                self.prodmap.setdefault(prod[1], []).append(prod)
             mains = self.find_productions(('PRODREF', '', 'main'))
             return self.interpret(mains[0])
         elif ast[0] == 'PROD':
