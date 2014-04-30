@@ -149,6 +149,8 @@ BSD-style license; see the file [LICENSE](LICENSE).
 TODO
 ----
 
+*   tamsin scanner sanity
+*   term expressions
 *   arbitrary non-printable characters in terms and such
 *   make `return` optional when token is unambiguously the start of a term
 *   make `set` optional

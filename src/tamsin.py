@@ -283,7 +283,6 @@ class ScannerEngine(object):
 CLOSE_QUOTE = {
     '"': '"',
     '\'': '\'',
-    u'「': u'」',
 }
 
 ESCAPE_SEQUENCE = {
@@ -309,13 +308,12 @@ class TamsinScannerEngine(ScannerEngine):
             return EOF
 
         if scanner.startswith(('&&', '||')):
-            tok = scanner.chop(1)
-            scanner.chop(1)
+            tok = scanner.chop(2)
             return tok
-        
+
         if scanner.startswith(('=', '(', ')', '[', ']', '{', '}',
                             '|', '&', u'→', ',', '.', '@', '+', '$',
-                            u'•', u'☆', u'«', u'»')):
+                            u'«', u'»')):
             return scanner.chop(1)
 
         for quote in (CLOSE_QUOTE.keys()):
@@ -333,6 +331,7 @@ class TamsinScannerEngine(ScannerEngine):
                             scanner.error('legal escape sequence')
                     tok += char
                 scanner.chop(1)  # chop ending quote
+                tok += CLOSE_QUOTE[quote]  # we add specific, in cas it was EOF
                 return tok
 
         if not scanner.eof() and scanner.isalnum():
@@ -465,14 +464,14 @@ class Parser(EventProducer):
 
     def expr0(self):
         lhs = self.expr1()
-        while self.consume('|'):
+        while self.consume('|') or self.consume('||'):
             rhs = self.expr1()
             lhs = ('OR', lhs, rhs)
         return lhs
 
     def expr1(self):
         lhs = self.expr2()
-        while self.consume('&'):
+        while self.consume('&') or self.consume('&&'):
             rhs = self.expr2()
             lhs = ('AND', lhs, rhs)
         return lhs
@@ -508,7 +507,7 @@ class Parser(EventProducer):
             return ('WHILE', e)
         elif (self.peek() is not None and
               self.peek()[0] == '"'):
-            literal = self.consume_any()[1:]
+            literal = self.consume_any()[1:-1]
             return ('LITERAL', literal)
         elif self.consume(u'«'):
             t = self.term()
@@ -563,7 +562,7 @@ class Parser(EventProducer):
 
     def term(self):
         lhs = self.term1()
-        while self.consume(u'•') or self.consume('+'):
+        while self.consume('+'):
             rhs = self.term1()
             lhs = Concat(lhs, rhs)
         return lhs
@@ -572,10 +571,10 @@ class Parser(EventProducer):
         if self.peek()[0].isupper():
             return self.variable()
         elif (self.peek()[0].isalnum() or
-              self.peek()[0][0] in (u'「', '\'')):
+              self.peek()[0] == "'"):
             atom = self.consume_any()
-            if atom[0] in (u'「', '\''):
-                atom = atom[1:]
+            if atom[0] in ('\'',):
+                atom = atom[1:-1]
             subs = []
             if self.consume('('):
                 if self.peek() != ')':

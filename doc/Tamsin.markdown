@@ -93,6 +93,13 @@ it evaluates to what the RHS evaluated to.
     + ep
     ? expected 'a' found 'e'
 
+If you are too used to C or Javascript or the shell, you may use `&&`
+instead of `&`.
+
+    | main = "a" && "p".
+    + ap
+    = p
+
 A rule may also consist of two subrules joined by the `|` operator.
 The `&` operator processes the left-hand side rule.  If the LHS succeeds,
 then the `|` expression evaluates to what the LHS evaluted to, and the
@@ -113,6 +120,13 @@ For example, this program accepts `0` or `1` but nothing else.
     | main = "0" | "1".
     + 2
     ? expected '1' found '2'
+
+If you are too used to C or Javascript or the shell, you may use `||`
+instead of `|`.
+
+    | main = "0" || "1".
+    + 1
+    = 1
 
 Using `return` described above, this program accepts 0 or 1 and evaluates
 to the opposite.  (Note here also that `&` has a higher precedence than `|`.)
@@ -928,7 +942,7 @@ its own scanner.  It switches back to the production scanner when done.
     | main = program using scanner.
     | 
     | scanner = scan using $.char.
-    | scan = {" "} & set T = 「」 & {("a" | "b" | "c") → S & set T = T • S}.
+    | scan = {" "} & set T = '' & {("a" | "b" | "c") → S & set T = T + S}.
     | 
     | program = "abc" & "cba" & "bac".
     + abc    cba bac
@@ -937,12 +951,12 @@ its own scanner.  It switches back to the production scanner when done.
     | main = program using scanner.
     | 
     | scanner = scan using $.char.
-    | scan = {" "} & set T = 「」 & {("a" | "b" | "c") → S & set T = T • S}.
+    | scan = {" "} & set T = '' & {("a" | "b" | "c") → S & set T = T + S}.
     | 
     | program = "abc" & (subprogram using subscanner) & "bac".
     | 
     | subscanner = subscan using $.char.
-    | subscan = {" "} & set T = 「」 & {("s" | "t" | "u") → S & set T = T • S}.
+    | subscan = {" "} & set T = '' & {("s" | "t" | "u") → S & set T = T + S}.
     | 
     | subprogram = "stu" & "uuu".
     + abc    stu   uuu bac
