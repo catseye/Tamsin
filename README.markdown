@@ -28,6 +28,19 @@ input to the program, and `=` is the expected output.
 
     -> Tests for functionality "Intepret Tamsin program"
 
+Hello, world!
+
+    | main = 'Hello, world!'.
+    = Hello, world!
+
+Copy input to output, not unlike unix `cat`.
+
+    | main = T ← '' & {any → S & T ← T + S} & T.
+    + This file
+    + gets catted.
+    = This file
+    = gets catted.
+
 Parse an algebraic expression for correctness.
 
     | main = (expr0 & eof & 'ok').
@@ -65,10 +78,9 @@ Translate an algebraic expression to RPN (Reverse Polish Notation).
     + x+y*(z+x+y)
     =  x y z x + y + * +
 
-Make a story more exciting!
+Make a story more exciting — a one-liner!
 
-    | main = set S = '' & {translate → C & S ← S + C} & S.
-    | translate = "." & '!' | "?" & '?!' | any.
+    | main = S ← '' & {("." & '!' | "?" & '?!' | any) → C & S ← S + C} & S.
     + Chapter 1
     + ---------
     + It was raining.  She knocked on the door.  She heard
@@ -103,6 +115,27 @@ Parse and evaluate a Boolean expression.
     | or(A, B) = 'true'.
     + (false or true) and true
     = true
+
+Parse a CSV file and write out the 2nd-last field of each record.  Handles
+commas and double-quotes inside quotes, but doesn't quite work with EOLs yet
+(the last field needs to be quoted).  (and we need to improve `not`.)
+
+    | main = line → L & L ← lines(nil, L) &
+    |        {"\n" & line → M & L ← lines(L, M)} & L & extract(L) & ''.
+    | line = field → F & {"," & field → G & F ← fields(G, F)} & F.
+    | field = strings | bare.
+    | strings = string → T & {string → S & T ← T + '"' + S} & T.
+    | string = "\"" & T ← '' & {not '"' → S & T ← T + S} & "\"" & T.
+    | bare = T ← '' & {not ',' → S & T ← T + S} & T.
+    | extract(lines(Lines, Line)) = extract(Lines) & extract_field(Line).
+    | extract(L) = L.
+    | extract_field(fields(Last, fields(This, X))) = print This.
+    + Harold,1850,"21 Baxter Street","burgundy"
+    + Smythe,1833,"31 Little Street, St. James","mauve"
+    + Jones,1791,"41 ""The Gardens""","crimson"
+    = 21 Baxter Street
+    = 31 Little Street, St. James
+    = 41 "The Gardens"
 
 Parse and evaluate a little S-expression-based language.
 
@@ -149,6 +182,7 @@ TODO
 
 *   `$.alpha`
 *   `$.digit`
+*   improve `not` -- should be a real builtin, not `$.not`
 *   arbitrary non-printable characters in terms and such
 *   don't consume stdin until asked to scan.
 *   numeric values... somehow.  number('65') = #65.  decode(ascii, 'A') = #65.
@@ -173,6 +207,8 @@ TODO
 *   special form that consumes rest of input from the Tamsin source
 *   meta-circular implementation of scanner -- what we have is pretty close
 *   meta-circular implementation of parser
+*   feature-testing: `$.exists('$.blargh') | do_without_blargh`
+*   ternary: `foo ? bar : baz` -- if foo succeeded, do bar, else do baz.
 
 ### performance ###
 
