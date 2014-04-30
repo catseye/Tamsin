@@ -392,6 +392,7 @@ class Parser(EventProducer):
         self.listeners = listeners
         self.scanner = Scanner(buffer, listeners=self.listeners)
         self.scanner.push_engine(TamsinScannerEngine())
+        self.aliases = {}
 
     def eof(self):
         return self.scanner.eof()
@@ -413,11 +414,27 @@ class Parser(EventProducer):
         return self.scanner.expect(t)
 
     def grammar(self):
+        while self.consume('@'):
+            self.pragma()
+            self.expect('.')
         prods = [self.production()]
         while self.peek() is not EOF:
             prods.append(self.production())
-        return ('PROGRAM', prods)
+        return ('PROGRAM', [], prods)
 
+    def pragma(self):
+        if self.consume('alias'):
+            alias = self.consume_any()
+            arity = int(self.consume_any())
+            self.expect('=')
+            prodref = self.prodref()
+            self.aliases[alias] = (arity, prodref)
+        elif self.consume('unalias'):
+            alias = self.consume_any()
+            del self.aliases[alias]
+        else:
+            self.error('pragma')
+            
     def production(self):
         name = self.consume_any()
         args = []
@@ -495,12 +512,24 @@ class Parser(EventProducer):
         else:
             prodref = self.prodref()
             args = []
-            if self.consume('('):
-                if self.peek() != ')':
+            name = prodref[2]
+            if prodref[1] == '' and name in self.aliases:
+                arity = self.aliases[name][0]
+                prodref = self.aliases[name][1]
+                i = 0
+                args = []
+                while i < arity:
                     args.append(self.term())
-                    while self.consume(','):
+                    i += 1
+                # ibuf not supported here yet
+                return ('CALL', prodref, args, None)
+            else:
+                if self.consume('('):
+                    if self.peek() != ')':
                         args.append(self.term())
-                self.expect(')')
+                        while self.consume(','):
+                            args.append(self.term())
+                    self.expect(')')
             ibuf = None
             if self.consume('@'):
                 ibuf = self.term()
@@ -605,7 +634,7 @@ class Interpreter(EventProducer):
         name = prodref[2]
         if mod == '':
             productions = []
-            for ast in self.program[1]:
+            for ast in self.program[2]:
                 if ast[1] == name:
                     productions.append(ast)
             if not productions:
@@ -665,6 +694,7 @@ class Interpreter(EventProducer):
         """
         self.event('interpret_ast', ast)
         if ast[0] == 'PROGRAM':
+            self.process_pragmas(ast[1])
             mains = self.find_productions(('PRODREF', '', 'main'))
             return self.interpret(mains[0])
         elif ast[0] == 'PROD':
@@ -859,6 +889,15 @@ class Interpreter(EventProducer):
         result = self.interpret(ast, bindings=bindings)
         self.scanner.install_state(saved_scanner_state)
         return result
+
+    def process_pragmas(self, pragmas):
+        for pragma in pragmas:
+            if pragma[0] == 'ALIAS':
+                print 'alias'
+            elif pragma[0] == 'UNALIAS':
+                print 'unalias'
+            else:
+                raise NotImplementedError(repr(pragma))
 
 
 def test_peek_is_idempotent():

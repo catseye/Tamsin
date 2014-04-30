@@ -15,7 +15,7 @@ Fundaments
 A Tamsin program consists of one or more productions.  A production consists
 of a name and a rule.  Among other things, a rule may be a _non-terminal_,
 which is the name of a production, or a _terminal_, which is a literal string
-in double quotes.
+in double quotes.  (A full grammar for Tamsin can be found in Appendix A.)
 
 When run, a Tamsin program processes its input.  It starts at the production
 named `main`, and evaluates its rule.  A non-terminal in a rule "calls" the
@@ -450,8 +450,8 @@ be possible or practical to implement in Tamsin.  Among them:
     * `$.char`, the character scanner (more on scanner productions below)
     * `$.tamsin`, the tamsin scanner (more on scanner productions below)
 
-More Sophisticated Parsing
---------------------------
+Advanced Parsing
+----------------
 
 ### $.EOF ###
 
@@ -587,8 +587,8 @@ syntactic sugar for `«'foo'»`.
     + f
     = f
 
-More Sophisticated Scanning
----------------------------
+Advanced Scanning
+-----------------
 
 ### Changing the scanner in use ###
 
@@ -1106,10 +1106,46 @@ The rule formals may call on other rules in the program.
     | bit = "0" | "1".
     = its_a_pair(pair(pair(0, 1), 1))
 
+Advanced Programming
+--------------------
+
+Pragmas.
+
+    | @alias zrrk 2 = jersey.
+    | @unalias zrrk.
+    | main = foo.
+    | foo = "b".
+    + b
+    = b
+
+Alias.
+
+    | @alias foo 2 = jersey.
+    | main = jersey(a,b) & foo c d.
+    | jersey(A,B) = «A» & «B».
+    + abcd
+    = d
+
+Unalias.
+
+    | @alias foo 2 = jersey.
+    | @unalias foo.
+    | main = jersey(a,b) & foo c d.
+    | jersey(A,B) = «A» & «B».
+    + abcd
+    ? Expected '.' at ' c d
+
+Can't unalias an alias that isn't established.
+
+    | @alias foo 2 = jersey.
+    | @unalias bar.
+    | main = return ok.
+    ? KeyError
+
 Appendix A. Grammar
 -------------------
 
-    Grammar    ::= {Production "."}.
+    Grammar    ::= {"@" Pragma "."} Production {Production "."}.
     Production ::= ProdName ["(" [Term {"," Term} ")" | "[" Expr0 "]"] "=" Expr0.
     Expr0      ::= Expr1 {("||" | "|") Expr1}.
     Expr1      ::= Expr2 {("&&" | "&") Expr2}.
@@ -1129,6 +1165,8 @@ Appendix A. Grammar
                  | Variable.
     ProdRef    ::= [ModuleRef "."] ProdName.
     ModuleRef  ::= "$".
+    Pragma     ::= "alias" ProdName Integer "=" ProdRef
+                 | "unalias" ProdName.
     Atom       ::= ("'" {any} "'" | { "a".."z" | "0".."9" }) using $.char.
     Variable   ::= ("A".."Z" { "a".."z" | "0".."9" }) using $.char.
     ProdName   ::= { "a".."z" | "0".."9" } using $.char.

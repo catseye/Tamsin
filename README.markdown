@@ -150,9 +150,6 @@ TODO
 ----
 
 *   comments
-*   pragmas
-*   `#alias` pragma
-*   `#unalias` pragma
 *   `$.return`
 *   default aliases: return, fail, any, eof, print
 *   arbitrary non-printable characters in terms and such
