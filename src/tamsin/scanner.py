@@ -184,12 +184,12 @@ class TamsinScannerEngine(ScannerEngine):
         if scanner.eof():
             return EOF
 
-        if scanner.startswith(('&&', '||')):
+        if scanner.startswith(('&&', '||', '->', '<-', '<<', '>>')):
             tok = scanner.chop(2)
             return tok
 
         if scanner.startswith(('=', '(', ')', '[', ']', '{', '}',
-                            '|', '&', u'→', ',', '.', '@', '+', '$',
+                            '|', '&', u'→', u'←', ',', '.', '@', '+', '$',
                             u'«', u'»')):
             return scanner.chop(1)
 
@@ -258,10 +258,7 @@ class ProductionScannerEngine(ScannerEngine):
         scanner.reset_position = save_reset_position
 
         if success:
-            #self.event('production_scan', self.production, tok)
+            self.interpreter.event('production_scan', self.production, tok)
             return str(tok)
         else:
             return EOF
-            #raise ValueError("ProductionScanner FAILED.  Production used "
-            #                 "by ProductionScanner MUST NOT FAIL, or "
-            #                 "THIS HAPPENS.")

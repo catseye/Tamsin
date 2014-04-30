@@ -47,18 +47,18 @@ Parse an algebraic expression for correctness.
 Parse an algebraic expression to a syntax tree.
 
     | main = expr0.
-    | expr0 = expr1 → E1 & {"+" & expr1 → E2 & set E1 = add(E1,E2)} & return E1.
-    | expr1 = term → E1 & {"*" & term → E2 & set E1 = mul(E1,E2)} & return E1.
-    | term = "x" | "y" | "z" | "(" & expr0 → E & ")" & return E.
+    | expr0 = expr1 → E1 & {"+" & expr1 → E2 & E1 ← add(E1,E2)} & E1.
+    | expr1 = term → E1 & {"*" & term → E2 & E1 ← mul(E1,E2)} & E1.
+    | term = "x" | "y" | "z" | "(" & expr0 → E & ")" & E.
     + x+y*(z+x+y)
     = add(x, mul(y, add(add(z, x), y)))
 
 Translate an algebraic expression to RPN (Reverse Polish Notation).
 
     | main = expr0 → E & walk(E).
-    | expr0 = expr1 → E1 & {"+" & expr1 → E2 & set E1 = add(E1,E2)} & return E1.
-    | expr1 = term → E1 & {"*" & term → E2 & set E1 = mul(E1,E2)} & return E1.
-    | term = "x" | "y" | "z" | "(" & expr0 → E & ")" & return E.
+    | expr0 = expr1 → E1 & {"+" & expr1 → E2 & E1 ← add(E1,E2)} & E1.
+    | expr1 = term → E1 & {"*" & term → E2 & E1 ← mul(E1,E2)} & E1.
+    | term = "x" | "y" | "z" | "(" & expr0 → E & ")" & E.
     | walk(add(L,R)) = walk(L) → LS & walk(R) → RS & return LS+RS+' +'.
     | walk(mul(L,R)) = walk(L) → LS & walk(R) → RS & return LS+RS+' *'.
     | walk(X) = return ' '+X.
@@ -67,7 +67,7 @@ Translate an algebraic expression to RPN (Reverse Polish Notation).
 
 Make a story more exciting!
 
-    | main = set S = '' & {translate → C & set S = S + C} & return S.
+    | main = set S = '' & {translate → C & S ← S + C} & S.
     | translate = "." & return '!' | "?" & return '?!' | any.
     + Chapter 1
     + ---------
@@ -83,19 +83,16 @@ Make a story more exciting!
 Reverse a list.
 
     | main = reverse(pair(a, pair(b, pair(c, nil))), nil).
-    | reverse(pair(H, T), A) =
-    |   reverse(T, pair(H, A)) → TR &
-    |   return TR.
-    | reverse(nil, A) =
-    |   return A.
+    | reverse(pair(H, T), A) = reverse(T, pair(H, A)).
+    | reverse(nil, A) = A.
     = pair(c, pair(b, pair(a, nil)))
 
 Parse and evaluate a Boolean expression.
 
     | main = expr0 → E using $.tamsin & eval(E).
-    | expr0 = expr1 → E1 & {"or" & expr1 → E2 & set E1 = or(E1,E2)} & return E1.
-    | expr1 = term → E1 & {"and" & term → E2 & set E1 = and(E1,E2)} & return E1.
-    | term = "true" | "false" | "(" & expr0 → E & ")" & return E.
+    | expr0 = expr1 → E1 & {"or" & expr1 → E2 & E1 ← or(E1,E2)} & E1.
+    | expr1 = term → E1 & {"and" & term → E2 & E1 ← and(E1,E2)} & E1.
+    | term = "true" | "false" | "(" & expr0 → E & ")" & E.
     | eval(and(A, B)) = eval(A) → EA & eval(B) → EB & and(EA, EB).
     | eval(or(A, B)) = eval(A) → EA & eval(B) → EB & or(EA, EB).
     | eval(true) = return true.
@@ -150,15 +147,18 @@ BSD-style license; see the file [LICENSE](LICENSE).
 TODO
 ----
 
-*   tamsin scanner sanity
-*   term expressions -- harder than it sounds
 *   arbitrary non-printable characters in terms and such
 *   make `return` optional when token is unambiguously the start of a term
-*   make `set` optional
-*   ASCII digraphs for all the unicode cheekiness; mainly -> <-
 *   don't consume stdin until asked to scan.
 *   numeric values... somehow.  number('65') = #65.  decode(ascii, 'A') = #65.
 *   token classes... somehow
+*   term expressions -- harder than it sounds
+
+### document ###
+
+*   tamsin scanner sanity
+*   implied `set` -- maybe get rid of `set` entirely
+*   implied `return`
 
 ### experimental ###
 

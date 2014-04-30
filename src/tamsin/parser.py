@@ -105,7 +105,7 @@ class Parser(EventProducer):
 
     def expr3(self):
         lhs = self.expr4()
-        if self.consume(u'→'):
+        if self.consume(u'→') or self.consume('->'):
             v = self.variable()
             lhs = ('SEND', lhs, v)
         return lhs
@@ -129,14 +129,24 @@ class Parser(EventProducer):
               self.peek()[0] == '"'):
             literal = self.consume_any()[1:-1]
             return ('LITERAL', literal)
-        elif self.consume(u'«'):
+        elif self.consume(u'«') or self.consume('<<'):
             t = self.term()
-            self.expect(u'»')
-            return ('EXPECT', t)
+            if self.consume(u'»') or self.consume('>>'):
+                return ('EXPECT', t)
+            else:
+                self.error("'>>'")
         elif self.consume('set'):
             v = self.variable()
             self.expect("=")
             t = self.term()
+            return ('SET', v, t)
+        elif (self.peek() is not None and
+              self.peek()[0].isupper()):
+            v = self.variable()
+            if self.consume(u'←') or self.consume('<-'):
+                t = self.term()
+            else:
+                return ('CALL', ('PRODREF', '$', 'return'), [v], None)
             return ('SET', v, t)
         else:
             prodref = self.prodref()
@@ -150,8 +160,6 @@ class Parser(EventProducer):
                 while i < arity:
                     args.append(self.term())
                     i += 1
-                # ibuf not supported here yet
-                return ('CALL', prodref, args, None)
             else:
                 if self.consume('('):
                     if self.peek() != ')':

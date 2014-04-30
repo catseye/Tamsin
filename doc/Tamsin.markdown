@@ -264,6 +264,14 @@ in a variable.  Variables are local to the production.
     + ab.
     = a
 
+Note that you don't have to use the Unicode arrow.  You can use an ASCII
+digraph instead.
+
+    | main = blerp -> B & blerp & "." & return B.
+    | blerp = "a" | "b".
+    + ab.
+    = a
+
 Names of Variables must be Capitalized.
 
     | main = blerp → b & return b.
@@ -597,6 +605,13 @@ variable?  You can do that with `«»`:
     = f
 
     | main = set E = f & «E».
+    + b
+    ? expected 'f' found 'b'
+
+Note that you don't have to use the Latin-1 guillemets.  You can use the ASCII
+digraphs instead.
+
+    | main = set E = f & <<E>>.
     + b
     ? expected 'f' found 'b'
 
