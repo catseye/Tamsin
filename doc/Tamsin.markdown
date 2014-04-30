@@ -69,7 +69,7 @@ when evaluated, sends the term to the output, and evaluates to the term.
 (Mostly this is useful for debugging.  In the following, `world` is
 repeated because it is both printed, and the result of the evaluation.)
 
-    | main = print hello & print world.
+    | main = $.print(hello) & $.print(world).
     + ahoshoshohspohdphs
     = hello
     = world
@@ -147,24 +147,25 @@ the stream that the LHS started on.  This property is called "backtracking".
 Note that `print` and `return` never fail.  Thus, code like the following
 is "useless":
 
-    | main = foo & print hi | return useless.
-    | foo = return bar | print useless.
+    | main = foo & $.print(hi) | return useless.
+    | foo = return bar | $.print(useless).
     = hi
     = hi
 
 Note that `return` does not exit the production immediately — although
 this behaviour may be re-considered...
 
-    | main = return hello & print not_useless.
+    | main = return hello & $.print(not_useless).
     = not_useless
     = not_useless
 
 Alternatives can select code to be executed, based on the input.
 
-    | main = aorb & print aorb | cord & print cord & return ok.
-    | aorb = "a" & print ay | "b" & print bee.
-    | cord = "c" & print see | eorf & print eorf.
-    | eorf = "e" & print ee | f & print eff.
+    | print(X) = $.print(X).
+    | main = aorb & print(aorb) | cord & print(cord) & return ok.
+    | aorb = "a" & print(ay) | "b" & print(bee).
+    | cord = "c" & print(see) | eorf & print(eorf).
+    | eorf = "e" & print(ee) | f & print(eff).
     + e
     = ee
     = eorf
@@ -545,23 +546,23 @@ the word "simpler", but we can... write it differently.
     + 0000
     = zero(zero(zero(zero(nil))))
 
-### fail ###
+### $.fail ###
 
-The built-in production `fail` always fails.  This lets you establish
+The built-in production `$.fail` always fails.  This lets you establish
 global flags, of a sort.  It takes a term, which it uses as the failure message.
-(TODO: make this into `$.fail`)
+Note that the term must be in parentheses — more on that in a minute.
 
     | debug = return ok.
     | main = (debug & return walla | "0").
     + 0
     = walla
 
-    | debug = fail notdebugging.
+    | debug = $.fail(notdebugging).
     | main = (debug & return walla | "0").
     + 0
     = 0
 
-    | main = set E = 'Goodbye, world!' & fail E.
+    | main = set E = 'Goodbye, world!' & $.fail(E).
     + hsihdsihdsih
     ? Goodbye, world!
 
@@ -678,7 +679,7 @@ As mentioned, a scanner is just a production which, each time it is called,
 returns an atom, which the client will treat as a token.
 
     | main = scanner using $.char.
-    | scanner = {scan → A & print A} & ".".
+    | scanner = {scan → A & $.print(A)} & ".".
     | scan = {" "} & ("-" & ">" & return '->' | "(" | ")" | "," | ";" | word).
     | word = letter → L & {letter → M & set L = L + M}.
     | letter = "a" | "b" | "c" | "d" | "e" | "f" | "g".
@@ -778,59 +779,35 @@ just like the built-in parser.
 Herein lie an excessive number of tests that I wrote while I was debugging.
 Some of them will be cleaned up at a future point.
 
-    | main = program using scanner.
-    | scanner = scan using $.char.
-    | scan = {" "} & (
-    |            "c" & "a" & "t" & return meow | "d" & "o" & "g" & return woof
-    |        ).
-    | program = "woof".
-    + dog
-    = woof
+    | main = scan using $.tamsin.
+    | scan = "cat" & $.print(1) &
+    |        ("cat" & $.print(2) | "dog" & $.print(3)) &
+    |        "dog" & $.print(4) & return ok.
+    + cat cat dog
+    = 1
+    = 2
+    = 4
+    = ok
+
+    | main = scan using $.tamsin.
+    | scan = "cat" & $.print(1) &
+    |        ("cat" & $.print(2) | "dog" & $.print(3)) &
+    |        "dog" & $.print(4) & return ok.
+    + cat dog dog
+    = 1
+    = 3
+    = 4
+    = ok
 
     | main = program using scanner.
     | scanner = scan using $.char.
-    | scan = {" "} & (
-    |            "c" & "a" & "t" & return meow | "d" & "o" & "g" & return woof
-    |        ).
-    | program = "meow" | "woof".
-    + cat
-    = meow
-
-    | main = program using scanner.
-    | scanner = scan using $.char.
-    | scan = {" "} & (
-    |            "c" & "a" & "t" & return meow | "d" & "o" & "g" & return woof
-    |        ).
-    | program = "meow" | "woof".
-    + dog
-    = woof
-
-    | main = program using scanner.
-    | scanner = scan using $.char.
-    | scan = (
-    |            "c" & "a" & "t" & return meow | "d" & "o" & "g" & return woof
-    |        ).
-    | program = "meow" & "woof".
-    + catdog
-    = woof
-
-    | main = program using scanner.
-    | scanner = scan using $.char.
+    | print(X) = $.print(X).
     | scan = (
     |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
     |        ).
-    | program = "cat" & "dog".
-    + catdog
-    = dog
-
-    | main = program using scanner.
-    | scanner = scan using $.char.
-    | scan = (
-    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
-    |        ).
-    | program = "cat" & print 1 &
-    |           ("cat" & print 2 | "dog" & print 3) &
-    |           "dog" & print 4 & return ok.
+    | program = "cat" & print(1) &
+    |           ("cat" & print(2) | "dog" & print(3)) &
+    |           "dog" & print(4) & return ok.
     + catcatdog
     = 1
     = 2
@@ -839,346 +816,18 @@ Some of them will be cleaned up at a future point.
 
     | main = program using scanner.
     | scanner = scan using $.char.
+    | print(X) = $.print(X).
     | scan = (
     |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
     |        ).
-    | program = "cat" & print 1 &
-    |           ("cat" & print 2 | "dog" & print 3) &
-    |           "dog" & print 4 & return ok.
+    | program = "cat" & print(1) &
+    |           ("cat" & print(2) | "dog" & print(3)) &
+    |           "dog" & print(4) & return ok.
     + catdogdog
     = 1
     = 3
     = 4
     = ok
-
-    | main = program using scanner.
-    | scanner = scan using $.char.
-    | scan = animal → A & return A.
-    | animal = (
-    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
-    |          ).
-    | program = "cat" & print 1 &
-    |           ("cat" & print 2 | "dog" & print 3) &
-    |           "dog" & print 4 & return ok.
-    + catdogdog
-    = 1
-    = 3
-    = 4
-    = ok
-
-    | main = program using scanner.
-    | scanner = scan using $.char.
-    | scan = animal → A & " " & return A.
-    | animal = (
-    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
-    |          ).
-    | program = "cat" & print 1 &
-    |           ("cat" & print 2 | "dog" & print 3) &
-    |           "dog" & print 4 & return ok.
-    + cat dog dog 
-    = 1
-    = 3
-    = 4
-    = ok
-
-    | main = program using scanner.
-    | scanner = scan using $.char.
-    | scan = animal → A & "," & return A.
-    | animal = (
-    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
-    |          ).
-    | program = "cat" & print 1 &
-    |           ("cat" & print 2 | "dog" & print 3) &
-    |           "dog" & print 4 & return ok.
-    + cat,dog,dog,
-    = 1
-    = 3
-    = 4
-    = ok
-
-    | main = program using scanner.
-    | scanner = scan using $.char.
-    | scan = animal → A & "-" & ">" & return A.
-    | animal = (
-    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
-    |          ).
-    | program = "cat" & print 1 &
-    |           ("cat" & print 2 | "dog" & print 3) &
-    |           "dog" & print 4 & return ok.
-    + cat->dog->dog->
-    = 1
-    = 3
-    = 4
-    = ok
-
-    | main = program using scanner.
-    | scanner = scan using $.char.
-    | scan = "X" & (
-    |          "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
-    |        ).
-    | program = "cat" & "dog".
-    + XcatXdog
-    = dog
-
-    | main = program using scanner.
-    | scanner = scan using $.char.
-    | scan = " " & (
-    |          "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
-    |        ).
-    | program = "cat" & "dog".
-    +  cat dog
-    = dog
-
-    | main = program using scanner.
-    | scanner = scan using $.char.
-    | scan = " " & animal.
-    | animal = (
-    |          "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
-    |        ).
-    | program = "cat" & "dog".
-    +  cat dog
-    = dog
-
-    | main = program using scanner.
-    | scanner = scan using $.char.
-    | scan = "(" & animal.
-    | animal = (
-    |          "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
-    |        ).
-    | program = "cat" & "dog".
-    + (cat(dog
-    = dog
-
-    | main = program using scanner.
-    | scanner = scan using $.char.
-    | scan = "(" & animal → A & ")" & return A.
-    | animal = (
-    |          "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
-    |        ).
-    | program = "cat" & "dog".
-    + (cat)(dog)
-    = dog
-
-    | main = program using scanner.
-    | scanner = scan using $.char.
-    | scan = " " & animal → A & ")" & return A.
-    | animal = (
-    |          "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
-    |        ).
-    | program = "cat" & "dog".
-    +  cat) dog)
-    = dog
-
-    | main = program using scanner.
-    | scanner = scan using $.char.
-    | scan = " " & animal → A & return A.
-    | animal = (
-    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
-    |          ).
-    | program = "cat" & "dog".
-    +  cat dog
-    = dog
-
-    | main = program using scanner.
-    | scanner = scan using $.char.
-    | scan = " " & animal → A & return A.
-    | animal = (
-    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
-    |          ).
-    | program = "cat" & ("dog" | "cat").
-    +  cat dog
-    = dog
-
-    | main = program using scanner.
-    | scanner = scan using $.char.
-    | scan = " " & animal → A & return A.
-    | animal = (
-    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
-    |          ).
-    | program = "cat" & ("dog" | "cat").
-    +  cat cat
-    = cat
-
-    | main = program using scanner.
-    | scanner = scan using $.char.
-    | scan = " " & animal → A & return A.
-    | animal = (
-    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
-    |          ).
-    | program = "cat" & ("cat" | "dog") & "dog".
-    +  cat cat dog
-    = dog
-
-    | main = program using scanner.
-    | scanner = (scan | return unknown) using $.char.
-    | scan = " " & animal → A & return A.
-    | animal = (
-    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
-    |          ).
-    | program = "cat" & ("cat" | "dog") & "dog".
-    +  cat dog dog
-    = dog
-
-    | main = program using scanner.
-    | scanner = (scan | return unknown) using $.char.
-    | scan = " " & animal → A & return A.
-    | animal = "c" & "a" & "t" & return cat
-    |        | "d" & "o" & "g" & return dog
-    |        | return unknown.
-    | program = "cat" & ("cat" | "dog") & "dog".
-    +  cat dog dog
-    = dog
-
-    | main = program using scanner.
-    | scanner = (scan | return unknown) using $.char.
-    | scan = " " & animal → A & return A.
-    | animal = (
-    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
-    |            | "."
-    |          ).
-    | program = "cat" & ("cat" | "dog") & "dog" & ".".
-    +  cat dog dog .
-    = .
-
-    | main = program using scanner.
-    | scanner = (scan | return unknown) using $.char.
-    | scan = " " & animal → A & return A.
-    | animal = (
-    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
-    |          ).
-    | program = "cat" & ("dog" | "cat") & "dog".
-    +  cat cat dog
-    = dog
-
-    | main = program using scanner.
-    | scanner = scan using $.char.
-    | scan = " " & animal → A & return A.
-    | animal = (
-    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
-    |          ).
-    | program = "cat" & ("dog" | "cat") & "dog".
-    +  cat dog dog
-    = dog
-
-    | main = program using scanner.
-    | scanner = scan using $.char.
-    | scan = " " & animal → A & return A.
-    | animal = (
-    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
-    |          ).
-    | program = "cat" & print 1 &
-    |           ("cat" & print 2 | "dog" & print 3) &
-    |           "dog" & print 4 & return ok.
-    +  cat dog dog
-    = 1
-    = 3
-    = 4
-    = ok
-
-    | main = program using scanner.
-    | scanner = scan using $.char.
-    | scan = "X" & animal → A & return A.
-    | animal = (
-    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
-    |          ).
-    | program = "cat" & print 1 &
-    |           ("cat" & print 2 | "dog" & print 3) &
-    |           "dog" & print 4 & return ok.
-    + XcatXdogXdog
-    = 1
-    = 3
-    = 4
-    = ok
-
-    | main = program using scanner.
-    | scanner = scan using $.char.
-    | scan = "(" & animal → A & ")" & return A.
-    | animal = (
-    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
-    |          ).
-    | program = "cat" & print 1 &
-    |           ("cat" & print 2 | "dog" & print 3) &
-    |           "dog" & print 4 & return ok.
-    + (cat)(dog)(dog)
-    = 1
-    = 3
-    = 4
-    = ok
-
-    | main = program using scanner.
-    | scanner = scan using $.char.
-    | scan = {" "} & (
-    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
-    |        ).
-    | program = "cat" & "dog".
-    + cat dog
-    = dog
-
-    | main = program using scanner.
-    | scanner = scan using $.char.
-    | scan = {" "} & (
-    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
-    |        ).
-    | program = "cat" & print 1 &
-    |           ("cat" & print 2 | "dog" & print 3) &
-    |           "dog" & print 4 & return ok.
-    + cat cat dog
-    = 1
-    = 2
-    = 4
-    = ok
-    
-    | main = program using scanner.
-    | scanner = scan using $.char.
-    | scan = {" "} & (
-    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
-    |        ).
-    | program = "cat" & print 1 &
-    |           ("cat" & print 2 | "dog" & print 3) &
-    |           "dog" & print 4 & return ok.
-    + cat dog dog
-    = 1
-    = 3
-    = 4
-    = ok
-
-    | main = scan using $.tamsin.
-    | scan = "cat" & print 1 &
-    |        ("cat" & print 2 | "dog" & print 3) &
-    |        "dog" & print 4 & return ok.
-    + cat cat dog
-    = 1
-    = 2
-    = 4
-    = ok
-
-    | main = scan using $.tamsin.
-    | scan = "cat" & print 1 &
-    |        ("cat" & print 2 | "dog" & print 3) &
-    |        "dog" & print 4 & return ok.
-    + cat dog dog
-    = 1
-    = 3
-    = 4
-    = ok
-
-    | main = program using scanner.
-    | scanner = scan using $.char.
-    | scan = {" "} & (
-    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
-    |        ).
-    | program = "cat" & ("cat" | "dog") & "dog".
-    + cat cat cat
-    ? expected 'dog' found 'cat'
-
-    | main = program using scanner.
-    | scanner = scan using $.char.
-    | scan = {" "} & (
-    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
-    |        ).
-    | program = "cat" & ("cat" | "dog") & "dog".
-    + dog dog dog
-    ? expected 'cat' found 'dog'
 
 ### Advanced use of `using` ###
 
@@ -1460,33 +1109,40 @@ The rule formals may call on other rules in the program.
 Appendix A. Grammar
 -------------------
 
-    Grammar ::= {Production "."}.
+    Grammar    ::= {Production "."}.
     Production ::= ProdName ["(" [Term {"," Term} ")" | "[" Expr0 "]"] "=" Expr0.
-    Expr0 := Expr1 {("||" | "|") Expr1}.
-    Expr1 := Expr2 {("&&" | "&") Expr2}.
-    Expr2 := Expr3 ["using" ScannerSpec].
-    Expr3 := Expr4 ["→" Variable].
-    Expr4 := "(" Expr0 ")"
-           | "[" Expr0 "]"
-           | "{" Expr0 "}"
-           | "set" Variable "=" Term
-           | "return" Term
-           | "fail" Term
-           | "print" Term
-           | "any"
-           | "□"
-           | LitToken
-           | ProdName ["(" [Term {"," Term} ")"] ["@" Term].
-    Term  := Term0.
-    Term0 := Term1 {"•" Term1}.
-    Term1 := Atom ["(" {Term0} ")"]
-           | Variable.
-    ScannerSpec = "☆" ("tamsin" | "char") | ProdName.
-    Atom  := ("'" {any} "'" | { "a".."z" | "0".."9" }) using ☆char.
-    Variable := ("A".."Z" { "a".."z" | "0".."9" }) using ☆char.
-    ProdName ::= { "a".."z" | "0".."9" } using ☆char.
+    Expr0      ::= Expr1 {("||" | "|") Expr1}.
+    Expr1      ::= Expr2 {("&&" | "&") Expr2}.
+    Expr2      ::= Expr3 ["using" ProdRef].
+    Expr3      ::= Expr4 ["→" Variable].
+    Expr4      ::= "(" Expr0 ")"
+                 | "[" Expr0 "]"
+                 | "{" Expr0 "}"
+                 | "set" Variable "=" Term
+                 | "return" Term
+                 | "fail" Term
+                 | LitToken
+                 | ProdRef ["(" [Term {"," Term} ")"] ["@" Term].
+    Term       ::= Term0.
+    Term0      ::= Term1 {"+" Term1}.
+    Term1      ::= Atom ["(" {Term0} ")"]
+                 | Variable.
+    ProdRef    ::= [ModuleRef "."] ProdName.
+    ModuleRef  ::= "$".
+    Atom       ::= ("'" {any} "'" | { "a".."z" | "0".."9" }) using $.char.
+    Variable   ::= ("A".."Z" { "a".."z" | "0".."9" }) using $.char.
+    ProdName   ::= { "a".."z" | "0".."9" } using $.char.
 
-Appendix B. Notes
+Appendix B. System Module
+-------------------------
+
+*   `$.char` -- character scanner production
+*   `$.tamsin` -- character scanner production
+*   `$.eof` -- succeeds on eof and returns eof, otherwise fails
+*   `$.any` -- fails on eof, succeeds and returns token on any other token
+*   `$.print(X)` -- prints X to output as a side-effect, returns X
+
+Appendix C. Notes
 -----------------
 
 These are now out of context, and kept here for historical purposes.

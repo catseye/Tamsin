@@ -452,15 +452,8 @@ class Parser(EventProducer):
     def expr2(self):
         lhs = self.expr3()
         if self.consume('using'):
-            # TODO: very provisional
-            if self.consume('$'):
-                self.expect('.')
-                # TODO: 'tamsin' or 'char' is all
-                scanner_name = self.consume_any()
-            else:
-                # TODO: a production name only
-                scanner_name = self.consume_any()
-            lhs = ('USING', lhs, scanner_name)
+            prodref = self.prodref()
+            lhs = ('USING', lhs, prodref)
         return lhs
 
     def expr3(self):
@@ -499,21 +492,8 @@ class Parser(EventProducer):
         elif self.consume('return'):
             t = self.term()
             return ('RETURN', t)
-        elif self.consume('fail'):
-            t = self.term()
-            return ('FAIL', t)
-        elif self.consume(u'$'):
-            self.expect('.')
-            if self.consume('eof'):
-                return ('EOF',)
-            if self.consume('any'):
-                return ('ANY',)
-            # TODO: fail and print go here too
-        elif self.consume('print'):
-            t = self.term()
-            return ('PRINT', t)
         else:
-            name = self.consume_any()
+            prodref = self.prodref()
             args = []
             if self.consume('('):
                 if self.peek() != ')':
@@ -524,7 +504,16 @@ class Parser(EventProducer):
             ibuf = None
             if self.consume('@'):
                 ibuf = self.term()
-            return ('CALL', name, args, ibuf)
+            return ('CALL', prodref, args, ibuf)
+
+    def prodref(self):
+        if self.consume('$'):
+            self.expect('.')
+            name = self.consume_any()
+            return ('PRODREF', '$', name)
+        else:
+            name = self.consume_any()
+            return ('PRODREF', '', name)
 
     def variable(self):
         if self.peek()[0].isupper():
@@ -611,14 +600,23 @@ class Interpreter(EventProducer):
 
     ### grammar stuff ---------------------------------------- ###
     
-    def find_productions(self, name):
-        productions = []
-        for ast in self.program[1]:
-            if ast[1] == name:
-                productions.append(ast)
-        if not productions:
-            raise ValueError("No '%s' production defined" % name)
-        return productions
+    def find_productions(self, prodref):
+        mod = prodref[1]
+        name = prodref[2]
+        if mod == '':
+            productions = []
+            for ast in self.program[1]:
+                if ast[1] == name:
+                    productions.append(ast)
+            if not productions:
+                raise ValueError("No '%s' production defined" % name)
+            return productions
+        elif mod == '$':
+            formals = {
+                'fail': [Variable('X')],
+                'print': [Variable('X')]
+            }.get(name, [])
+            return [('PROD', '$.' + name, formals, ('MAGIC',))]
 
     ### term matching ---------------------------------------- ###
     
@@ -667,10 +665,31 @@ class Interpreter(EventProducer):
         """
         self.event('interpret_ast', ast)
         if ast[0] == 'PROGRAM':
-            mains = self.find_productions('main')
+            mains = self.find_productions(('PRODREF', '', 'main'))
             return self.interpret(mains[0])
         elif ast[0] == 'PROD':
-            self.context.push_scope(ast[1])
+            name = ast[1]
+            if name == '$.eof':
+                if self.scanner.eof():
+                    return (True, EOF)
+                else:
+                    return (False, Term("expected EOF found '%s'" %
+                            self.scanner.peek()))
+            elif name == '$.any':
+                if self.scanner.eof():
+                    return (False, Term("expected any token, found EOF"))
+                else:
+                    token = self.scanner.consume_any()
+                    return (True, token)
+            elif name == '$.print':
+                val = bindings['X']  # .expand(self.context)
+                print val
+                return (True, val)
+            elif name == '$.fail':
+                return (False, bindings['X'])  # .expand(self.context))
+            elif name.startswith('$.'):
+                raise ValueError("No '%s' production defined" % name)
+            self.context.push_scope(name)
             if bindings:
                 for name in bindings.keys():
                     self.context.store(name, bindings[name])
@@ -680,10 +699,12 @@ class Interpreter(EventProducer):
             self.context.pop_scope(ast[1])
             return (succeeded, x)
         elif ast[0] == 'CALL':
-            name = ast[1]
+            prodref = ast[1]
+            prodmod = prodref[1]
+            name = prodref[2]
             args = ast[2]
             ibuf = ast[3]
-            prods = self.find_productions(name)
+            prods = self.find_productions(prodref)
             self.event('call_candidates', prods)
             args = [x.expand(self.context) for x in args]
             for prod in prods:
@@ -756,8 +777,6 @@ class Interpreter(EventProducer):
                 return self.interpret(rhs)
         elif ast[0] == 'RETURN':
             return (True, ast[1].expand(self.context))
-        elif ast[0] == 'FAIL':
-            return (False, ast[1].expand(self.context))
         elif ast[0] == 'EOF':
             if self.scanner.eof():
                 return (True, EOF)
@@ -765,19 +784,16 @@ class Interpreter(EventProducer):
                 return (False, Term("expected EOF found '%s'" %
                                     self.scanner.peek())
                        )
-        elif ast[0] == 'PRINT':
-            val = ast[1].expand(self.context)
-            print val
-            return (True, val)
         elif ast[0] == 'USING':
             sub = ast[1]
-            scanner_name = ast[2]
+            prodref = ast[2]
+            scanner_name = prodref[2]
             if scanner_name == u'tamsin':
                 new_engine = TamsinScannerEngine()
             elif scanner_name == u'char':
                 new_engine = CharScannerEngine()
             else:
-                prods = self.find_productions(scanner_name)
+                prods = self.find_productions(prodref)
                 if len(prods) != 1:
                     raise ValueError("No such scanner '%s'" % scanner_name)
                 new_engine = ProductionScannerEngine(self, prods[0])

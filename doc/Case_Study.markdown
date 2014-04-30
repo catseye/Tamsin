@@ -201,7 +201,7 @@ In this one, we make the evaluator print out some of the steps it takes.
     | eval(pair(tail, pair(X, nil))) = eval(X) → R & tail(R) → P & return P.
     | eval(pair(cons, pair(A, pair(B, nil)))) =
     |    eval(A) → AE & eval(B) → BE &
-    |    print y(AE, BE) & cons(AE, BE) → C & return C.
+    |    $.print(y(AE, BE)) & cons(AE, BE) → C & return C.
     | eval(X) = return X.
     | 
     | reverse(pair(H, T), A) =

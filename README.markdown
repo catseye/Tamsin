@@ -1,7 +1,7 @@
 Tamsin
 ======
 
-Tamsin is a strange little language that can't decide if it's a
+**Tamsin** is a strange little language that can't decide if it's a
 language-definition language like [CoCo/R](http://www.scifac.ru.ac.za/coco/)
 or a functional language like [Erlang](http://erlang.org/) or a practical
 extraction and reporting language like... that one practical extraction and
@@ -30,14 +30,14 @@ input to the program, and `=` is the expected output.
 
 Parse an algebraic expression for correctness.
 
-    | main = (expr0 & $.eof & return ok) using $.char.
+    | main = (expr0 & $.eof & return ok).
     | expr0 = expr1 & {"+" & expr1}.
     | expr1 = term & {"*" & term}.
     | term = "x" | "y" | "z" | "(" & expr0 & ")".
     + x+y*(z+x+y)
     = ok
 
-    | main = (expr0 & $.eof & return ok) using $.char.
+    | main = (expr0 & $.eof & return ok).
     | expr0 = expr1 & {"+" & expr1}.
     | expr1 = term & {"*" & term}.
     | term = "x" | "y" | "z" | "(" & expr0 & ")".
@@ -46,17 +46,28 @@ Parse an algebraic expression for correctness.
 
 Parse an algebraic expression to a syntax tree.
 
-    | main = expr0 using $.char.
+    | main = expr0.
     | expr0 = expr1 → E1 & {"+" & expr1 → E2 & set E1 = add(E1,E2)} & return E1.
     | expr1 = term → E1 & {"*" & term → E2 & set E1 = mul(E1,E2)} & return E1.
     | term = "x" | "y" | "z" | "(" & expr0 → E & ")" & return E.
     + x+y*(z+x+y)
     = add(x, mul(y, add(add(z, x), y)))
 
+Translate an algebraic expression to RPN (Reverse Polish Notation).
+
+    | main = expr0 → E & walk(E).
+    | expr0 = expr1 → E1 & {"+" & expr1 → E2 & set E1 = add(E1,E2)} & return E1.
+    | expr1 = term → E1 & {"*" & term → E2 & set E1 = mul(E1,E2)} & return E1.
+    | term = "x" | "y" | "z" | "(" & expr0 → E & ")" & return E.
+    | walk(add(L,R)) = walk(L) → LS & walk(R) → RS & return LS+RS+' +'.
+    | walk(mul(L,R)) = walk(L) → LS & walk(R) → RS & return LS+RS+' *'.
+    | walk(X) = return ' '+X.
+    + x+y*(z+x+y)
+    =  x y z x + y + * +
+
 Make a story more exciting!
 
-    | main = collect using $.char.
-    | collect = set S = '' & {translate → C & set S = S + C} & return S.
+    | main = set S = '' & {translate → C & set S = S + C} & return S.
     | translate = "." & return '!' | "?" & return '?!' | $.any.
     + Chapter 1
     + ---------
@@ -96,6 +107,10 @@ Parse and evaluate a Boolean expression.
     + (false or true) and true
     = true
 
+Parse and evaluate a little S-expression-based language.
+
+    * See [Case Study](doc/Case_Study.markdown)
+
 For more information
 --------------------
 
@@ -114,6 +129,18 @@ Quick Start
 Or just clone this repo and make a symbolic link to `bin/tamsin` somewhere
 on your path (or alter your path to contain the `bin/` directory of this repo.)
 
+Design Goals
+------------
+
+*   Allow writing very compact parsers, interpreters, and compilers.
+    (Not *quite* to the point of being a golfing language, but nearly.)
+*   Allow parsers, interpreters, and compilers to be quickly prototyped.
+*   Allow writing (almost) anything using (almost) only recursive-descent
+    parsing techniques.
+*   Provide means to solve practical problems.
+*   Keep the language simple (grammar should fit on a page)
+*   Have a simple reference implementation (currently ~900 lines of Python).
+
 License
 -------
 
@@ -122,16 +149,28 @@ BSD-style license; see the file [LICENSE](LICENSE).
 TODO
 ----
 
-*   dictionary values in variables?
-*   arbitrary non-printable characters in terms and such
-*   special form that consumes rest of input from the Tamsin source
 *   comments
-*   modules; specifically the `$` module
+*   pragmas
+*   `#alias` pragma
+*   `#unalias` pragma
+*   `$.return`
+*   default aliases: return, fail, any, eof, print
+*   arbitrary non-printable characters in terms and such
 *   make `return` optional when token is unambiguously the start of a term
 *   make `set` optional
-*   numeric values... somehow.  decode(ascii, 'A') = 65.
-*   token classes... somehow
-*   don't consume stdin until asked to scan.
-*   IR: map program a map from prod name -> [prod AST].
 *   ASCII digraphs for all the unicode cheekiness
+*   don't consume stdin until asked to scan.
+*   numeric values... somehow.  number('65') = #65.  decode(ascii, 'A') = #65.
+*   token classes... somehow
+
+### experimental ###
+
+*   meta-circular implementation
 *   non-backtracking versions of `|` and `{}`?  (very advanced)
+*   dictionary values in variables?
+*   special form that consumes rest of input from the Tamsin source
+
+### performance ###
+
+*   IR: map program a map from prod name -> [prod AST].
+*   a second implementation, in C
