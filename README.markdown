@@ -176,6 +176,5 @@ TODO
 
 ### performance ###
 
-*   IR: map program a map from prod name -> [prod AST].
 *   a second implementation, in C
 *   a compiler (in Python) *to* C
