@@ -14,7 +14,7 @@ are easy to write and they make for extremely pretty code!"
 And what does a recursive-descent parser do?  It consumes input.  But
 don't *all* algorithms consume input?  So why not have a language which
 makes it easy to write recursive-descent parsers, and force all programs
-to be written as recursive-descent parsers?  Then all code will be pretty!
+to be written as recursive-descent parsers?  Then *all* code will be pretty!
 (Yeah, sure, OK.)
 
 Where I'm going with this, I don't quite know yet.  It is a
@@ -30,14 +30,14 @@ input to the program, and `=` is the expected output.
 
 Parse an algebraic expression for correctness.
 
-    | main = (expr0 & $.eof & return ok).
+    | main = (expr0 & eof & return ok).
     | expr0 = expr1 & {"+" & expr1}.
     | expr1 = term & {"*" & term}.
     | term = "x" | "y" | "z" | "(" & expr0 & ")".
     + x+y*(z+x+y)
     = ok
 
-    | main = (expr0 & $.eof & return ok).
+    | main = (expr0 & eof & return ok).
     | expr0 = expr1 & {"+" & expr1}.
     | expr1 = term & {"*" & term}.
     | term = "x" | "y" | "z" | "(" & expr0 & ")".
@@ -68,7 +68,7 @@ Translate an algebraic expression to RPN (Reverse Polish Notation).
 Make a story more exciting!
 
     | main = set S = '' & {translate → C & set S = S + C} & return S.
-    | translate = "." & return '!' | "?" & return '?!' | $.any.
+    | translate = "." & return '!' | "?" & return '?!' | any.
     + Chapter 1
     + ---------
     + It was raining.  She knocked on the door.  She heard
@@ -109,7 +109,7 @@ Parse and evaluate a Boolean expression.
 
 Parse and evaluate a little S-expression-based language.
 
-    * See [Case Study](doc/Case_Study.markdown)
+*   See [Case Study: Evaluating S-expressions](doc/Case_Study.markdown)
 
 For more information
 --------------------
@@ -151,7 +151,6 @@ TODO
 
 *   comments
 *   `$.return`
-*   default aliases: return, fail, any, eof, print
 *   arbitrary non-printable characters in terms and such
 *   make `return` optional when token is unambiguously the start of a term
 *   make `set` optional

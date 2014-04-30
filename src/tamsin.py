@@ -392,7 +392,12 @@ class Parser(EventProducer):
         self.listeners = listeners
         self.scanner = Scanner(buffer, listeners=self.listeners)
         self.scanner.push_engine(TamsinScannerEngine())
-        self.aliases = {}
+        self.aliases = {
+            'eof': (0, ('PRODREF', '$', 'eof')),
+            'any': (0, ('PRODREF', '$', 'any')),
+            'print': (1, ('PRODREF', '$', 'print')),
+            'fail': (1, ('PRODREF', '$', 'fail')),
+        }
 
     def eof(self):
         return self.scanner.eof()

@@ -69,7 +69,7 @@ when evaluated, sends the term to the output, and evaluates to the term.
 (Mostly this is useful for debugging.  In the following, `world` is
 repeated because it is both printed, and the result of the evaluation.)
 
-    | main = $.print(hello) & $.print(world).
+    | main = print hello & print world.
     + ahoshoshohspohdphs
     = hello
     = world
@@ -147,25 +147,24 @@ the stream that the LHS started on.  This property is called "backtracking".
 Note that `print` and `return` never fail.  Thus, code like the following
 is "useless":
 
-    | main = foo & $.print(hi) | return useless.
-    | foo = return bar | $.print(useless).
+    | main = foo & print hi | return useless.
+    | foo = return bar | print useless.
     = hi
     = hi
 
 Note that `return` does not exit the production immediately — although
 this behaviour may be re-considered...
 
-    | main = return hello & $.print(not_useless).
+    | main = return hello & print not_useless.
     = not_useless
     = not_useless
 
 Alternatives can select code to be executed, based on the input.
 
-    | print(X) = $.print(X).
-    | main = aorb & print(aorb) | cord & print(cord) & return ok.
-    | aorb = "a" & print(ay) | "b" & print(bee).
-    | cord = "c" & print(see) | eorf & print(eorf).
-    | eorf = "e" & print(ee) | f & print(eff).
+    | main = aorb & print aorb | cord & print cord & return ok.
+    | aorb = "a" & print ay | "b" & print bee.
+    | cord = "c" & print see | eorf & print eorf.
+    | eorf = "e" & print ee | f & print eff.
     + e
     = ee
     = eorf
@@ -443,17 +442,12 @@ and import modules, but for now, there is one built-in module called `$`
 and it is always in scope.
 
 The module `$` contains a number of built-in productions which would not
-be possible or practical to implement in Tamsin.  Among them:
-    
-    * `$.any`, which matches any token
-    * `$.eof`, which matches the end of the input
-    * `$.char`, the character scanner (more on scanner productions below)
-    * `$.tamsin`, the tamsin scanner (more on scanner productions below)
+be possible or practical to implement in Tamsin.  See Appendix B for a list.
 
 Advanced Parsing
 ----------------
 
-### $.EOF ###
+### eof ###
 
 If there is more input available than what we wrote the program to consume,
 the program still succeeds.
@@ -462,37 +456,37 @@ the program still succeeds.
     + apparently
     = p
 
-The built-in production `$.eof` may be used to match against the end of the
+The built-in production `eof` may be used to match against the end of the
 input (colloquially called "EOF".)
 
-    | main = "a" & "p" & $.eof.
+    | main = "a" & "p" & eof.
     + ap
     = EOF
 
 This is how you can make it error out if there is extra input remaining.
 
-    | main = "a" & "p" & $.eof.
+    | main = "a" & "p" & eof.
     + apt
     ? expected EOF found 't'
 
 The end of the input is a virtual infinite stream of EOF's.  You can match
 against them until the cows come home.  The cows never come home.
 
-    | main = "a" & "p" & $.eof & $.eof & $.eof.
+    | main = "a" & "p" & eof & eof & eof.
     + ap
     = EOF
 
-### $.any ###
+### any ###
 
-The built-in production `$.any` matches any token defined by the scanner
+The built-in production `any` matches any token defined by the scanner
 except for EOF.  (Remember that for now "token defined by the scanner"
 means "character", but that that can be changed, as you'll see below.)
 
-    | main = $.any & $.any & $.any.
+    | main = any & any & any.
     + (@)
     = )
 
-    | main = $.any & $.any.
+    | main = any & any.
     + a
     ? expected any token, found EOF
 
@@ -546,23 +540,22 @@ the word "simpler", but we can... write it differently.
     + 0000
     = zero(zero(zero(zero(nil))))
 
-### $.fail ###
+### fail ###
 
-The built-in production `$.fail` always fails.  This lets you establish
+The built-in production `fail` always fails.  This lets you establish
 global flags, of a sort.  It takes a term, which it uses as the failure message.
-Note that the term must be in parentheses — more on that in a minute.
 
     | debug = return ok.
     | main = (debug & return walla | "0").
     + 0
     = walla
 
-    | debug = $.fail(notdebugging).
+    | debug = fail notdebugging.
     | main = (debug & return walla | "0").
     + 0
     = 0
 
-    | main = set E = 'Goodbye, world!' & $.fail(E).
+    | main = set E = 'Goodbye, world!' & fail E.
     + hsihdsihdsih
     ? Goodbye, world!
 
@@ -679,7 +672,7 @@ As mentioned, a scanner is just a production which, each time it is called,
 returns an atom, which the client will treat as a token.
 
     | main = scanner using $.char.
-    | scanner = {scan → A & $.print(A)} & ".".
+    | scanner = {scan → A & print A} & ".".
     | scan = {" "} & ("-" & ">" & return '->' | "(" | ")" | "," | ";" | word).
     | word = letter → L & {letter → M & set L = L + M}.
     | letter = "a" | "b" | "c" | "d" | "e" | "f" | "g".
@@ -801,13 +794,12 @@ Some of them will be cleaned up at a future point.
 
     | main = program using scanner.
     | scanner = scan using $.char.
-    | print(X) = $.print(X).
     | scan = (
     |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
     |        ).
-    | program = "cat" & print(1) &
-    |           ("cat" & print(2) | "dog" & print(3)) &
-    |           "dog" & print(4) & return ok.
+    | program = "cat" & print 1 &
+    |           ("cat" & print 2 | "dog" & print 3) &
+    |           "dog" & print 4 & return ok.
     + catcatdog
     = 1
     = 2
@@ -816,13 +808,12 @@ Some of them will be cleaned up at a future point.
 
     | main = program using scanner.
     | scanner = scan using $.char.
-    | print(X) = $.print(X).
     | scan = (
     |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
     |        ).
-    | program = "cat" & print(1) &
-    |           ("cat" & print(2) | "dog" & print(3)) &
-    |           "dog" & print(4) & return ok.
+    | program = "cat" & print 1 &
+    |           ("cat" & print 2 | "dog" & print 3) &
+    |           "dog" & print 4 & return ok.
     + catdogdog
     = 1
     = 3
@@ -1071,17 +1062,17 @@ Variables that are set in a parse-pattern formals are available to
 the production's rule.
 
     | main = donkey(world).
-    | donkey[$.any → E] = return hello(E).
+    | donkey[any → E] = return hello(E).
     = hello(w)
 
     | main = donkey(world).
-    | donkey[$.any → E using $.tamsin] = return hello(E).
+    | donkey[any → E using $.tamsin] = return hello(E).
     = hello(world)
 
 No variables from the caller leak into the called production.
 
     | main = set F = whatever & donkey(world).
-    | donkey[$.any → E] = return hello(F).
+    | donkey[any → E] = return hello(F).
     ? KeyError
 
 Terms are stringified before being matched.
@@ -1179,6 +1170,7 @@ Appendix B. System Module
 *   `$.eof` -- succeeds on eof and returns eof, otherwise fails
 *   `$.any` -- fails on eof, succeeds and returns token on any other token
 *   `$.print(X)` -- prints X to output as a side-effect, returns X
+*   `$.fail(X)` -- always fails, giving X as the error message
 
 Appendix C. Notes
 -----------------
