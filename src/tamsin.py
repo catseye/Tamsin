@@ -297,8 +297,13 @@ ESCAPE_SEQUENCE = {
 
 class TamsinScannerEngine(ScannerEngine):
     def scan_impl(self, scanner):
-        while scanner.startswith((' ', '\t', '\r', '\n')):
-            scanner.chop(1)
+        while scanner.startswith(('#', ' ', '\t', '\r', '\n')):
+            while scanner.startswith((' ', '\t', '\r', '\n')):
+                scanner.chop(1)
+            while scanner.startswith(('#',)):
+                while not scanner.startswith(('\n',)):
+                    scanner.chop(1)
+                scanner.chop(1)
 
         if scanner.eof():
             return EOF
@@ -397,6 +402,7 @@ class Parser(EventProducer):
             'any': (0, ('PRODREF', '$', 'any')),
             'print': (1, ('PRODREF', '$', 'print')),
             'fail': (1, ('PRODREF', '$', 'fail')),
+            'return': (1, ('PRODREF', '$', 'return')),
         }
 
     def eof(self):
@@ -493,7 +499,9 @@ class Parser(EventProducer):
         elif self.consume('['):
             e = self.expr0()
             self.expect(']')
-            return ('OR', e, ('RETURN', Term('nil')))
+            return ('OR', e,
+                ('CALL', ('PRODREF', '$', 'return'), [Term('nil')], None)
+            )
         elif self.consume('{'):
             e = self.expr0()
             self.expect('}')
@@ -511,9 +519,6 @@ class Parser(EventProducer):
             self.expect("=")
             t = self.term()
             return ('SET', v, t)
-        elif self.consume('return'):
-            t = self.term()
-            return ('RETURN', t)
         else:
             prodref = self.prodref()
             args = []
@@ -648,7 +653,8 @@ class Interpreter(EventProducer):
         elif mod == '$':
             formals = {
                 'fail': [Variable('X')],
-                'print': [Variable('X')]
+                'print': [Variable('X')],
+                'return': [Variable('X')]
             }.get(name, [])
             return [('PROD', '$.' + name, formals, ('MAGIC',))]
 
@@ -704,7 +710,9 @@ class Interpreter(EventProducer):
             return self.interpret(mains[0])
         elif ast[0] == 'PROD':
             name = ast[1]
-            if name == '$.eof':
+            if name == '$.return':
+                return (True, bindings['X'])
+            elif name == '$.eof':
                 if self.scanner.eof():
                     return (True, EOF)
                 else:
@@ -810,8 +818,6 @@ class Interpreter(EventProducer):
                 self.context = saved_context
                 self.scanner.install_state(saved_scanner_state)
                 return self.interpret(rhs)
-        elif ast[0] == 'RETURN':
-            return (True, ast[1].expand(self.context))
         elif ast[0] == 'EOF':
             if self.scanner.eof():
                 return (True, EOF)

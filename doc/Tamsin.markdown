@@ -226,6 +226,19 @@ To consume a comma-seperated list of one or more bits:
     + 0,10,0.
     ? expected '.' found '0'
 
+Comments
+--------
+
+A Tamsin comment is introduced with `#` and continues until the end of the
+line.
+
+    | # welcome to my Tamsin program!
+    | main = # comments may appear anywhere in the syntax
+    |        # and a comment may be followed by a comment
+    |   "z".
+    + z
+    = z
+
 Variables
 ---------
 
@@ -1171,6 +1184,7 @@ Appendix B. System Module
 *   `$.any` -- fails on eof, succeeds and returns token on any other token
 *   `$.print(X)` -- prints X to output as a side-effect, returns X
 *   `$.fail(X)` -- always fails, giving X as the error message
+*   `$.return(X)` -- always succeeds, returning X
 
 Appendix C. Notes
 -----------------

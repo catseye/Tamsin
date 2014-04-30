@@ -149,8 +149,6 @@ BSD-style license; see the file [LICENSE](LICENSE).
 TODO
 ----
 
-*   comments
-*   `$.return`
 *   arbitrary non-printable characters in terms and such
 *   make `return` optional when token is unambiguously the start of a term
 *   make `set` optional
@@ -161,10 +159,10 @@ TODO
 
 ### experimental ###
 
-*   meta-circular implementation
 *   non-backtracking versions of `|` and `{}`?  (very advanced)
 *   dictionary values in variables?
 *   special form that consumes rest of input from the Tamsin source
+*   meta-circular implementation
 
 ### performance ###
 
