@@ -126,8 +126,7 @@ class Parser(EventProducer):
             e = self.expr0()
             self.expect('}')
             return ('WHILE', e)
-        elif (self.peek() is not None and
-              self.peek()[0] == '"'):
+        elif self.peek()[0] == '"':
             literal = self.consume_any()[1:-1]
             return ('CALL', ('PRODREF', '$', 'expect'), [Term(literal)], None)
         elif self.consume(u'«') or self.consume('<<'):
@@ -141,8 +140,8 @@ class Parser(EventProducer):
             self.expect("=")
             t = self.term()
             return ('SET', v, t)
-        elif (self.peek() is not None and
-              self.peek()[0].isupper()):
+        elif self.peek()[0].isupper():
+            # TODO: handle ... & X+Y  (maybe)
             v = self.variable()
             if self.consume(u'←') or self.consume('<-'):
                 t = self.term()
@@ -150,6 +149,10 @@ class Parser(EventProducer):
                 return ('CALL', ('PRODREF', '$', 'return'), [v], None)
             return ('SET', v, t)
         else:
+            # implied return of term
+            if self.peek()[0].isupper() or self.peek()[0] == "'":
+                t = self.term()
+                return ('CALL', ('PRODREF', '$', 'return'), [t], None)
             prodref = self.prodref()
             args = []
             name = prodref[2]

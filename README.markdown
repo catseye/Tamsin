@@ -30,14 +30,14 @@ input to the program, and `=` is the expected output.
 
 Parse an algebraic expression for correctness.
 
-    | main = (expr0 & eof & return ok).
+    | main = (expr0 & eof & 'ok').
     | expr0 = expr1 & {"+" & expr1}.
     | expr1 = term & {"*" & term}.
     | term = "x" | "y" | "z" | "(" & expr0 & ")".
     + x+y*(z+x+y)
     = ok
 
-    | main = (expr0 & eof & return ok).
+    | main = (expr0 & eof & 'ok').
     | expr0 = expr1 & {"+" & expr1}.
     | expr1 = term & {"*" & term}.
     | term = "x" | "y" | "z" | "(" & expr0 & ")".
@@ -68,7 +68,7 @@ Translate an algebraic expression to RPN (Reverse Polish Notation).
 Make a story more exciting!
 
     | main = set S = '' & {translate → C & S ← S + C} & S.
-    | translate = "." & return '!' | "?" & return '?!' | any.
+    | translate = "." & '!' | "?" & '?!' | any.
     + Chapter 1
     + ---------
     + It was raining.  She knocked on the door.  She heard
@@ -95,12 +95,12 @@ Parse and evaluate a Boolean expression.
     | term = "true" | "false" | "(" & expr0 → E & ")" & E.
     | eval(and(A, B)) = eval(A) → EA & eval(B) → EB & and(EA, EB).
     | eval(or(A, B)) = eval(A) → EA & eval(B) → EB & or(EA, EB).
-    | eval(true) = return true.
-    | eval(false) = return false.
-    | and(true, true) = return true.
-    | and(A, B) = return false.
-    | or(false, false) = return false.
-    | or(A, B) = return true.
+    | eval(true) = 'true'.
+    | eval(false) = 'false'.
+    | and(true, true) = 'true'.
+    | and(A, B) = 'false'.
+    | or(false, false) = 'false'.
+    | or(A, B) = 'true'.
     + (false or true) and true
     = true
 
@@ -151,19 +151,16 @@ TODO
 *   `$.alnum`
 *   `$.digit`
 *   arbitrary non-printable characters in terms and such
-*   make `return` optional when token is unambiguously the start of a term
 *   don't consume stdin until asked to scan.
 *   numeric values... somehow.  number('65') = #65.  decode(ascii, 'A') = #65.
-*   token classes... somehow
+*   token classes... somehow.  (then numeric is just a special token class?)
 *   term expressions -- harder than it sounds
 
 ### document ###
 
 *   tamsin scanner sanity
 *   implied `set` -- maybe get rid of `set` entirely
-*   implied `return`
-*   «» is just sugar for $.expect -- could be an alias w/right sym (`,,`, `„`)
-    (still need to scan it specially though)
+*   implied `return` of variables and single-quoted constructors
 *   $.not
 *   pragmas and aliases
 
@@ -171,6 +168,8 @@ TODO
 
 *   be generous and allow "xyz" in term context position?
 *   non-backtracking versions of `|` and `{}`?  (very advanced)
+*   «» could be an alias w/right sym (`,,`, `„`)
+    (still need to scan it specially though)
 *   dictionary values in variables?
 *   special form that consumes rest of input from the Tamsin source
 *   meta-circular implementation of scanner -- what we have is pretty close
@@ -180,3 +179,4 @@ TODO
 
 *   IR: map program a map from prod name -> [prod AST].
 *   a second implementation, in C
+*   a compiler (in Python) *to* C
