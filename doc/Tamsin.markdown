@@ -663,6 +663,16 @@ the "Aliases" section below.)
 
 The section about aliases needs to be written too.
 
+Here's `$.alnum`, which only consumes alphanumeric tokens.
+
+    | main = "(" & {$.alnum → A} & ")" & A.
+    + (abc123deefghi459876jklmnopqRSTUVXYZ0)
+    = 0
+
+    | main = "(" & {$.alnum → A} & ")" & A.
+    + (abc123deefghi459876!jklmnopqRSTUVXYZ0)
+    ? expected ')' found '!'
+
 Advanced Scanning
 -----------------
 
@@ -1255,17 +1265,18 @@ Approximate.  Written in Tamsin.
     symbol = "&&" | "||" | "->" | "<-" | "<<" | ">>"
            | "=" | "(" | ")" | "[" | "]" | "{" | "}" | "|" | "&"
            | "," | "." | "@" | "+" | "$" | "→" | "←" | "«" | "»".
-    str(Q) = «Q» & {escape | $.not(Q)} & «Q».
+    str(Q) = «Q» & {escape | not Q} & «Q».
     escape = "\\" & ("n" | "r" | "t" | "\\" | "'" | "\"").
-    word = $.alpha → T & { ($.alpha | "_") → S & T ← T + S } & T.
+    word = $.alnum → T & { ($.alnum | "_") → S & T ← T + S } & T.
     skippable = {whitespace | comment}.         # could be greedy
     whitespace = {" " | "\t" | "\r" | "\n"}.
-    comment = "#" & {$.not('\n')} & "\n".       # should NOT be greedy...
+    comment = "#" & {not '\n'} & "\n".
 
 
 Appendix C. System Module
 -------------------------
 
+*   `$.alnum` -- succeeds only on token which begins with alphanumeric
 *   `$.any` -- fails on eof, succeeds and returns token on any other token
 *   `$.char` -- character scanner production
 *   `$.eof` -- succeeds on eof and returns eof, otherwise fails

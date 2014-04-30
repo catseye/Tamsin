@@ -148,7 +148,6 @@ TODO
 ----
 
 *   `$.alpha`
-*   `$.alnum`
 *   `$.digit`
 *   arbitrary non-printable characters in terms and such
 *   don't consume stdin until asked to scan.

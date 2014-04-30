@@ -170,6 +170,12 @@ class Interpreter(EventProducer):
                 else:
                     token = self.scanner.consume_any()
                     return (True, token)
+            elif name == '$.alnum':
+                if self.scanner.peek()[0].isalnum():
+                    return (True, self.scanner.consume_any())
+                else:
+                    return (False, Term("expected alphanumeric, found '%s'" %
+                                        self.scanner.peek()))
             elif name == '$.print':
                 val = bindings['X']  # .expand(self.context)
                 print val
