@@ -110,32 +110,38 @@ struct scanner * scanner;
 int ok;
 struct term *result;
 
+/*
+main = zeroes.
+zeroes = ("0" & zeroes → E & return zero(E)) | return nil.
+*/
+
 /* gen'd protos */
 
-void tamsin_main(void);
-void tamsin_zeroes(void);
+void program_main(void);
+void program_zeroes(void);
 
 /* gen'd productions */
 
-void tamsin_main(void) {
-    tamsin_zeroes();
+void program_main(void) {
+    program_zeroes();
 }
 
-void tamsin_zeroes(void) {
+void program_zeroes(void) {
     struct term *E;
 
-    if (consume(scanner, "0")) {
-        tamsin_zeroes();
+    tamsin_consume(scanner, "0");
+    if (ok) {
+        program_zeroes();
         E = result;
         if (ok) {
             struct term *temp = new_term("zero");
             add_subterm(temp, E);
             result = temp;
         }
-    } else {
-        ok = 1;
+    if (!ok) {
         struct term *temp = new_term("nil");
         result = temp;
+        ok = 1;
     }
 }
 
@@ -147,19 +153,6 @@ int main(int argc, char **argv) {
     scanner->buffer = "0000";
     scanner->position = 0;
     scanner->reset_position = 0;
-
-/*
-    char c;
-    int done = 0;
-    while (!done) {
-        c = scan(scanner);
-        if (c == '\0') break;
-        fprintf(stdout, "%c", c);
-    }
-    
-    fprintf(stdout, "\n");
-    exit(0);
-*/
 
     ok = 0;
     result = NULL;
