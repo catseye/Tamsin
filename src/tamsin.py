@@ -309,8 +309,8 @@ class TamsinScannerEngine(ScannerEngine):
             return tok
         
         if scanner.startswith(('=', '(', ')', '[', ']', '{', '}',
-                            '|', '&', u'→', ',', '.', '@', '+',
-                            u'•', u'□', u'☆', u'«', u'»')):
+                            '|', '&', u'→', ',', '.', '@', '+', '$',
+                            u'•', u'☆', u'«', u'»')):
             return scanner.chop(1)
 
         for quote in (CLOSE_QUOTE.keys()):
@@ -452,7 +452,9 @@ class Parser(EventProducer):
     def expr2(self):
         lhs = self.expr3()
         if self.consume('using'):
-            if self.consume(u'☆'):
+            # TODO: very provisional
+            if self.consume('$'):
+                self.expect('.')
                 # TODO: 'tamsin' or 'char' is all
                 scanner_name = self.consume_any()
             else:
@@ -500,13 +502,16 @@ class Parser(EventProducer):
         elif self.consume('fail'):
             t = self.term()
             return ('FAIL', t)
-        elif self.consume(u'□'):
-            return ('EOF',)
+        elif self.consume(u'$'):
+            self.expect('.')
+            if self.consume('eof'):
+                return ('EOF',)
+            if self.consume('any'):
+                return ('ANY',)
+            # TODO: fail and print go here too
         elif self.consume('print'):
             t = self.term()
             return ('PRINT', t)
-        elif self.consume('any'):
-            return ('ANY',)
         else:
             name = self.consume_any()
             args = []
@@ -900,7 +905,7 @@ def main(args):
             ast = parser.grammar()
             #print repr(ast)
             scanner = Scanner(sys.stdin.read(), listeners=listeners)
-            scanner.push_engine(TamsinScannerEngine())
+            scanner.push_engine(CharScannerEngine())
             interpreter = Interpreter(
                 ast, scanner, listeners=listeners
             )

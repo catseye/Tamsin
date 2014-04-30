@@ -3,19 +3,19 @@ The Tamsin Language Specification
 
 This document is a **work in progress**.
 
+This document, plus the reference implementation `tamsin.py`, is as close
+to normative as we're going to come for the time being.  But they are still
+far from normative.
+
     -> Tests for functionality "Intepret Tamsin program"
-    
-    -> Functionality "Intepret Tamsin program" is implemented by
-    -> shell command "bin/tamsin run %(test-body-file) < %(test-input-file)"
 
 Fundaments
 ----------
 
 A Tamsin program consists of one or more productions.  A production consists
-of a name and a rule.  Among other things, a rule may be a "non-terminal",
-in which case it consists of the name of a production, or a "terminal",
-in which case it is a literal string in double-quotes (or one of a number
-of other things we'll get to in a moment.)
+of a name and a rule.  Among other things, a rule may be a _non-terminal_,
+which is the name of a production, or a _terminal_, which is a literal string
+in double quotes.
 
 When run, a Tamsin program processes its input.  It starts at the production
 named `main`, and evaluates its rule.  A non-terminal in a rule "calls" the
@@ -81,17 +81,17 @@ the `&` expression fails; otherwise, it continues and processes the
 right-hand side rule.  If the RHS fails, the `&` expression fails; otherwise
 it evaluates to what the RHS evaluated to.
 
-    | main = "sure" & "begorrah".
-    + sure begorrah
-    = begorrah
+    | main = "a" & "p".
+    + ap
+    = p
 
-    | main = "sure" & "begorrah".
-    + sure milwaukee
-    ? expected 'begorrah' found 'milwaukee'
+    | main = "a" & "p".
+    + ak
+    ? expected 'p' found 'k'
 
-    | main = "sure" & "begorrah".
-    + sari begorrah
-    ? expected 'sure' found 'sari'
+    | main = "a" & "p".
+    + ep
+    ? expected 'a' found 'e'
 
 A rule may also consist of two subrules joined by the `|` operator.
 The `&` operator processes the left-hand side rule.  If the LHS succeeds,
@@ -132,7 +132,7 @@ to the opposite.  (Note here also that `&` has a higher precedence than `|`.)
 Evaluation order can be altered by using parentheses, as per usual.
 
     | main = "0" & ("0" | "1") & "1" & return ok.
-    + 0 1 1
+    + 011
     = ok
 
 Note that if the LHS of `|` fails, the RHS is tried at the position of
@@ -141,7 +141,7 @@ the stream that the LHS started on.  This property is called "backtracking".
     | ohone = "0" & "1".
     | ohtwo = "0" & "2".
     | main = ohone | ohtwo.
-    + 0 2
+    + 02
     = 2
 
 Note that `print` and `return` never fail.  Thus, code like the following
@@ -170,13 +170,6 @@ Alternatives can select code to be executed, based on the input.
     = eorf
     = cord
     = ok
-
-If there is more input available than what we wrote the program to consume,
-the program still succeeds.
-
-    | main = "sure" & "begorrah".
-    + sure begorrah tis a fine day
-    = begorrah
 
 And that's the basics.  With these tools, you can write simple
 recursive-descent parsers.  For example, to consume nested parentheses
@@ -231,107 +224,45 @@ To consume a comma-seperated list of one or more bits:
     | main = bit & {"," & bit} & ".".
     | bit = "0" | "1".
     + 0,10,0.
-    ? expected '.' found ','
+    ? expected '.' found '0'
 
-### EOF and any ###
-
-The keyword `□` may be used to match against the end of the input
-(colloquially called "EOF".)
-
-    | main = "sure" & "begorrah" & □.
-    + sure begorrah
-    = EOF
-
-This is how you can make it error out if there is extra input remaining.
-
-    | main = "sure" & "begorrah" & □.
-    + sure begorrah tis a fine day
-    ? expected EOF found 'tis'
-
-The end of the input is a virtual infinite stream of □'s.  You can match
-against them until the cows come home.  The cows never come home.
-
-    | main = "sure" & "begorrah" & □ & □ & □.
-    + sure begorrah
-    = EOF
-
-The symbol `any` matches any token defined by the scanner except □.
-
-    | main = any & any & any.
-    + (@)
-    = )
-
-    | main = any & any & any.
-    + words words words
-    = words
-
-    | main = any & any.
-    + words
-    ? expected any token, found EOF
-
-### Variables ###
+Variables
+---------
 
 When a production is called, the result that it evaluates to may be stored
 in a variable.  Variables are local to the production.
 
-    | main = blerp → B & return B.
-    | blerp = "blerp".
-    + blerp
-    = blerp
+    | main = blerp → B & blerp & "." & return B.
+    | blerp = "a" | "b".
+    + ab.
+    = a
 
 Names of Variables must be Capitalized.
 
     | main = blerp → b & return b.
-    | blerp = "blerp".
+    | blerp = "b".
     ? Expected variable
 
 In fact, the result of not just a production, but any rule, may be sent
 into a variable by `→`.  Note that `→` has a higher precedence than `&`.
 
-    | main = ("0" | "1") → B & return itsa(B).
+    | main = ("0" | "1") → B & return B.
     + 0
-    = itsa(0)
+    = 0
 
 A `→` expression evaluates to the result placed in the variable.
 
-    | main = (("0" | "1") → B) → Output & return itsa(Output).
-    + 1
-    = itsa(1)
-
-This program accepts a pair of bits and outputs them as a list.
-
-    | main = bit → A & bit → B & return pair(A, B).
-    | bit = "0" | "1".
-    + 1 0
-    = pair(1, 0)
-
-    | main = bit → A & bit → B & return pair(A, B).
-    | bit = "0" | "1".
-    + 0 1
-    = pair(0, 1)
-
-This program expects an infinite number of 0's.  It will be disappointed.
-
-    | main = zeroes.
-    | zeroes = "0" & zeroes.
-    + 0 0 0 0 0
-    ? expected '0' found 'EOF'
-
-This program expects a finite number of 0's, and returns a term representing
-how many it found.  It will not be disappointed.
-
-    | main = zeroes.
-    | zeroes = ("0" & zeroes → E & return zero(E)) | return nil.
-    + 0 0 0 0
-    = zero(zero(zero(zero(nil))))
+    | main = ("0" | "1") → B.
+    + 0
+    = 0
 
 This isn't the only way to set a variable.  You can also do so unconditionally
 with `set`.
 
     | main = eee.
-    | eee = set E = whatever && set F = stuff && return pair(E ,F).
+    | eee = set E = whatever && set F = stuff && return E.
     + ignored
-    = pair(whatever, stuff)
+    = whatever
 
 And note that variables are subject to backtracking, too; if a variable is
 set while parsing something that failed, it is no longer set in the `|`
@@ -340,16 +271,155 @@ alternative.
     | main = set E = original &
     |          (set E = changed && "0" && "1" | "0" && "2") &
     |        return E.
-    + 0 1
+    + 01
     = changed
 
     | main = set E = original &
     |          (set E = changed && "0" && "1" | "0" && "2") &
     |        return E.
-    + 0 2
+    + 02
     = original
 
-### Optional rules and Asterated rules ###
+Terms
+-----
+
+We must now digress for a definition of Tamsin's basic data type, the
+_term_.
+
+A term T is defined inductively as follows:
+
+*   An _atom_, written as a character string, is a term;
+*   A _constructor_, written S(T1, T2, ... Tn) where S is a character
+    string and T1 through Tn are terms (called the _subterms_ of T), is a term;
+*   A _variable_, written as a character string where the first character
+    is a capital Latin letter, is a term;
+*   Nothing else is a term.
+
+In fact, an atom is just a constructor with zero subterms.  When written,
+the parentheses are left out.
+
+A term is called _ground_ if it does not contain any variables.
+
+Terms support an operation called _expansion_, which also requires a
+context C (a map from variable names to ground terms.)
+
+*   expand(T, C) when T is an atom, results in that atom;
+*   expand(T, C) when T is a constructor S(T1,...,Tn) results in a new
+    term S(expand(T1, C), ... expand(Tn, C);
+*   expand(T, C) when T is a variable results in C[T] (look up T in C
+    and evaluate to that.  If T is not present in C, the result is
+    not defined.)
+
+The result of expansion will always be a ground term.
+
+Ground terms support an operation called _flattening_ (also sometimes called
+stringification).
+
+*   flatten(T) when T is an atom, results in that atom;
+*   flatten(T) when T is a constructor results in
+        S · "(" · flatten(T1) · "," · ... · "," · flatten(Tn) · ")"
+    where `·` is string concatenation.
+
+The result of flattening is always an atom.
+
+The input to a Tamsin production is, in fact, an atom (although it's hardly
+atomic.)
+
+TODO: mention syntax here, specifically `''`
+
+### Examples using Terms ###
+
+This program accepts a pair of bits and evaluates to a term, a constructor
+`pair`, with the two bits as subterms.
+
+    | main = bit → A & bit → B & return pair(A, B).
+    | bit = "0" | "1".
+    + 10
+    = pair(1, 0)
+
+    | main = bit → A & bit → B & return pair(A, B).
+    | bit = "0" | "1".
+    + 01
+    = pair(0, 1)
+
+This program expects an infinite number of 0's.  It will be disappointed.
+
+    | main = zeroes.
+    | zeroes = "0" & zeroes.
+    + 00000
+    ? expected '0' found 'EOF'
+
+This program expects a finite number of 0's, and returns a term representing
+how many it found.  It will not be disappointed.
+
+    | main = zeroes.
+    | zeroes = ("0" & zeroes → E & return zero(E)) | return nil.
+    + 0000
+    = zero(zero(zero(zero(nil))))
+
+Modules
+-------
+
+This section needs to be written.  Basically, a module is a set of
+productions inside a namespace.  In the future you may be able to write
+and import modules, but for now, there is one built-in module called `$`
+and it is always in scope.
+
+The module `$` contains a number of built-in productions which would not
+be possible or practical to implement in Tamsin.  Among them:
+    
+    * `$.any`, which matches any token
+    * `$.eof`, which matches the end of the input
+    * `$.char`, the character scanner (more on scanner productions below)
+    * `$.tamsin`, the tamsin scanner (more on scanner productions below)
+
+More Sophisticated Parsing
+--------------------------
+
+### $.EOF ###
+
+If there is more input available than what we wrote the program to consume,
+the program still succeeds.
+
+    | main = "a" & "p".
+    + apparently
+    = p
+
+The built-in production `$.eof` may be used to match against the end of the
+input (colloquially called "EOF".)
+
+    | main = "a" & "p" & $.eof.
+    + ap
+    = EOF
+
+This is how you can make it error out if there is extra input remaining.
+
+    | main = "a" & "p" & $.eof.
+    + apt
+    ? expected EOF found 't'
+
+The end of the input is a virtual infinite stream of EOF's.  You can match
+against them until the cows come home.  The cows never come home.
+
+    | main = "a" & "p" & $.eof & $.eof & $.eof.
+    + ap
+    = EOF
+
+### $.any ###
+
+The built-in production `$.any` matches any token defined by the scanner
+except for EOF.  (Remember that for now "token defined by the scanner"
+means "character", but that that can be changed, as you'll see below.)
+
+    | main = $.any & $.any & $.any.
+    + (@)
+    = )
+
+    | main = $.any & $.any.
+    + a
+    ? expected any token, found EOF
+
+### Optional rules ###
 
 The rule `[FOO]` is a short form for `(FOO | return nil)`.
 
@@ -365,8 +435,10 @@ So we can rewrite the "zeroes" example to be simpler:
 
     | main = zeroes.
     | zeroes = ["0" & zeroes → E & return zero(E)].
-    + 0 0 0 0
+    + 0000
     = zero(zero(zero(zero(nil))))
+
+### Iterated rules ###
 
 The rule `{FOO}` is what it is in EBNF, and/or a while loop.  Like `[]`,
 we don't strictly need it, because we could just write it as recursive
@@ -386,7 +458,7 @@ Backtracking applies to `{}` too.
     | zeroesone = {"0"} & "1".
     | zeroestwo = {"0"} & "2".
     | main = zeroesone | zeroestwo.
-    + 0 0 0 0 0 2
+    + 000002
     = 2
 
 So we can rewrite the "zeroes" example to be even... I hesistate to use
@@ -394,13 +466,14 @@ the word "simpler", but we can... write it differently.
 
     | main = zeroes.
     | zeroes = set Z = nil & {"0" && set Z = zero(Z)} & return Z.
-    + 0 0 0 0
+    + 0000
     = zero(zero(zero(zero(nil))))
 
-### fail and dynamic matching ###
+### fail ###
 
-The rule `fail` always fails.  This lets you establish global flags, of
-a sort.  It takes a term, which it uses as the failure message.
+The built-in production `fail` always fails.  This lets you establish
+global flags, of a sort.  It takes a term, which it uses as the failure message.
+(TODO: make this into `$.fail`)
 
     | debug = return ok.
     | main = (debug & return walla | "0").
@@ -416,17 +489,29 @@ a sort.  It takes a term, which it uses as the failure message.
     + hsihdsihdsih
     ? Goodbye, world!
 
-As mentioned, `"foo"` matches a literal token `foo` in the buffer.  But
-what if you want to match something dynamic, something you have in a
+### Dynamic Terminals ###
+
+As mentioned, the terminal `"foo"` matches a literal token `foo` in the buffer.
+But what if you want to match something dynamic, something you have in a
 variable?  You can do that with `«»`:
 
-    | main = set E = foo & «E».
-    + foo
-    = foo
+    | main = set E = f & «E».
+    + f
+    = f
 
-    | main = set E = foo & «E».
-    + bar
-    ? expected 'foo' found 'bar'
+    | main = set E = f & «E».
+    + b
+    ? expected 'f' found 'b'
+
+Terms are flattened for use in `«»`.  So in fact, the `"foo"` syntax is just
+syntactic sugar for `«'foo'»`.
+
+    | main = «'f'».
+    + f
+    = f
+
+More Sophisticated Evaluation
+-----------------------------
 
 ### Arguments to Productions ###
 
@@ -445,13 +530,13 @@ No variables from the caller leak into the called production.
 Note that this makes the «»-form more interesting.
 
     | main = bracketed(a) & bracketed(b) & return ok.
-    | bracketed(X) = «X» & "stuff" & «X».
-    + a stuff a b stuff b
+    | bracketed(X) = «X» & "S" & «X».
+    + aSabSb
     = ok
 
     | main = bracketed(a) & bracketed(b) & return ok.
-    | bracketed(X) = «X» & "stuff" & «X».
-    + a stuff a b stuff a
+    | bracketed(X) = «X» & "S" & «X».
+    + aSabSa
     ? expected 'b' found 'a'
 
 We need to be able to test arguments somehow.  We can do that with
@@ -486,7 +571,8 @@ What does this get us?  Functional programming!  Let's parse a tree, then
 return the rightmost bottommost leaf.
 
     | main = tree → T & rightmost(T).
-    | tree = "tree" & "(" & tree → L & "," & tree → R & ")" & return tree(L, R)
+    | tree = "t" & "r" & "e" & "e" &
+    |        "(" & tree → L & "," & tree → R & ")" & return tree(L, R)
     |      | "0" | "1" | "2".
     | rightmost(tree(L,R)) = rightmost(R).
     | rightmost(X) = return X.
@@ -511,228 +597,13 @@ when you call another production.  And there is.
 The syntax for this is postfix `@`, because you're pointing the production
 "at" some other text...
 
-    | main = set T = tree(a,tree(b,c)) & tree @ T.
-    | tree = "tree" & "(" & tree → L & "," & tree → R & ")" & return fwee(L, R)
+    | main = set T = t(a,t(b,c)) & tree @ T.
+    | tree = "t" & "(" & tree → L & "," & tree → R & ")" & return fwee(L, R)
     |      | "a" | "b" | "c".
     + doesn't matter
     = fwee(a, fwee(b, c))
 
-### Case Study: Parsing and Evaluating S-Expressions ###
-
-We now have enough tools at our disposal to parse and evaluate simple
-S-expressions (from Lisp or Scheme).
-
-We can write such a parser with `{}`, but the result is a bit messy.
-
-    | main = sexp.
-    | sexp = symbol | list.
-    | list = "(" &
-    |        set L = nil &
-    |        {sexp → S & set L = pair(S, L)} &
-    |        ")" &
-    |        return L.
-    | symbol = "cons" | "head" | "tail" | "nil" | "a" | "b" | "c".
-    + (cons (a (cons b nil)))
-    = pair(pair(pair(nil, pair(b, pair(cons, nil))), pair(a, nil)), pair(cons, nil))
-
-So let's write it in the less intuitive, recursive way:
-
-    | main = sexp.
-    | 
-    | sexp = symbol | list.
-    | list = "(" & listtail(nil).
-    | listtail(L) = sexp → S & listtail(pair(S, L))
-    |             | ")" & return L.
-    | symbol = "cons" | "head" | "tail" | "nil" | "a" | "b" | "c".
-    + (a b)
-    = pair(b, pair(a, nil))
-
-Nice.  But it returns a term that's backwards.  So we need to write a
-reverser.  In Erlang, this would be
-
-    reverse([H|T], A) -> reverse(T, [H|A]).
-    reverse([], A) -> A.
-
-In Tamsin, it's:
-
-    | main = sexp → S & reverse(S, nil) → SR & return SR.
-    | 
-    | sexp = symbol | list.
-    | list = "(" & listtail(nil).
-    | listtail(L) = sexp → S & listtail(pair(S, L))
-    |             | ")" & return L.
-    | symbol = "cons" | "head" | "tail" | "nil" | "a" | "b" | "c".
-    | 
-    | reverse(pair(H, T), A) =
-    |   reverse(T, pair(H, A)) → TR &
-    |   return TR.
-    | reverse(nil, A) =
-    |   return A.
-    + (a b)
-    = pair(a, pair(b, nil))
-
-But it's not deep.  It only reverses the top-level list.
-
-    | main = sexp → S & reverse(S, nil) → SR & return SR.
-    | 
-    | sexp = symbol | list.
-    | list = "(" & listtail(nil).
-    | listtail(L) = sexp → S & listtail(pair(S, L))
-    |             | ")" & return L.
-    | symbol = "cons" | "head" | "tail" | "nil" | "a" | "b" | "c".
-    | 
-    | reverse(pair(H, T), A) =
-    |   reverse(T, pair(H, A)) → TR &
-    |   return TR.
-    | reverse(nil, A) =
-    |   return A.
-    + (a (c b) b)
-    = pair(a, pair(pair(b, pair(c, nil)), pair(b, nil)))
-
-So here's a deep reverser.
-
-    | main = sexp → S & reverse(S, nil) → SR & return SR.
-    | 
-    | sexp = symbol | list.
-    | list = "(" & listtail(nil).
-    | listtail(L) = sexp → S & listtail(pair(S, L))
-    |             | ")" & return L.
-    | symbol = "cons" | "head" | "tail" | "nil" | "a" | "b" | "c".
-    | 
-    | reverse(pair(H, T), A) =
-    |   reverse(H, nil) → HR &
-    |   reverse(T, pair(HR, A)) → TR &
-    |   return TR.
-    | reverse(nil, A) =
-    |   return A.
-    | reverse(X, A) =
-    |   return X.
-    + (a (c b) b)
-    = pair(a, pair(pair(c, pair(b, nil)), pair(b, nil)))
-
-Finally, a little sexpr evaluator.
-
-    | main = sexp → S & reverse(S, nil) → SR & eval(SR).
-    | 
-    | sexp = symbol | list.
-    | list = "(" & listtail(nil).
-    | listtail(L) = sexp → S & listtail(pair(S, L))
-    |             | ")" & return L.
-    | symbol = "cons" | "head" | "tail" | "nil" | "a" | "b" | "c".
-    | 
-    | head(pair(A, B)) = return A.
-    | tail(pair(A, B)) = return B.
-    | cons(A, B) = return pair(A, B).
-    | 
-    | eval(pair(head, pair(X, nil))) = eval(X) → R & head(R) → P & return P.
-    | eval(pair(tail, pair(X, nil))) = eval(X) → R & tail(R) → P & return P.
-    | eval(pair(cons, pair(A, pair(B, nil)))) =
-    |    eval(A) → AE & eval(B) → BE & return pair(AE, BE).
-    | eval(X) = return X.
-    | 
-    | reverse(pair(H, T), A) =
-    |   reverse(H, nil) → HR &
-    |   reverse(T, pair(HR, A)) → TR &
-    |   return TR.
-    | reverse(nil, A) =
-    |   return A.
-    | reverse(X, A) =
-    |   return X.
-    + (cons a b)
-    = pair(a, b)
-
-    | main = sexp → S & reverse(S, nil) → SR & eval(SR).
-    | 
-    | sexp = symbol | list.
-    | list = "(" & listtail(nil).
-    | listtail(L) = sexp → S & listtail(pair(S, L))
-    |             | ")" & return L.
-    | symbol = "cons" | "head" | "tail" | "nil" | "a" | "b" | "c".
-    | 
-    | head(pair(A, B)) = return A.
-    | tail(pair(A, B)) = return B.
-    | cons(A, B) = return pair(A, B).
-    | 
-    | eval(pair(head, pair(X, nil))) = eval(X) → R & head(R) → P & return P.
-    | eval(pair(tail, pair(X, nil))) = eval(X) → R & tail(R) → P & return P.
-    | eval(pair(cons, pair(A, pair(B, nil)))) =
-    |    eval(A) → AE & eval(B) → BE & return pair(AE, BE).
-    | eval(X) = return X.
-    | 
-    | reverse(pair(H, T), A) =
-    |   reverse(H, nil) → HR &
-    |   reverse(T, pair(HR, A)) → TR &
-    |   return TR.
-    | reverse(nil, A) =
-    |   return A.
-    | reverse(X, A) =
-    |   return X.
-    + (head (cons b a))
-    = b
-
-    | main = sexp → S & reverse(S, nil) → SR & eval(SR).
-    | 
-    | sexp = symbol | list.
-    | list = "(" & listtail(nil).
-    | listtail(L) = sexp → S & listtail(pair(S, L))
-    |             | ")" & return L.
-    | symbol = "cons" | "head" | "tail" | "nil" | "a" | "b" | "c".
-    | 
-    | head(pair(A, B)) = return A.
-    | tail(pair(A, B)) = return B.
-    | cons(A, B) = return pair(A, B).
-    | 
-    | eval(pair(head, pair(X, nil))) = eval(X) → R & head(R) → P & return P.
-    | eval(pair(tail, pair(X, nil))) = eval(X) → R & tail(R) → P & return P.
-    | eval(pair(cons, pair(A, pair(B, nil)))) =
-    |    eval(A) → AE & eval(B) → BE & return pair(AE, BE).
-    | eval(X) = return X.
-    | 
-    | reverse(pair(H, T), A) =
-    |   reverse(H, nil) → HR &
-    |   reverse(T, pair(HR, A)) → TR &
-    |   return TR.
-    | reverse(nil, A) =
-    |   return A.
-    | reverse(X, A) =
-    |   return X.
-    + (tail (tail (cons b (cons b a))))
-    = a
-
-In this one, we make the evaluator print out some of the steps it takes.
-
-    | main = sexp → S & reverse(S, nil) → SR & eval(SR).
-    | 
-    | sexp = symbol | list.
-    | list = "(" & listtail(nil).
-    | listtail(L) = sexp → S & listtail(pair(S, L))
-    |             | ")" & return L.
-    | symbol = "cons" | "head" | "tail" | "nil" | "a" | "b" | "c".
-    | 
-    | head(pair(A, B)) = return A.
-    | tail(pair(A, B)) = return B.
-    | cons(A, B) = return pair(A, B).
-    | 
-    | eval(pair(head, pair(X, nil))) = eval(X) → R & head(R) → P & return P.
-    | eval(pair(tail, pair(X, nil))) = eval(X) → R & tail(R) → P & return P.
-    | eval(pair(cons, pair(A, pair(B, nil)))) =
-    |    eval(A) → AE & eval(B) → BE &
-    |    print y(AE, BE) & cons(AE, BE) → C & return C.
-    | eval(X) = return X.
-    | 
-    | reverse(pair(H, T), A) =
-    |   reverse(H, nil) → HR &
-    |   reverse(T, pair(HR, A)) → TR &
-    |   return TR.
-    | reverse(nil, A) =
-    |   return A.
-    | reverse(X, A) =
-    |   return X.
-    + (cons (tail (cons b a)) (head (cons b a)))
-    = y(b, a)
-    = y(b, a)
-    = y(a, b)
-    = pair(a, b)
+See Case Study here.
 
 ### Implicit Scanner ###
 
@@ -790,12 +661,12 @@ The default scanner logic implements the scan rules for the Tamsin language.
 You can select a different scanner for a rule with `using`.  Here we select
 the builtin `☆char` scanner, which returns one character at a time.
 
-    | main = cat using ☆char.
+    | main = cat using $.char.
     | cat = "c" & "a" & "t" & return ok.
     + cat
     = ok
 
-    | main = cat using ☆char.
+    | main = cat using $.char.
     | cat = "cat" & return ok.
     + cat
     ? expected 'cat' found 'c'
@@ -804,7 +675,7 @@ You can mix two scanners in one production.  Note that the ☆tamsin scanner
 doesn't consume spaces after a token, and that the ☆char scanner doesn't skip
 spaces.
 
-    | main = "dog" using ☆tamsin & ("c" & "a" & "t") using ☆char & return ok.
+    | main = "dog" using $.tamsin & ("c" & "a" & "t") using $.char & return ok.
     + dog cat
     ? expected 'c' found ' '
 

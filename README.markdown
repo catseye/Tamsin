@@ -30,14 +30,14 @@ input to the program, and `=` is the expected output.
 
 Parse an algebraic expression for correctness.
 
-    | main = (expr0 & □ & return ok) using ☆char.
+    | main = (expr0 & □ & return ok) using $.char.
     | expr0 = expr1 & {"+" & expr1}.
     | expr1 = term & {"*" & term}.
     | term = "x" | "y" | "z" | "(" & expr0 & ")".
     + x+y*(z+x+y)
     = ok
 
-    | main = (expr0 & □ & return ok) using ☆char.
+    | main = (expr0 & □ & return ok) using $.char.
     | expr0 = expr1 & {"+" & expr1}.
     | expr1 = term & {"*" & term}.
     | term = "x" | "y" | "z" | "(" & expr0 & ")".
@@ -46,7 +46,7 @@ Parse an algebraic expression for correctness.
 
 Parse an algebraic expression to a syntax tree.
 
-    | main = expr0 using ☆char.
+    | main = expr0 using $.char.
     | expr0 = expr1 → E1 & {"+" & expr1 → E2 & set E1 = add(E1,E2)} & return E1.
     | expr1 = term → E1 & {"*" & term → E2 & set E1 = mul(E1,E2)} & return E1.
     | term = "x" | "y" | "z" | "(" & expr0 → E & ")" & return E.
@@ -55,7 +55,7 @@ Parse an algebraic expression to a syntax tree.
 
 Make a story more exciting!
 
-    | main = collect using ☆char.
+    | main = collect using $.char.
     | collect = set S = '' & {translate → C & set S = S + C} & return S.
     | translate = "." & return '!' | "?" & return '?!' | any.
     + Chapter 1
@@ -81,7 +81,7 @@ Reverse a list.
 
 Parse and evaluate a Boolean expression.
 
-    | main = expr0 → E using ☆tamsin & eval(E).
+    | main = expr0 → E using $.tamsin & eval(E).
     | expr0 = expr1 → E1 & {"or" & expr1 → E2 & set E1 = or(E1,E2)} & return E1.
     | expr1 = term → E1 & {"and" & term → E2 & set E1 = and(E1,E2)} & return E1.
     | term = "true" | "false" | "(" & expr0 → E & ")" & return E.
@@ -134,3 +134,4 @@ TODO
 *   don't consume stdin until asked to scan.
 *   IR: map program a map from prod name -> [prod AST].
 *   ASCII digraphs for all the unicode cheekiness
+*   non-backtracking versions of `|` and `{}`?  (very advanced)
