@@ -139,7 +139,8 @@ Design Goals
     parsing techniques.
 *   Provide means to solve practical problems.
 *   Keep the language simple (grammar should fit on a page)
-*   Have a simple reference implementation (currently ~900 lines of Python).
+*   Have a relatively simple reference implementation (currently ~900 lines
+    of Python, not counting debugging).
 
 License
 -------
@@ -150,11 +151,11 @@ TODO
 ----
 
 *   tamsin scanner sanity
-*   term expressions
+*   term expressions -- harder than it sounds
 *   arbitrary non-printable characters in terms and such
 *   make `return` optional when token is unambiguously the start of a term
 *   make `set` optional
-*   ASCII digraphs for all the unicode cheekiness
+*   ASCII digraphs for all the unicode cheekiness; mainly -> <-
 *   don't consume stdin until asked to scan.
 *   numeric values... somehow.  number('65') = #65.  decode(ascii, 'A') = #65.
 *   token classes... somehow

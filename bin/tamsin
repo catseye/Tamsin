@@ -5,7 +5,7 @@ import sys
 
 sys.path.insert(0, join(dirname(realpath(sys.argv[0])), '..', 'src'))
 
-from tamsin import main
+from tamsin.main import main
 
 
 if __name__ == '__main__':
