@@ -30,6 +30,10 @@ class Analyzer(EventProducer):
                 self.prodmap.setdefault(prod[1], []).append(prod)
             for prod in ast[2]:
                 prodlist.append(self.analyze(prod))
+            # regen prodmap to pick up local variables
+            self.prodmap = {}
+            for prod in prodlist:
+                self.prodmap.setdefault(prod[1], []).append(prod)
             if 'main' not in self.prodmap:
                 raise ValueError("no 'main' production defined")
             return ('PROGRAM', self.prodmap, prodlist)

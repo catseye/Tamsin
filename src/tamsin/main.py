@@ -46,7 +46,8 @@ def main(args):
         print str(result)
     elif args[0] == 'compile':
         ast = parse_and_check(args[1])
+        #print >>sys.stderr, repr(ast)
         compiler = Compiler(ast, sys.stdout)
-        compiler.compile(ast)
+        compiler.compile()
     else:
         raise ValueError("first argument must be 'parse' or 'run'")

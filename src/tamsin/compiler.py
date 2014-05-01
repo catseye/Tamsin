@@ -51,7 +51,7 @@ int main(int argc, char **argv) {
     ok = 0;
     result = NULL;
 
-    program_main();
+    program_main0();
 
     if (ok) {
         fprintf(stdout, "%s\n", term_flatten(result)->atom);
@@ -66,7 +66,6 @@ int main(int argc, char **argv) {
 class Compiler(object):
     def __init__(self, program, outfile):
         self.program = program
-        self.prodmap = program[1]
         self.outfile = outfile
         self.indent_ = 0
         self.current_prod = None
@@ -80,21 +79,39 @@ class Compiler(object):
     def emit(self, *args):
         self.outfile.write("    " * self.indent_ + ''.join(args) + "\n")
 
-    def compile(self, ast):
+    def compile(self):
+        
+        # this phase is kind of shoehorned in, I admit.
+        def rename_prods(prods):
+            i = 0
+            new_prods = []
+            for prod in prods:
+                new_prods.append((
+                    'PROD', '%s%s' % (prod[1], i), prod[2], prod[3], prod[4]
+                ))
+            return new_prods
+        prodmap = self.program[1]
+        for key in prodmap:
+            prodmap[key] = rename_prods(prodmap[key])
+        self.prodmap = prodmap
+        # we might want to blow away self.program now...
+
         self.emit(PRELUDE)
-        self.compile_r(ast)
+        self.compile_r(self.program)
         self.emit(POSTLUDE)
 
     def compile_r(self, ast):
         if ast[0] == 'PROGRAM':
-            for prod in ast[2]:
-                name = prod[1]
-                formals = prod[2]
-                formals = ', '.join(["struct term *" % f for f in formals])
-                self.emit("void program_%s(%s);" % (name, formals))
+            for key in self.prodmap:
+                for prod in self.prodmap[key]:
+                    name = prod[1]
+                    formals = prod[2]
+                    formals = ', '.join(["struct term *" % f for f in formals])
+                    self.emit("void program_%s(%s);" % (name, formals))
             self.emit("")
-            for prod in ast[2]:
-                self.compile_r(prod)
+            for key in self.prodmap:
+                for prod in self.prodmap[key]:
+                    self.compile_r(prod)
         elif ast[0] == 'PROD':
             name = ast[1]
             formals = ast[2]
@@ -115,6 +132,7 @@ class Compiler(object):
             self.emit("void program_%s(%s) {" % (name, fmls))
             self.indent()
             
+            #self.emit("/* %s, %r */" % (name, locals_))
             for local in locals_:
                 self.emit("struct term *%s;" % local)
             self.emit("")
@@ -186,7 +204,7 @@ class Compiler(object):
                     i += 1
                 
                 args = ', '.join(["temp_arg%s" % p for p in xrange(0, i)])
-                self.emit("%s_%s(%s);" % (prodmod, name, args))
+                self.emit("%s_%s0(%s);" % (prodmod, name, args))
         elif ast[0] == 'SEND':
             self.compile_r(ast[1])
             # TODO: if ok?
