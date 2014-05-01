@@ -743,7 +743,7 @@ works in Erlang (except here, there are no guards or list sugar.)
     | blerf(a) = return zzrk.
     | blerf(b) = return zon.
     | blerf(c) = return zzt.
-    ? No 'blerf' production matched arguments [d]
+    ? No 'blerf' production matched arguments
 
 Thus, we can write productions that recursively call themselves, and
 terminate on the base case.

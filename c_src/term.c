@@ -118,6 +118,8 @@ struct term *term_flatten(struct term *t) {
 
 int term_match(struct term *pattern, struct term *ground)
 {
+    struct term_list *tl1, *tl2;
+
     if (pattern->storing != NULL) {
         pattern->storing = ground;
         return 1;
@@ -128,6 +130,19 @@ int term_match(struct term *pattern, struct term *ground)
     if (pattern->subterms == NULL && ground->subterms == NULL) {
         return 1;
     }
-    /* deal with subterms here */
-    return 0;
+
+    tl1 = pattern->subterms;
+    tl2 = ground->subterms;
+    while (tl1 != NULL && tl2 != NULL) {
+        if (!term_match(tl1->term, tl2->term)) {
+            return 0;
+        }
+        tl1 = tl1->next;
+        tl2 = tl2->next;
+    }
+    if (tl1 != NULL || tl2 != NULL) {
+        /* not the same # of subterms */
+        return 0;
+    }
+    return 1;
 }

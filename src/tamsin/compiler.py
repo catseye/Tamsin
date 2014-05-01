@@ -49,7 +49,7 @@ int main(int argc, char **argv) {
 
     scanner = scanner_new(bufterm->atom);
     ok = 0;
-    result = NULL;
+    result = term_new("nil");
 
     program_main0();
 
@@ -145,6 +145,7 @@ class Compiler(object):
             for f in formals:
                 self.emit_term(f, "pattern%s" % i, pattern=True)
                 self.emit("if (!term_match(pattern%s, i%s)) {" % (i, i))
+                self.indent()
                 
                 # ...
                 next = None
@@ -159,8 +160,14 @@ class Compiler(object):
                 
                 if next:
                     args = ', '.join(["i%s" % i for i in xrange(0, len(formals))])
-                    self.emit("    program_%s(%s);" % (next, args))
-                self.emit("    return;")
+                    self.emit("program_%s(%s);" % (next, args))
+                else:
+                    self.emit('result = term_new'
+                              '("No \'%s\' production matched arguments");' %
+                              self.current_prod_name)
+                    self.emit("ok = 0;")
+                self.emit("return;")
+                self.outdent()
                 self.emit("}")
                 self.emit("")
 
