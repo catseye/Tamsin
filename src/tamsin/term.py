@@ -18,6 +18,10 @@ class Term(object):
         """
         return Term(self.name, [x.expand(context) for x in self.contents])
 
+    def collect_variables(self, variables):
+        for x in self.contents:
+            x.collect_variables(variables)
+
     def __str__(self):
         if not self.contents:
             return self.name
@@ -39,6 +43,9 @@ class Variable(Term):
     def expand(self, context):
         return context.fetch(self.name)
 
+    def collect_variables(self, variables):
+        variables.append(self)
+
 
 class Concat(Term):
     def __init__(self, lhs, rhs):
@@ -51,6 +58,10 @@ class Concat(Term):
         lhs = self.lhs.expand(context)
         rhs = self.rhs.expand(context)
         return Term(str(lhs) + str(rhs))
+
+    def collect_variables(self, variables):
+        lhs.collect_variables(variables)
+        rhs.collect_variables(variables)
 
     def __str__(self):
         return "%s + %s" % (self.lhs, self.rhs)

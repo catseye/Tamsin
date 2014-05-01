@@ -50,6 +50,13 @@ struct term *term_concat(const struct term *lhs, const struct term *rhs) {
     assert(lhs->subterms == NULL);
     assert(rhs->subterms == NULL);
 
+    if (lhs->variable != NULL) {
+        lhs = lhs->variable;
+    }
+    if (rhs->variable != NULL) {
+        rhs = rhs->variable;
+    }
+
     new_size = strlen(lhs->atom) + strlen(rhs->atom);
     new_atom = malloc(new_size + 1);
     strcpy(new_atom, lhs->atom);

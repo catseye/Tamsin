@@ -104,13 +104,36 @@ class Compiler(object):
             self.emit("/*")
             self.emit(repr(ast))
             self.emit("*/")
-            formals = ', '.join(["struct term *%s" % f for f in formals])
-            self.emit("void program_%s(%s) {" % (name, formals))
+
+            fmls = []
+            i = 0
+            for f in formals:
+                fmls.append("struct term *i%s" % i)
+                i += 1
+
+            fmls = ', '.join(fmls)
+            self.emit("void program_%s(%s) {" % (name, fmls))
             self.indent()
             
             for local in locals_:
                 self.emit("struct term *%s;" % local)
             self.emit("")
+
+            # emit argument-variables
+            variables = []
+            for formal in formals:
+                formal.collect_variables(variables)
+            for variable in variables:
+                self.emit('struct term *%s = term_new_variable(NULL);' %
+                          variable.name);
+
+            # emit matching code
+            i = 0
+            for f in formals:
+                self.emit_term(f, "pattern%s" % i)
+                self.emit("term_match(pattern%s, i%s);" % (i, i))
+                self.emit("")
+                i += 1
 
             self.current_prod = ast
             self.compile_r(body)
@@ -261,7 +284,7 @@ class Compiler(object):
                 (name, name, name)
             )
         elif isinstance(term, Variable):
-            self.emit('struct term *%s = %s;' % (name, term.name))
+            self.emit('struct term *%s = term_new_variable(%s);' % (name, term.name))
         else:
             self.emit('struct term *%s = term_new("%s");' % (name, term.name))
             i = 0
