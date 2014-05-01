@@ -1,3 +1,8 @@
+/*
+ * Copyright (c)2014 Chris Pressey, Cat's Eye Technologies.
+ * Distributed under a BSD-style license; see LICENSE for more information.
+ */
+
 #include "tamsin.h"
 
 void tamsin_eof(struct scanner *s) {

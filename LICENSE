@@ -20,7 +20,8 @@ Language Haskell 98" license:
 -----------------------------------------------------------------------------
 
 The source code for the reference interpreter and supporting tools (in the
-`src` subdirectory) is covered under the following BSD-style license:
+`src` and `c_src` subdirectories) is covered under the following BSD-style
+license:
 
 -----------------------------------------------------------------------------
 

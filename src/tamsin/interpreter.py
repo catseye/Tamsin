@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # encoding: UTF-8
 
 # Copyright (c)2014 Chris Pressey, Cat's Eye Technologies.
