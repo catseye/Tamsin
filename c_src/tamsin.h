@@ -3,6 +3,7 @@
  * Distributed under a BSD-style license; see LICENSE for more information.
  */
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -10,7 +11,7 @@
 /* terms */
 
 struct term {
-    const char *atom;
+    char *atom;
     struct term_list *subterms;
 };
 
@@ -21,8 +22,8 @@ struct term_list {
 
 struct term *new_term(const char *);
 void add_subterm(struct term *, struct term *);
-void term_format_r(struct term *t);
-char *term_format(struct term *t);
+struct term *term_concat(const struct term *, const struct term *);
+struct term *term_flatten(struct term *);
 
 /* scanner */
 

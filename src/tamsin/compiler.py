@@ -9,6 +9,7 @@ from tamsin.term import Term, Variable
 PRELUDE = r'''
 /*
  * Generated code!  Edit at your own risk!
+ * Must be linked with -ltamsin to build.
  */
 #include <tamsin.h>
 
@@ -34,10 +35,10 @@ int main(int argc, char **argv) {
     program_main();
 
     if (ok) {
-        fprintf(stdout, "%s\n", term_format(result));
+        fprintf(stdout, "%s\n", term_flatten(result)->atom);
         exit(0);
     } else {
-        fprintf(stderr, "%s\n", term_format(result));
+        fprintf(stderr, "%s\n", term_flatten(result)->atom);
         exit(1);
     }
 }
@@ -113,7 +114,7 @@ class Compiler(object):
                 elif name == 'print':
                     self.emit_term(args[0], "temp")
                     self.emit("result = temp;")
-                    self.emit(r'fprintf(stdout, "%s\n", term_format(result));')
+                    self.emit(r'fprintf(stdout, "%s\n", term_flatten(result)->atom);')
                     self.emit("ok = 1;")
                 elif name == 'eof':
                     self.emit('tamsin_eof(scanner);')

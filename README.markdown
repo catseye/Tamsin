@@ -180,7 +180,6 @@ BSD-style license; see the file [LICENSE](LICENSE).
 TODO
 ----
 
-*   libtamsin contains *horrible* string-handling code.  fix!
 *   meta-circular implementation of scanner -- what we have is pretty close
 *   meta-circular implementation of parser
 *   meta-circular implementation of interpreter!

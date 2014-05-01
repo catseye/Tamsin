@@ -5,6 +5,19 @@
 
 #include "tamsin.h"
 
+/*
+ * this code LEAKS MEMORY all over the place, but that's "ok" because
+ * Tamsin programs "aren't long running".  and it's better than having
+ * buffer overflows.
+ */
+
+/*
+ * Creates a new "atom" term from the given character string.
+ * The new term contains a dynamically allocated copy of the given string,
+ *   so the given string may be freed after calling this.
+ * Subterms may be added afterwards to turn it into a "constructor" term.
+ * Segfaults if there is insufficient memory to allocate the term.
+ */
 struct term *new_term(const char *atom) {
     struct term *t;
     t = malloc(sizeof(struct term));
@@ -20,28 +33,52 @@ void add_subterm(struct term *term, struct term *subterm) {
     term->subterms = tl;        
 }
 
-char fmtbuf[1000];  /* yeesh */
+/*
+ * Given two "atom" terms, return a new "atom" term consisting of the
+ * text of the input terms concatenated together.
+ */
+struct term *term_concat(const struct term *lhs, const struct term *rhs) {
+    struct term *t;
+    int new_size;
+    char *new_atom;
 
-void term_format_r(struct term *t) {
-    struct term_list *tl;
+    assert(lhs->subterms == NULL);
+    assert(rhs->subterms == NULL);
 
-    strcat(fmtbuf, t->atom);
-    if (t->subterms != NULL) {
-        strcat(fmtbuf, "(");
-        
-        for (tl = t->subterms; tl != NULL; tl = tl->next) {
-            term_format_r(tl->term);
-            if (tl->next != NULL) {
-                strcat(fmtbuf, ", ");
-            }
-        }
-        
-        strcat(fmtbuf, ")");
-    }
+    new_size = strlen(lhs->atom) + strlen(rhs->atom);
+    new_atom = malloc(new_size + 1);
+    strcpy(new_atom, lhs->atom);
+    strcat(new_atom, rhs->atom);
+    t = new_term(new_atom);
+    free(new_atom);
+
+    return t;
 }
 
-char *term_format(struct term *t) {
-    strcpy(fmtbuf, "");
+/*
+ * Given a possibly non-"atom" term, return a "atom" term consisting of
+ * contents of the given term flattened into an atom.
+ *
+ * Note: for now, the returned term MAY OR MAY NOT be newly allocated.
+ */
+struct term *term_flatten(struct term *t) {
+    struct term_list *tl;
+
+    if (t->subterms == NULL) {  /* it's an atom */
+        return t;
+    } else {                    /* it's a constructor */
+        struct term *n;
+
+        n = term_concat(new_term(t->atom), new_term("("));
+
+        for (tl = t->subterms; tl != NULL; tl = tl->next) {
+            n = term_concat(n, term_flatten(tl->term));
+            if (tl->next != NULL) {
+                n = term_concat(n, new_term(", "));
+            }
+        }
+        n = term_concat(n, new_term(")"));
+        return n;
+    }
     term_format_r(t);
-    return fmtbuf;
 }
