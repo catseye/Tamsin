@@ -49,12 +49,12 @@ class Context(EventProducer):
 
 
 class Interpreter(EventProducer):
-    def __init__(self, program, scanner, prodmap, listeners=None):
+    def __init__(self, program, scanner, listeners=None):
         self.listeners = listeners
         self.program = program
         self.scanner = scanner
         self.context = Context(listeners=self.listeners)
-        self.prodmap = prodmap
+        self.prodmap = program[1]
 
     def __repr__(self):
         return "Interpreter(%r, %r, %r)" % (
@@ -172,9 +172,9 @@ class Interpreter(EventProducer):
             if bindings:
                 for name in bindings.keys():
                     self.context.store(name, bindings[name])
-            self.event('begin_interpret_rule', ast[3])
-            (succeeded, x) = self.interpret(ast[3])
-            self.event('end_interpret_rule', ast[3])
+            self.event('begin_interpret_rule', ast[4])
+            (succeeded, x) = self.interpret(ast[4])
+            self.event('end_interpret_rule', ast[4])
             self.context.pop_scope(ast[1])
             return (succeeded, x)
         elif ast[0] == 'CALL':
@@ -210,9 +210,9 @@ class Interpreter(EventProducer):
                     # we do not want to start a new scope here, and we
                     # interpret the rule directly, not the prod.
                     if success:
-                        self.event('begin_interpret_rule', prod[3])
-                        (success, result) = self.interpret(prod[3])
-                        self.event('end_interpret_rule', prod[3])
+                        self.event('begin_interpret_rule', prod[4])
+                        (success, result) = self.interpret(prod[4])
+                        self.event('end_interpret_rule', prod[4])
                         self.context.pop_scope(prod[1])
                         return (success, result)
                     else:

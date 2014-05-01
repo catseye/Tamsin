@@ -20,8 +20,8 @@ def parse_and_check(filename):
         parser = Parser(contents)
         ast = parser.grammar()
         analyzer = Analyzer(ast)
-        analyzer.analyze(ast)
-        return analyzer
+        ast = analyzer.analyze(ast)
+        return ast
 
 
 def main(args):
@@ -30,23 +30,23 @@ def main(args):
         listeners.append(DebugEventListener())
         args = args[1:]
     if args[0] == 'parse':
-        a = parse_and_check(args[1])
-        print repr(a.program)
+        ast = parse_and_check(args[1])
+        print repr(ast)
     elif args[0] == 'run':
-        a = parse_and_check(args[1])
+        ast = parse_and_check(args[1])
         scanner = Scanner(sys.stdin.read(), listeners=listeners)
         scanner.push_engine(CharScannerEngine())
         interpreter = Interpreter(
-            a.program, scanner, a.prodmap, listeners=listeners
+            ast, scanner, listeners=listeners
         )
-        (succeeded, result) = interpreter.interpret(a.program)
+        (succeeded, result) = interpreter.interpret(ast)
         if not succeeded:
             sys.stderr.write(str(result) + "\n")
             sys.exit(1)
         print str(result)
     elif args[0] == 'compile':
-        a = parse_and_check(args[1])
-        compiler = Compiler(sys.stdout, a.prodmap, a.localsmap)
-        compiler.compile(a.program)
+        ast = parse_and_check(args[1])
+        compiler = Compiler(ast, sys.stdout)
+        compiler.compile(ast)
     else:
         raise ValueError("first argument must be 'parse' or 'run'")

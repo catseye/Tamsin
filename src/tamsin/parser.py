@@ -79,7 +79,7 @@ class Parser(EventProducer):
         self.expect('=')
         body = self.expr0()
         self.expect('.')
-        return ('PROD', name, formals, body)
+        return ('PROD', name, formals, (), body)
 
     def expr0(self):
         lhs = self.expr1()

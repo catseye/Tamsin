@@ -21,55 +21,48 @@ class Analyzer(EventProducer):
         self.listeners = listeners
         self.program = program
         self.prodmap = {}
-        self.localsmap = {}  # TODO: not great, does not handle multibody prods
-
-    # TODO: inherit from ProgramProcessor
-    def find_productions(self, prodref):
-        mod = prodref[1]
-        name = prodref[2]
-        prods = []
-        if mod == '':
-            for prod in self.program[2]:
-                if prod[1] == name:
-                    prods.append(prod)
-        return prods
 
     def analyze(self, ast):
-        self.event('interpret_ast', ast)
         if ast[0] == 'PROGRAM':
+            # ('PROGRAM', prodmap, prodlist)
+            prodlist = []
             for prod in ast[2]:
                 self.prodmap.setdefault(prod[1], []).append(prod)
-                self.analyze(prod)
-            mains = self.find_productions(('PRODREF', '', 'main'))
-            if not mains:
+            for prod in ast[2]:
+                prodlist.append(self.analyze(prod))
+            if 'main' not in self.prodmap:
                 raise ValueError("no 'main' production defined")
+            return ('PROGRAM', self.prodmap, prodlist)
         elif ast[0] == 'PROD':
-            self.collect_locals(ast, self.localsmap.setdefault(ast[1], set()))
-            self.analyze(ast[3])
+            # ('PROD', name, formals, locals, body)
+            locals_ = set()
+            self.collect_locals(ast, locals_)
+            body = self.analyze(ast[4])
+            return ('PROD', ast[1], ast[2], locals_, body)
         elif ast[0] == 'CALL':
+            # ('CALL', prodref, args, ibuf)
             prodref = ast[1]
+            mod = prodref[1]
             name = prodref[2]
-            if prodref[1] == '':
-               prods = self.find_productions(prodref)
-               if not prods:
-                   raise ValueError("no '%s' production defined" % name)
+            if mod == '' and name not in self.prodmap:
+               raise ValueError("no '%s' production defined" % name)
                # TODO: also check builtins?
+            return ('CALL', prodref, ast[2], ast[3])
         elif ast[0] == 'SEND':
-            self.analyze(ast[1])
+            return ('SEND', self.analyze(ast[1]), ast[2])
         elif ast[0] == 'SET':
-            pass
+            return ast
         elif ast[0] == 'AND':
-            self.analyze(ast[1])
-            self.analyze(ast[2])
+            return ('AND', self.analyze(ast[1]), self.analyze(ast[2]))
         elif ast[0] == 'OR':
-            self.analyze(ast[1])
-            self.analyze(ast[2])
+            return ('OR', self.analyze(ast[1]), self.analyze(ast[2]))
         elif ast[0] == 'NOT':
-            self.analyze(ast[1])
+            return ('NOT', self.analyze(ast[1]))
         elif ast[0] == 'USING':
-            self.analyze(ast[1])
+            # ('USING', lhs, prodref)
+            return ('USING', self.analyze(ast[1]), ast[2])
         elif ast[0] == 'WHILE':
-            self.analyze(ast[1])
+            return ('WHILE', self.analyze(ast[1]))
         else:
             raise NotImplementedError(repr(ast))
 
@@ -77,7 +70,7 @@ class Analyzer(EventProducer):
         """locals_ should be a set."""
 
         if ast[0] == 'PROD':
-            self.collect_locals(ast[3], locals_)
+            self.collect_locals(ast[4], locals_)
         if ast[0] == 'SEND':
             locals_.add(ast[2].name)
         elif ast[0] == 'SET':

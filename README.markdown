@@ -190,7 +190,7 @@ TODO
 
 ### compiler ###
 
-*   handle dynamic terminals
+*   refactor analyzer to find locals for each branch-prod
 *   handle evaluation
 
 ### document ###

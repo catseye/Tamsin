@@ -64,12 +64,12 @@ int main(int argc, char **argv) {
 '''
 
 class Compiler(object):
-    def __init__(self, outfile, prodmap, localsmap):
+    def __init__(self, program, outfile):
+        self.program = program
+        self.prodmap = program[1]
         self.outfile = outfile
         self.indent_ = 0
-        self.prodmap = prodmap
-        self.localsmap = localsmap
-        self.current_prod_name = None
+        self.current_prod = None
 
     def indent(self):
         self.indent_ += 1
@@ -96,7 +96,8 @@ class Compiler(object):
         elif ast[0] == 'PROD':
             name = ast[1]
             formals = ast[2]
-            body = ast[3]
+            locals_ = ast[3]
+            body = ast[4]
 
             self.emit("/*")
             self.emit(repr(ast))
@@ -105,13 +106,13 @@ class Compiler(object):
             self.emit("void program_%s(%s) {" % (name, formals))
             self.indent()
             
-            for local in self.localsmap[name]:
+            for local in locals_:
                 self.emit("struct term *%s;" % local)
             self.emit("")
 
-            self.current_prod_name = name
+            self.current_prod = ast
             self.compile_r(body)
-            self.current_prod_name = None
+            self.current_prod = None
 
             self.outdent()
             self.emit("}")
@@ -227,13 +228,13 @@ class Compiler(object):
             raise NotImplementedError(repr(ast))
 
     def emit_decl_state(self):
-        for local in self.localsmap[self.current_prod_name]:
+        for local in self.current_prod[3]:
             self.emit("struct term *save_%s;" % local)
         self.emit("int position;")
         self.emit("int reset_position;")
 
     def emit_save_state(self):
-        for local in self.localsmap[self.current_prod_name]:
+        for local in self.current_prod[3]:
             self.emit("save_%s = %s;" % (local, local))
         self.emit("position = scanner->position;")
         self.emit("reset_position = scanner->reset_position;")
@@ -241,7 +242,7 @@ class Compiler(object):
     def emit_restore_state(self):
         self.emit("scanner->position = position;")
         self.emit("scanner->reset_position = reset_position;")
-        for local in self.localsmap[self.current_prod_name]:
+        for local in self.current_prod[3]:
             self.emit("%s = save_%s;" % (local, local))
 
     def emit_term(self, term, name):
