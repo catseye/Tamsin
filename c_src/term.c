@@ -13,29 +13,34 @@
 
 struct term *term_new(const char *atom) {
     struct term *t;
+
     t = malloc(sizeof(struct term));
     t->atom = strdup(atom);
-    t->variable = NULL;
+    t->storing = NULL;
     t->subterms = NULL;
 }
 
 struct term *term_new_from_char(char c) {
     char s[2];
+
     s[0] = c;
     s[1] = '\0';
     return term_new(s);
 }
 
-struct term *term_new_variable(struct term *v) {
+struct term *term_new_variable(const char *name, struct term *v) {
     struct term *t;
+
     t = malloc(sizeof(struct term));
-    t->atom = NULL;
-    t->variable = v;
+    t->atom = strdup(name);
+    t->storing = v;
     t->subterms = NULL;
 }
 
 void term_add_subterm(struct term *term, struct term *subterm) {
     struct term_list *tl;
+
+    assert(term->storing == NULL);
     tl = malloc(sizeof(struct term_list));
     tl->term = subterm;
     tl->next = term->subterms;
@@ -50,11 +55,11 @@ struct term *term_concat(const struct term *lhs, const struct term *rhs) {
     assert(lhs->subterms == NULL);
     assert(rhs->subterms == NULL);
 
-    if (lhs->variable != NULL) {
-        lhs = lhs->variable;
+    if (lhs->storing != NULL) {
+        lhs = lhs->storing;
     }
-    if (rhs->variable != NULL) {
-        rhs = rhs->variable;
+    if (rhs->storing != NULL) {
+        rhs = rhs->storing;
     }
 
     new_size = strlen(lhs->atom) + strlen(rhs->atom);
@@ -74,11 +79,11 @@ const struct term COMMA = { ", ", NULL };
 struct term *term_flatten(struct term *t) {
     struct term_list *tl;
 
-    if (t->variable != NULL) {  /* it's an variable; get its value */
-        return term_flatten(t->variable);
+    if (t->storing != NULL) {          /* it's an variable; get its value */
+        return term_flatten(t->storing);
     } else if (t->subterms == NULL) {  /* it's an atom */
         return t;
-    } else {                    /* it's a constructor */
+    } else {                           /* it's a constructor */
         struct term *n;
         n = term_concat(term_new(t->atom), &BRA);
 
@@ -92,4 +97,20 @@ struct term *term_flatten(struct term *t) {
         return n;
     }
     term_format_r(t);
+}
+
+int term_match(struct term *pattern, struct term *ground)
+{
+    if (pattern->storing != NULL) {
+        pattern->storing = ground;
+        return 1;
+    }
+    if (strcmp(pattern->atom, ground->atom)) {
+        return 0;
+    }
+    if (pattern->subterms == NULL && ground->subterms == NULL) {
+        return 1;
+    }
+    /* deal with subterms here */
+    return 0;
 }

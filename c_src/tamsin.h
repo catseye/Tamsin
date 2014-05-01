@@ -11,13 +11,22 @@
 /* -------------------------------------------------------- terms */
 
 /*
- * If variable field is non-NULL, it is assumed to point to a local
- * variable in a C function.  This will be used during expansion and
- * pattern matching.
+ * If `subterms` and `storing` are both NULL, this is an atom.
+ * 
+ * If `subterms` is non-NULL, this is a constructor.
+ *
+ * If `storing` field is non-NULL, this is a variable.
+ * `storing` will point to a pointer to another term, which is the current
+ * binding of this variable.  This other term may be a local variable in a C
+ * function.  This will be used during expansion and pattern matching.
+ *
+ * It is not a legal term if both `storing` and `subterms` are non-NULL.
+ *
+ * In all cases, atom should not be NULL.
  */
 struct term {
     char *atom;
-    struct term *variable;
+    struct term *storing;
     struct term_list *subterms;
 };
 
@@ -37,7 +46,7 @@ struct term *term_new(const char *);
 
 struct term *term_new_from_char(char c);
 
-struct term *term_new_variable(struct term *);
+struct term *term_new_variable(const char *, struct term *);
 
 /*
  * Modifies the given term.
@@ -57,6 +66,8 @@ struct term *term_concat(const struct term *, const struct term *);
  * Note: for now, the returned term MAY OR MAY NOT be newly allocated.
  */
 struct term *term_flatten(struct term *);
+
+int term_match(struct term *, struct term *);
 
 /* -------------------------------------------------------- scanner */
 

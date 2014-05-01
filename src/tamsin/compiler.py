@@ -124,7 +124,7 @@ class Compiler(object):
             for formal in formals:
                 formal.collect_variables(variables)
             for variable in variables:
-                self.emit('struct term *%s = term_new_variable(NULL);' %
+                self.emit('struct term *%s = term_new("nil");' %
                           variable.name);
 
             # emit matching code
@@ -284,7 +284,9 @@ class Compiler(object):
                 (name, name, name)
             )
         elif isinstance(term, Variable):
-            self.emit('struct term *%s = term_new_variable(%s);' % (name, term.name))
+            self.emit('struct term *%s = term_new_variable("%s", %s);' %
+                (name, term.name, term.name)
+            )
         else:
             self.emit('struct term *%s = term_new("%s");' % (name, term.name))
             i = 0

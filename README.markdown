@@ -107,8 +107,7 @@ Parse and evaluate a Boolean expression.
     | term = "true" | "false" | "(" & expr0 → E & ")" & E.
     | eval(and(A, B)) = eval(A) → EA & eval(B) → EB & and(EA, EB).
     | eval(or(A, B)) = eval(A) → EA & eval(B) → EB & or(EA, EB).
-    | eval(true) = 'true'.
-    | eval(false) = 'false'.
+    | eval(X) = X.
     | and(true, true) = 'true'.
     | and(A, B) = 'false'.
     | or(false, false) = 'false'.
@@ -120,7 +119,7 @@ Parse a CSV file and write out the 2nd-last field of each record.  Handles
 commas and double-quotes inside quotes.
 
     | main = line → L & L ← lines(nil, L) &
-    |        {"\n" & line → M & L ← lines(L, M)} & L & extract(L) & ''.
+    |        {"\n" & line → M & L ← lines(L, M)} & extract(L) & ''.
     | line = field → F & {"," & field → G & F ← fields(G, F)} & F.
     | field = strings | bare.
     | strings = string → T & {string → S & T ← T + '"' + S} & T.
