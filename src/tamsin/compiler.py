@@ -68,6 +68,7 @@ class Compiler(object):
         self.program = program
         self.outfile = outfile
         self.indent_ = 0
+        self.current_prod_name = None   # this is without the 0, 1, 2...
         self.current_prod = None
 
     def indent(self):
@@ -89,6 +90,7 @@ class Compiler(object):
                 new_prods.append((
                     'PROD', '%s%s' % (prod[1], i), prod[2], prod[3], prod[4]
                 ))
+                i += 1
             return new_prods
         prodmap = self.program[1]
         for key in prodmap:
@@ -110,8 +112,10 @@ class Compiler(object):
                     self.emit("void program_%s(%s);" % (name, formals))
             self.emit("")
             for key in self.prodmap:
+                self.current_prod_name = key
                 for prod in self.prodmap[key]:
                     self.compile_r(prod)
+                self.current_prod_name = None
         elif ast[0] == 'PROD':
             name = ast[1]
             formals = ast[2]
@@ -131,8 +135,7 @@ class Compiler(object):
             fmls = ', '.join(fmls)
             self.emit("void program_%s(%s) {" % (name, fmls))
             self.indent()
-            
-            #self.emit("/* %s, %r */" % (name, locals_))
+
             for local in locals_:
                 self.emit("struct term *%s;" % local)
             self.emit("")
@@ -142,6 +145,21 @@ class Compiler(object):
             for f in formals:
                 self.emit_term(f, "pattern%s" % i, pattern=True)
                 self.emit("if (!term_match(pattern%s, i%s)) {" % (i, i))
+                
+                # ...
+                next = None
+                get_next = False
+                all_prods = self.prodmap[self.current_prod_name]
+                for p in all_prods:
+                    if get_next:
+                        next = p[1]
+                        break
+                    if p[1] == name:
+                        get_next = True
+                
+                if next:
+                    args = ', '.join(["i%s" % i for i in xrange(0, len(formals))])
+                    self.emit("    program_%s(%s);" % (next, args))
                 self.emit("    return;")
                 self.emit("}")
                 self.emit("")
