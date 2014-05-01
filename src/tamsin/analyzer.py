@@ -44,7 +44,7 @@ class Analyzer(EventProducer):
             if not mains:
                 raise ValueError("no 'main' production defined")
         elif ast[0] == 'PROD':
-            self.collect_locals(ast, self.localsmap.setdefault(ast[1], []))
+            self.collect_locals(ast, self.localsmap.setdefault(ast[1], set()))
             self.analyze(ast[3])
         elif ast[0] == 'CALL':
             prodref = ast[1]
@@ -74,12 +74,14 @@ class Analyzer(EventProducer):
             raise NotImplementedError(repr(ast))
 
     def collect_locals(self, ast, locals_):
+        """locals_ should be a set."""
+
         if ast[0] == 'PROD':
             self.collect_locals(ast[3], locals_)
         if ast[0] == 'SEND':
-            locals_.append(ast[2].name)
+            locals_.add(ast[2].name)
         elif ast[0] == 'SET':
-            locals_.append(ast[1].name)
+            locals_.add(ast[1].name)
         elif ast[0] == 'AND':
             self.collect_locals(ast[1], locals_)
             self.collect_locals(ast[2], locals_)

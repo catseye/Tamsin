@@ -4,7 +4,7 @@
 # spits out some kind of code based on a Tamsin AST.
 # certainly does not support `using` or `@` at the moment.
 
-from tamsin.term import Variable
+from tamsin.term import Term, Variable
 
 PRELUDE = r'''
 /*
@@ -148,6 +148,7 @@ class Compiler(object):
         self.indent_ = 0
         self.prodmap = prodmap
         self.localsmap = localsmap
+        self.current_prod_name = None
 
     def indent(self):
         self.indent_ += 1
@@ -187,7 +188,10 @@ class Compiler(object):
                 self.emit("struct term *%s;" % local)
             self.emit("")
 
+            self.current_prod_name = name
             self.compile_r(body)
+            self.current_prod_name = None
+
             self.outdent()
             self.emit("}")
             self.emit("")
@@ -233,42 +237,61 @@ class Compiler(object):
             self.outdent()
             self.emit("}")
         elif ast[0] == 'OR':
-            # TODO: also save context
             self.emit("{")
             self.indent()
-            self.emit("int position = scanner->position;")
-            self.emit("int reset_position = scanner->reset_position;")
+            self.emit_decl_state()
+            self.emit_save_state()
             self.compile_r(ast[1])
             self.emit("if (!ok) {")
             self.indent()
-            self.emit("scanner->position = position;")
-            self.emit("scanner->reset_position = position;")
+            self.emit_restore_state()
             self.compile_r(ast[2])
             self.outdent()
             self.emit("}")
             self.outdent()
             self.emit("}")
         elif ast[0] == 'WHILE':
-            # TODO: also save context
             self.emit("{")
             self.indent()
-            self.emit("int position;")
-            self.emit("int reset_position;")
-            self.emit("int done = 0;")
+            self.emit_decl_state()
+            self.emit_term(Term('nil'), 'successful_result')
+            self.emit("ok = 1;")
             self.emit("while (ok) {")
             self.indent()
-            self.emit("position = scanner->position;")
-            self.emit("reset_position = scanner->reset_position;")
+            self.emit_save_state()
             self.compile_r(ast[1])
+            self.emit("if (ok) {")
+            self.indent()
+            self.emit("successful_result = result;")
+            self.outdent()
             self.emit("}")
             self.outdent()
-            self.emit("scanner->position = position;")
-            self.emit("scanner->reset_position = position;")
+            self.emit("}") # endwhile
+            self.emit_restore_state()
+            self.emit("result = successful_result;")
             self.emit("ok = 1;")
             self.outdent()
             self.emit("}")
         else:
             raise NotImplementedError(repr(ast))
+
+    def emit_decl_state(self):
+        for local in self.localsmap[self.current_prod_name]:
+            self.emit("struct term *save_%s;" % local)
+        self.emit("int position;")
+        self.emit("int reset_position;")
+
+    def emit_save_state(self):
+        for local in self.localsmap[self.current_prod_name]:
+            self.emit("save_%s = %s;" % (local, local))
+        self.emit("position = scanner->position;")
+        self.emit("reset_position = scanner->reset_position;")
+
+    def emit_restore_state(self):
+        self.emit("scanner->position = position;")
+        self.emit("scanner->reset_position = reset_position;")
+        for local in self.localsmap[self.current_prod_name]:
+            self.emit("%s = save_%s;" % (local, local))
 
     def emit_term(self, term, name):
         if isinstance(term, Variable):
@@ -276,7 +299,8 @@ class Compiler(object):
         else:
             self.emit('struct term *%s = new_term("%s");' % (name, term.name))
             i = 0
-            for subterm in term.contents:
+            # TODO: reversed() is provisional
+            for subterm in reversed(term.contents):
                 subname = name + str(i)
                 i += 1
                 self.emit_term(subterm, subname);

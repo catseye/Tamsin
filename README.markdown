@@ -179,13 +179,22 @@ BSD-style license; see the file [LICENSE](LICENSE).
 TODO
 ----
 
-*   have analyzer and interpreter both inherit from Processor
-*   compiler: backtrack variables too
-*   compiler: fix order of subterms in term creation
-*   compiler: write `-ltamsin` library and link to it
+*   have analyzer and interpreter both inherit from Processor or smth
 *   meta-circular implementation of scanner -- what we have is pretty close
 *   meta-circular implementation of parser
 *   meta-circular implementation of interpreter!
+
+### compiler ###
+
+*   handle term concatenation
+*   literal string escape sequences
+*   render NUL as EOF.  actually, we want 8-bit clean strings eventually
+*   implement eof
+*   implement any
+*   implement fail
+*   implement !
+*   implement alnum
+*   write `-ltamsin` library and link to it
 
 ### document ###
 
