@@ -116,18 +116,33 @@ struct term *term_flatten(struct term *t) {
     term_format_r(t);
 }
 
+void term_fput(struct term *t, FILE *f) {
+    struct term *flat = term_flatten(t);
+    fprintf(f, "%s", flat->atom);
+}
+
 int term_match(struct term *pattern, struct term *ground)
 {
     struct term_list *tl1, *tl2;
 
+    //term_fput(pattern, stdout);
+    //printf(" ?= ");
+    //term_fput(ground, stdout);
+    //printf("...\n");
+
+    assert(ground->storing == NULL);
+
     if (pattern->storing != NULL) {
         pattern->storing = ground;
+        //printf("unified, YES\n");
         return 1;
     }
     if (strcmp(pattern->atom, ground->atom)) {
+        //printf("not same atom ('%s' vs '%s'), NO\n", pattern->atom, ground->atom);
         return 0;
     }
     if (pattern->subterms == NULL && ground->subterms == NULL) {
+        //printf("same atom, YES\n");
         return 1;
     }
 
@@ -135,6 +150,7 @@ int term_match(struct term *pattern, struct term *ground)
     tl2 = ground->subterms;
     while (tl1 != NULL && tl2 != NULL) {
         if (!term_match(tl1->term, tl2->term)) {
+            //printf("no submatch, NO\n");
             return 0;
         }
         tl1 = tl1->next;
@@ -142,7 +158,9 @@ int term_match(struct term *pattern, struct term *ground)
     }
     if (tl1 != NULL || tl2 != NULL) {
         /* not the same # of subterms */
+        //printf("not same # of subterms, NO\n");
         return 0;
     }
+    //printf("subterms match, YES\n");
     return 1;
 }

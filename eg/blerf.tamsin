@@ -1,5 +1,6 @@
 # This example Tamsin program was written by Chris Pressey, and is
 # hereby placed in the public domain.  It comes with NO WARRANTY.
 
-main = blerf(tree(a, b)).
-blerf(tree(X, Y)) = return X.
+main = blerf(tree(tree(tree(a,b),c),d)).
+blerf(tree(L,R)) = blerf(L).
+blerf(Other) = return Other.

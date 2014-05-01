@@ -136,10 +136,8 @@ class Compiler(object):
             self.emit("void program_%s(%s) {" % (name, fmls))
             self.indent()
 
-            for local in locals_:
-                self.emit("struct term *%s;" % local)
-            self.emit("")
-
+            all_pattern_variables = set()
+            
             # emit matching code
             i = 0
             for f in formals:
@@ -179,8 +177,14 @@ class Compiler(object):
                               'term_find_variable(pattern%s, "%s");' %
                         (variable.name, i, variable.name)
                     )
+                    all_pattern_variables.add(variable.name)
 
                 i += 1
+
+            for local in locals_:
+                if local not in all_pattern_variables:
+                    self.emit("struct term *%s;" % local)
+            self.emit("")
 
             self.current_prod = ast
             self.compile_r(body)
@@ -331,9 +335,11 @@ class Compiler(object):
                 (name, name, name)
             )
         elif isinstance(term, Variable):
-            self.emit('struct term *%s = term_new_variable("%s", %s);' %
-                (name, term.name, 'term_new("nil")' if pattern else term.name)
-            )
+            if pattern:
+                self.emit('struct term *%s = term_new_variable("%s", %s);' %
+                    (name, term.name, 'term_new("nil_%s")'))
+            else:
+                self.emit('struct term *%s = %s;' % (name, term.name))
         else:
             self.emit('struct term *%s = term_new("%s");' % (name, term.name))
             i = 0
