@@ -709,9 +709,9 @@ A production may be called with arguments.
 
 No variables from the caller leak into the called production.
 
-    | main = set F = whatever & donkey(world).
-    | donkey(E) = return hello(F).
-    ? KeyError
+    | main = set FizzBuzzWhatever = whatever & donkey(world).
+    | donkey(E) = return hello(FizzBuzzWhatever).
+    ? FizzBuzzWhatever
 
 Note that this makes the «»-form more interesting.
 

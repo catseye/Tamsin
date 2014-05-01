@@ -47,6 +47,23 @@ void term_add_subterm(struct term *term, struct term *subterm) {
     term->subterms = tl;        
 }
 
+struct term *term_find_variable(const struct term *t, const char *name) {
+    struct term_list * tl;
+
+    if (t->storing != NULL && !strcmp(name, t->atom)) {
+        return t->storing;
+    }
+    
+    for (tl = t->subterms; tl != NULL; tl = tl->next) {
+        struct term *f = term_find_variable(tl->term, name);
+        if (f != NULL) {
+            return f;
+        }
+    }
+
+    return NULL;
+}
+
 struct term *term_concat(const struct term *lhs, const struct term *rhs) {
     struct term *t;
     int new_size;

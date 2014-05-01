@@ -54,6 +54,12 @@ struct term *term_new_variable(const char *, struct term *);
 void add_subterm(struct term *, struct term *);
 
 /*
+ * Given the name of a variable, return the variable term of the
+ * same name that is leftmost, uppermost in the given term.
+ */
+struct term *term_find_variable(const struct term *, const char *);
+
+/*
  * Given two "atom" terms, return a new "atom" term consisting of the
  * text of the input terms concatenated together.
  */

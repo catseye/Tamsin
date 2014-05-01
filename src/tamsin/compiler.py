@@ -119,20 +119,24 @@ class Compiler(object):
                 self.emit("struct term *%s;" % local)
             self.emit("")
 
-            # emit argument-variables
-            variables = []
-            for formal in formals:
-                formal.collect_variables(variables)
-            for variable in variables:
-                self.emit('struct term *%s = term_new("nil");' %
-                          variable.name);
-
             # emit matching code
             i = 0
             for f in formals:
-                self.emit_term(f, "pattern%s" % i)
-                self.emit("term_match(pattern%s, i%s);" % (i, i))
+                self.emit_term(f, "pattern%s" % i, pattern=True)
+                self.emit("if (!term_match(pattern%s, i%s)) {" % (i, i))
+                self.emit("    return;")
+                self.emit("}")
                 self.emit("")
+
+                # emit argument-variables
+                variables = []
+                f.collect_variables(variables)
+                for variable in variables:
+                    self.emit('struct term *%s = '
+                              'term_find_variable(pattern%s, "%s");' %
+                        (variable.name, i, variable.name)
+                    )
+
                 i += 1
 
             self.current_prod = ast
@@ -276,16 +280,16 @@ class Compiler(object):
         for local in self.current_prod[3]:
             self.emit("%s = save_%s;" % (local, local))
 
-    def emit_term(self, term, name):
+    def emit_term(self, term, name, pattern=False):
         if isinstance(term, Concat):
-            self.emit_term(term.lhs, name + '_lhs')
-            self.emit_term(term.rhs, name + '_rhs')
+            self.emit_term(term.lhs, name + '_lhs', pattern=pattern)
+            self.emit_term(term.rhs, name + '_rhs', pattern=pattern)
             self.emit('struct term *%s = term_concat(%s_lhs, %s_rhs);' %
                 (name, name, name)
             )
         elif isinstance(term, Variable):
             self.emit('struct term *%s = term_new_variable("%s", %s);' %
-                (name, term.name, term.name)
+                (name, term.name, 'term_new("nil")' if pattern else term.name)
             )
         else:
             self.emit('struct term *%s = term_new("%s");' % (name, term.name))
@@ -294,5 +298,5 @@ class Compiler(object):
             for subterm in reversed(term.contents):
                 subname = name + str(i)
                 i += 1
-                self.emit_term(subterm, subname);
+                self.emit_term(subterm, subname, pattern=pattern);
                 self.emit("term_add_subterm(%s, %s);" % (name, subname))
