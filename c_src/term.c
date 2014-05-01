@@ -55,6 +55,10 @@ struct term *term_concat(const struct term *lhs, const struct term *rhs) {
     return t;
 }
 
+const struct term BRA = { "(", NULL };
+const struct term KET = { ")", NULL };
+const struct term COMMA = { ", ", NULL };
+
 /*
  * Given a possibly non-"atom" term, return a "atom" term consisting of
  * contents of the given term flattened into an atom.
@@ -68,16 +72,15 @@ struct term *term_flatten(struct term *t) {
         return t;
     } else {                    /* it's a constructor */
         struct term *n;
-
-        n = term_concat(new_term(t->atom), new_term("("));
+        n = term_concat(new_term(t->atom), &BRA);
 
         for (tl = t->subterms; tl != NULL; tl = tl->next) {
             n = term_concat(n, term_flatten(tl->term));
             if (tl->next != NULL) {
-                n = term_concat(n, new_term(", "));
+                n = term_concat(n, &COMMA);
             }
         }
-        n = term_concat(n, new_term(")"));
+        n = term_concat(n, &KET);
         return n;
     }
     term_format_r(t);

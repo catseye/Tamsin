@@ -88,3 +88,5 @@ class Analyzer(EventProducer):
         elif ast[0] == 'OR':
             self.collect_locals(ast[1], locals_)
             self.collect_locals(ast[2], locals_)
+        elif ast[0] == 'WHILE':
+            self.collect_locals(ast[1], locals_)
