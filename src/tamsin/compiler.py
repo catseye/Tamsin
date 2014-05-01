@@ -105,14 +105,29 @@ void tamsin_eof(struct scanner *s) {
         result = new_term("EOF");
         ok = 1;
     } else {
-        char s[100];
-        sprintf(s, "expected EOF found '%c'", c);
-        result = new_term(s);
+        char t[100];
+        sprintf(t, "expected EOF found '%c'", c);
+        result = new_term(t);
         ok = 0;
     }
 }
 
-void consume(struct scanner *s, char *token) {
+void tamsin_any(struct scanner *s) {
+    char c = scan(s);
+    if (c == '\0') {
+        unscan(s);
+        result = new_term("expected any token, found EOF");
+        ok = 0;
+    } else {
+        char t[2];
+        commit(s);
+        sprintf(t, "%c", c);
+        result = new_term(t);
+        ok = 1;
+    }
+}
+
+void tamsin_expect(struct scanner *s, char *token) {
     char c = scan(s);
     if (c == token[0]) {
         commit(s);
@@ -218,7 +233,7 @@ class Compiler(object):
             if prodmod == '$':
                 if name == 'expect':
                     term = str(args[0])
-                    self.emit('consume(scanner, "%s");' % term)
+                    self.emit('tamsin_expect(scanner, "%s");' % term)
                 elif name == 'return':
                     self.emit_term(args[0], "temp")
                     self.emit("result = temp;")
@@ -230,6 +245,12 @@ class Compiler(object):
                     self.emit("ok = 1;")
                 elif name == 'eof':
                     self.emit('tamsin_eof(scanner);')
+                elif name == 'any':
+                    self.emit('tamsin_any(scanner);')
+                elif name == 'fail':
+                    self.emit_term(args[0], "temp")
+                    self.emit("result = temp;")
+                    self.emit('ok = 0;')
                 else:
                     raise NotImplementedError(name)
             else:

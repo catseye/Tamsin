@@ -162,11 +162,11 @@ class Interpreter(EventProducer):
                     return (False, Term("expected alphanumeric, found '%s'" %
                                         self.scanner.peek()))
             elif name == '$.print':
-                val = bindings['X']  # .expand(self.context)
+                val = bindings['X']
                 print val
                 return (True, val)
             elif name == '$.fail':
-                return (False, bindings['X'])  # .expand(self.context))
+                return (False, bindings['X'])
             elif name.startswith('$.'):
                 raise ValueError("No '%s' production defined" % name)
             self.context.push_scope(name)
