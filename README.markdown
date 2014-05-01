@@ -143,11 +143,12 @@ Parse and evaluate a little S-expression-based language.
 For more information
 --------------------
 
-If the above has piqued your curiosity, you may want to read the specification,
-which contains many more small examples written to demonstrate (and test) the
-syntax and behavior of Tamsin:
+If the above has piqued your curiosity, you may want to read the specification
+documents, which contain many more small examples written to demonstrate
+(and test) the syntax and behavior of Tamsin:
 
-*   [The Tamsin Language Specification](doc/Tamsin.markdown)
+*   [The Tamsin Core Language Specification](doc/Tamsin.markdown)
+*   [Advanced Features of the Tamsin Language](doc/Advanced_Features.markdown)
 
 Quick Start
 -----------

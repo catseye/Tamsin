@@ -1,3 +1,5 @@
+# This example Tamsin program was written by Chris Pressey, and is
+# hereby placed in the public domain.  It comes with NO WARRANTY.
+
 main = bit → A & bit → B & return pair(A,B).
 bit = "0" | "1".
-

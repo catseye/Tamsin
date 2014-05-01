@@ -58,9 +58,10 @@ The source code for the reference interpreter and supporting tools (in the
 
 -----------------------------------------------------------------------------
 
-All other example sources in the `eg` directory were written by Chris Pressey,
-and are hereby placed in the public domain, as described in the following
-unlicense:
+Every example source in the `eg` directory specifies what its own licensing
+terms are.  Many of them are in the public domain, in which case the following
+UNLICENSE applies to them.  Others may be under other licenses; see the
+specific file in question for more information.
 
 -----------------------------------------------------------------------------
 
