@@ -58,7 +58,7 @@ void term_format_r(struct term *t) {
         for (tl = t->subterms; tl != NULL; tl = tl->next) {
             term_format_r(tl->term);
             if (tl->next != NULL) {
-                strcat(fmtbuf, ",");
+                strcat(fmtbuf, ", ");
             }
         }
         
@@ -218,10 +218,13 @@ class Compiler(object):
                 self.emit("%s_%s(%s);" % (prodmod, name, args))
         elif ast[0] == 'SEND':
             self.compile_r(ast[1])
+            # TODO: if ok?
             self.emit("%s = result;" % ast[2].name)
         elif ast[0] == 'SET':
-            compile_r(ast[2])
+            self.emit_term(ast[2], "temp")
+            self.emit("result = temp;")
             self.emit("%s = result;" % ast[1].name)
+            self.emit("ok = 1;")
         elif ast[0] == 'AND':
             self.compile_r(ast[1])
             self.emit("if (ok) {")
@@ -230,10 +233,38 @@ class Compiler(object):
             self.outdent()
             self.emit("}")
         elif ast[0] == 'OR':
+            # TODO: also save context
+            self.emit("{")
+            self.indent()
+            self.emit("int position = scanner->position;")
+            self.emit("int reset_position = scanner->reset_position;")
             self.compile_r(ast[1])
             self.emit("if (!ok) {")
             self.indent()
+            self.emit("scanner->position = position;")
+            self.emit("scanner->reset_position = position;")
             self.compile_r(ast[2])
+            self.outdent()
+            self.emit("}")
+            self.outdent()
+            self.emit("}")
+        elif ast[0] == 'WHILE':
+            # TODO: also save context
+            self.emit("{")
+            self.indent()
+            self.emit("int position;")
+            self.emit("int reset_position;")
+            self.emit("int done = 0;")
+            self.emit("while (ok) {")
+            self.indent()
+            self.emit("position = scanner->position;")
+            self.emit("reset_position = scanner->reset_position;")
+            self.compile_r(ast[1])
+            self.emit("}")
+            self.outdent()
+            self.emit("scanner->position = position;")
+            self.emit("scanner->reset_position = position;")
+            self.emit("ok = 1;")
             self.outdent()
             self.emit("}")
         else:
@@ -262,59 +293,3 @@ class Compiler(object):
                 i += 1
                 self.emit_term(subterm, subname);
                 self.emit("add_subterm(%s, %s);" % (name, subname))
-
-# zeroes = ("0" & zeroes → E & return zero(E)) | return nil.
-
-# ('PROD', u'zeroes', [],
-#     ('OR',
-#         ('AND',
-#             ('AND',
-#                 ('CALL', ('PRODREF', '$', 'expect'), [0], None),
-#                 ('SEND', ('CALL', ('PRODREF', '', u'zeroes'), [], None), E)
-#             ),
-#             ('CALL', ('PRODREF', '$', 'return'), [zero(E)], None)
-#         ),
-#         ('CALL', ('PRODREF', '$', 'return'), [nil], None)
-#     )
-# )
-
-# void program_zeroes() {
-#     struct term *E;
-#     
-#     consume(scanner, "0");
-#     if (ok) {
-#         program_zeroes();
-#         E = result;
-#     }
-#     if (ok) {
-#         struct term *temp = new_term("zero(E)");
-#         result = temp;
-#         ok = 1;
-#     }
-#     if (!ok) {
-#         struct term *temp = new_term("nil");
-#         result = temp;
-#         ok = 1;
-#     }
-# }
-
-# void program_zeroes(void) {
-#     struct term *E;
-# 
-#     consume(scanner, "0")
-#     if (ok) {
-#         program_zeroes();
-#         E = result;
-#     }
-#     if (ok) {
-#         struct term *temp = new_term("zero");
-#         add_subterm(temp, E);
-#         result = temp;
-#         ok = 1;
-#     }
-#     if (!ok) {
-#         struct term *temp = new_term("nil");
-#         result = temp;
-#         ok = 1;
-#     }
-# }

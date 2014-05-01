@@ -180,8 +180,8 @@ TODO
 ----
 
 *   have analyzer and interpreter both inherit from Processor
-*   compiler: implement backtracking on `|`
-*   compiler: implement `{}`
+*   compiler: backtrack variables too
+*   compiler: fix order of subterms in term creation
 *   compiler: write `-ltamsin` library and link to it
 *   meta-circular implementation of scanner -- what we have is pretty close
 *   meta-circular implementation of parser
