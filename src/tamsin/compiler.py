@@ -41,9 +41,9 @@ int main(int argc, char **argv) {
         int num_read = fread(buffer, 1, 8192, input);
         buffer[num_read] = '\0';
         if (bufterm == NULL) {
-            bufterm = new_term(buffer);
+            bufterm = term_new(buffer);
         } else {
-            bufterm = term_concat(bufterm, new_term(buffer));
+            bufterm = term_concat(bufterm, term_new(buffer));
         }
     }
 
@@ -124,8 +124,8 @@ class Compiler(object):
     
             if prodmod == '$':
                 if name == 'expect':
-                    term = str(args[0])
-                    self.emit('tamsin_expect(scanner, "%s");' % term)
+                    self.emit_term(args[0], "temp")
+                    self.emit('tamsin_expect(scanner, term_flatten(temp)->atom);')
                 elif name == 'return':
                     self.emit_term(args[0], "temp")
                     self.emit("result = temp;")
@@ -213,12 +213,12 @@ class Compiler(object):
             self.emit("if (ok) {")
             self.indent()
             self.emit("ok = 0;")
-            self.emit(r'result = new_term("expected anything except");')
+            self.emit(r'result = term_new("expected anything except");')
             self.outdent()
             self.emit("} else {")
             self.indent()
             self.emit("ok = 1;")
-            self.emit(r'result = new_term("nil");')
+            self.emit(r'result = term_new("nil");')
             self.outdent()
             self.emit("}")
             self.outdent()
@@ -254,11 +254,11 @@ class Compiler(object):
         elif isinstance(term, Variable):
             self.emit('struct term *%s = %s;' % (name, term.name))
         else:
-            self.emit('struct term *%s = new_term("%s");' % (name, term.name))
+            self.emit('struct term *%s = term_new("%s");' % (name, term.name))
             i = 0
             # TODO: reversed() is provisional
             for subterm in reversed(term.contents):
                 subname = name + str(i)
                 i += 1
                 self.emit_term(subterm, subname);
-                self.emit("add_subterm(%s, %s);" % (name, subname))
+                self.emit("term_add_subterm(%s, %s);" % (name, subname))

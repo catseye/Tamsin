@@ -649,16 +649,15 @@ syntactic sugar for `«'foo'»`.
 
 Oh, and since we were speaking of sentinels earlier...
 
-    | main = {sentineled → A & print A & {" " | "\n"}} & return ok.
+    | main = {sentineled → A & print A & {" "}} & return ok.
     | sentineled =
     |    "(" &
     |    any → S &
     |    T ← '' & {!«S» & any → A & T ← T + A} & «S» &
     |    ")" &
     |    T.
-    + (!do let's ))) put whatever &c. in this string!)
-    + (&and!this!one&)
-    = do let's ))) put whatever &c. in this string
+    + (!do let's ))) put &c. in this string!)   (&and!this!one&)
+    = do let's ))) put &c. in this string
     = and!this!one
     = ok
 

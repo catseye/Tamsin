@@ -11,28 +11,30 @@
  * buffer overflows.
  */
 
-/*
- * Creates a new "atom" term from the given character string.
- * The new term contains a dynamically allocated copy of the given string,
- *   so the given string may be freed after calling this.
- * Subterms may be added afterwards to turn it into a "constructor" term.
- * Segfaults if there is insufficient memory to allocate the term.
- */
-struct term *new_term(const char *atom) {
+struct term *term_new(const char *atom) {
     struct term *t;
     t = malloc(sizeof(struct term));
     t->atom = strdup(atom);
+    t->variable = NULL;
     t->subterms = NULL;
 }
 
-struct term *new_term_from_char(char c) {
+struct term *term_new_from_char(char c) {
     char s[2];
     s[0] = c;
     s[1] = '\0';
-    return new_term(s);
+    return term_new(s);
 }
 
-void add_subterm(struct term *term, struct term *subterm) {
+struct term *term_new_variable(struct term *v) {
+    struct term *t;
+    t = malloc(sizeof(struct term));
+    t->atom = NULL;
+    t->variable = v;
+    t->subterms = NULL;
+}
+
+void term_add_subterm(struct term *term, struct term *subterm) {
     struct term_list *tl;
     tl = malloc(sizeof(struct term_list));
     tl->term = subterm;
@@ -40,10 +42,6 @@ void add_subterm(struct term *term, struct term *subterm) {
     term->subterms = tl;        
 }
 
-/*
- * Given two "atom" terms, return a new "atom" term consisting of the
- * text of the input terms concatenated together.
- */
 struct term *term_concat(const struct term *lhs, const struct term *rhs) {
     struct term *t;
     int new_size;
@@ -56,7 +54,7 @@ struct term *term_concat(const struct term *lhs, const struct term *rhs) {
     new_atom = malloc(new_size + 1);
     strcpy(new_atom, lhs->atom);
     strcat(new_atom, rhs->atom);
-    t = new_term(new_atom);
+    t = term_new(new_atom);
     free(new_atom);
 
     return t;
@@ -66,20 +64,16 @@ const struct term BRA = { "(", NULL };
 const struct term KET = { ")", NULL };
 const struct term COMMA = { ", ", NULL };
 
-/*
- * Given a possibly non-"atom" term, return a "atom" term consisting of
- * contents of the given term flattened into an atom.
- *
- * Note: for now, the returned term MAY OR MAY NOT be newly allocated.
- */
 struct term *term_flatten(struct term *t) {
     struct term_list *tl;
 
-    if (t->subterms == NULL) {  /* it's an atom */
+    if (t->variable != NULL) {  /* it's an variable; get its value */
+        return term_flatten(t->variable);
+    } else if (t->subterms == NULL) {  /* it's an atom */
         return t;
     } else {                    /* it's a constructor */
         struct term *n;
-        n = term_concat(new_term(t->atom), &BRA);
+        n = term_concat(term_new(t->atom), &BRA);
 
         for (tl = t->subterms; tl != NULL; tl = tl->next) {
             n = term_concat(n, term_flatten(tl->term));

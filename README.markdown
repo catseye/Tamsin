@@ -190,10 +190,8 @@ TODO
 
 ### compiler ###
 
-*   handle term concatenation
-*   render NUL as EOF.  actually, we want 8-bit clean strings eventually
-*   implement !
-*   implement alnum
+*   handle dynamic terminals
+*   handle evaluation
 
 ### document ###
 
