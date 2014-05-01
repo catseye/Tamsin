@@ -89,7 +89,9 @@ class Compiler(object):
         if ast[0] == 'PROGRAM':
             for prod in ast[2]:
                 name = prod[1]
-                self.emit("void program_%s(void);" % name)
+                formals = prod[2]
+                formals = ', '.join(["struct term *" % f for f in formals])
+                self.emit("void program_%s(%s);" % (name, formals))
             self.emit("")
             for prod in ast[2]:
                 self.compile_r(prod)
@@ -150,7 +152,13 @@ class Compiler(object):
                     raise NotImplementedError(name)
             else:
                 prodmod = 'program'
-                args = ', '.join(["%s" % a for a in args])
+                
+                i = 0
+                for a in args:
+                    self.emit_term(a, "temp_arg%s" % i)
+                    i += 1
+                
+                args = ', '.join(["temp_arg%s" % p for p in xrange(0, i)])
                 self.emit("%s_%s(%s);" % (prodmod, name, args))
         elif ast[0] == 'SEND':
             self.compile_r(ast[1])
