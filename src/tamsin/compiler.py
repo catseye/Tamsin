@@ -4,7 +4,7 @@
 # spits out some kind of code based on a Tamsin AST.
 # certainly does not support `using` or `@` at the moment.
 
-from tamsin.term import Term, Variable
+from tamsin.term import Term, Variable, Concat
 
 PRELUDE = r'''
 /*
@@ -204,7 +204,13 @@ class Compiler(object):
             self.emit("%s = save_%s;" % (local, local))
 
     def emit_term(self, term, name):
-        if isinstance(term, Variable):
+        if isinstance(term, Concat):
+            self.emit_term(term.lhs, name + '_lhs')
+            self.emit_term(term.rhs, name + '_rhs')
+            self.emit('struct term *%s = term_concat(%s_lhs, %s_rhs);' %
+                (name, name, name)
+            )
+        elif isinstance(term, Variable):
             self.emit('struct term *%s = %s;' % (name, term.name))
         else:
             self.emit('struct term *%s = new_term("%s");' % (name, term.name))
