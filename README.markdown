@@ -180,23 +180,21 @@ BSD-style license; see the file [LICENSE](LICENSE).
 TODO
 ----
 
-*   the compiler generates *horrible* string-handling code.  fix!
+*   libtamsin contains *horrible* string-handling code.  fix!
 *   meta-circular implementation of scanner -- what we have is pretty close
 *   meta-circular implementation of parser
 *   meta-circular implementation of interpreter!
-*   system library
+*   system library in its own Python module
 *   `bin/tamsin runast astfile.txt` -- for testing the meta-circular parser
+*   `bin/tamsin runscan scanfile.txt` -- for testing the meta-circular scanner
+*   `bin/tamsin scan file.tamsin` -- to generate a scanfile
 
 ### compiler ###
 
 *   handle term concatenation
-*   literal string escape sequences
 *   render NUL as EOF.  actually, we want 8-bit clean strings eventually
-*   implement any
-*   implement fail
 *   implement !
 *   implement alnum
-*   write `-ltamsin` library and link to it
 
 ### document ###
 

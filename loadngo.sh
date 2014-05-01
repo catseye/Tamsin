@@ -1,6 +1,8 @@
 #!/bin/sh
 
-INPUT=`cat`
 bin/tamsin compile $1 > foo.c && \
-   gcc foo.c -o foo && \
-   ./foo "$INPUT"
+   gcc -Ic_src -Lc_src foo.c -o foo -ltamsin && \
+   ./foo `cat`
+R=$?
+rm -f foo.c foo
+exit $R
