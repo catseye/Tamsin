@@ -1296,6 +1296,7 @@ First, in EBNF:
     Expr4      ::= "(" Expr0 ")"
                  | "[" Expr0 "]"
                  | "{" Expr0 "}"
+                 | "!" Expr0
                  | "set" Variable "=" Term
                  | "return" Term
                  | "fail" Term
@@ -1326,6 +1327,7 @@ Next, in Tamsin.  Approximate.
     expr4      = "(" & expr0 & ")"
                | "[" & expr0 & "]"
                | "{" & expr0 & "}"
+               | "!" & expr0
                | "set" & variable & "=" & term
                | "return" & term
                | "fail" & term"

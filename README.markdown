@@ -179,17 +179,18 @@ BSD-style license; see the file [LICENSE](LICENSE).
 TODO
 ----
 
+*   the compiler generates *horrible* string-handling code.  fix!
 *   meta-circular implementation of scanner -- what we have is pretty close
 *   meta-circular implementation of parser
 *   meta-circular implementation of interpreter!
 *   system library
+*   `bin/tamsin runast astfile.txt` -- for testing the meta-circular parser
 
 ### compiler ###
 
 *   handle term concatenation
 *   literal string escape sequences
 *   render NUL as EOF.  actually, we want 8-bit clean strings eventually
-*   implement eof
 *   implement any
 *   implement fail
 *   implement !
@@ -202,9 +203,26 @@ TODO
 *   implied `set` -- maybe get rid of `set` entirely
 *   implied `return` of variables and single-quoted constructors
 *   pragmas and aliases
+*   why we have both → and ← (and how we could write "studly" code with just ←)
 
 ### lower-priority/experimental ###
 
+*   these idioms are so common there ought to be a form for them:
+    *   `set A = '' & {rule → B & A ← A + B} & A`
+    *   `set A = nil & {rule → B & A ← cons(A, B)} & A`
+    indeed, this is a fold!  something like...
+    *   `fold rule '' +`
+    *   `fold rule nil cons`
+    i.e.
+    *   `"fold" & expr0 & term & ("+" | term)`
+    that certainly implies that `+` is a constructor though.  hmmm...
+    well, we could start with the term version, like:
+    
+        expr0 = expr1 → E & fold ("+" & expr1) E add.
+        expr1 = term → E & fold ("*" & term) E mul.
+        term = "x" | "y" | "z" | "(" & expr0 → E & ")" & E.
+
+*   `;` = `&`?
 *   pretty-print AST for error messages
 *   have analyzer, interpreter, compiler all inherit from ASTWalker or smth?
 *   `$.alpha`

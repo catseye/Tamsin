@@ -98,6 +98,20 @@ void commit(struct scanner *s) {
     s->reset_position = s->position;
 }
 
+void tamsin_eof(struct scanner *s) {
+    char c = scan(s);
+    unscan(s);
+    if (c == '\0') {
+        result = new_term("EOF");
+        ok = 1;
+    } else {
+        char s[100];
+        sprintf(s, "expected EOF found '%c'", c);
+        result = new_term(s);
+        ok = 0;
+    }
+}
+
 void consume(struct scanner *s, char *token) {
     char c = scan(s);
     if (c == token[0]) {
@@ -214,6 +228,8 @@ class Compiler(object):
                     self.emit("result = temp;")
                     self.emit(r'fprintf(stdout, "%s\n", term_format(result));')
                     self.emit("ok = 1;")
+                elif name == 'eof':
+                    self.emit('tamsin_eof(scanner);')
                 else:
                     raise NotImplementedError(name)
             else:
