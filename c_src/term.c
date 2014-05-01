@@ -25,6 +25,13 @@ struct term *new_term(const char *atom) {
     t->subterms = NULL;
 }
 
+struct term *new_term_from_char(char c) {
+    char s[2];
+    s[0] = c;
+    s[1] = '\0';
+    return new_term(s);
+}
+
 void add_subterm(struct term *term, struct term *subterm) {
     struct term_list *tl;
     tl = malloc(sizeof(struct term_list));

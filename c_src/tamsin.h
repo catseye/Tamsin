@@ -21,6 +21,7 @@ struct term_list {
 };
 
 struct term *new_term(const char *);
+struct term *new_term_from_char(char c);
 void add_subterm(struct term *, struct term *);
 struct term *term_concat(const struct term *, const struct term *);
 struct term *term_flatten(struct term *);
@@ -28,11 +29,12 @@ struct term *term_flatten(struct term *);
 /* scanner */
 
 struct scanner {
-    char *buffer;
+    const char *buffer;
     int position;
     int reset_position;
 };
 
+struct scanner *scanner_new(const char *);
 char scan(struct scanner *);
 void unscan(struct scanner *);
 void commit(struct scanner *);
@@ -42,6 +44,7 @@ void commit(struct scanner *);
 void tamsin_eof(struct scanner *);
 void tamsin_any(struct scanner *);
 void tamsin_expect(struct scanner *, char *);
+void tamsin_alnum(struct scanner *);
 
 /* global state: result of last action */
 

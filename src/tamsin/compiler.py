@@ -13,22 +13,41 @@ PRELUDE = r'''
  */
 #include <tamsin.h>
 
+/* global scanner */
+
+struct scanner * scanner;
+
 /* global state: result of last action */
 
 int ok;
 struct term *result;
-
-struct scanner * scanner;
 '''
 
 POSTLUDE = r'''
 int main(int argc, char **argv) {
-    
-    scanner = malloc(sizeof(struct scanner));
-    scanner->buffer = argv[1];
-    scanner->position = 0;
-    scanner->reset_position = 0;
+    FILE *input = NULL;
+    char *filename = argv[1];
+    char *buffer = malloc(8193);
+    struct term *bufterm = NULL;
 
+    if (filename == NULL) {
+        input = stdin;
+    } else {
+        input = fopen(filename, "r");
+    }
+    
+    assert(input != NULL);
+    while (!feof(input)) {
+        int num_read = fread(buffer, 1, 8192, input);
+        buffer[num_read] = '\0';
+        if (bufterm == NULL) {
+            bufterm = new_term(buffer);
+        } else {
+            bufterm = term_concat(bufterm, new_term(buffer));
+        }
+    }
+
+    scanner = scanner_new(bufterm->atom);
     ok = 0;
     result = NULL;
 
@@ -120,6 +139,8 @@ class Compiler(object):
                     self.emit('tamsin_eof(scanner);')
                 elif name == 'any':
                     self.emit('tamsin_any(scanner);')
+                elif name == 'alnum':
+                    self.emit('tamsin_alnum(scanner);')
                 elif name == 'fail':
                     self.emit_term(args[0], "temp")
                     self.emit("result = temp;")

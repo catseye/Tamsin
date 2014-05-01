@@ -11,6 +11,7 @@ if [ ! x$1 = x ]; then
 fi
 
 if [ x$1 = xcompiler ]; then
+    ./build.sh
     falderal --substring-error fixture/compiler.py.markdown doc/Tamsin.markdown
 else
     falderal --substring-error fixture/tamsin.py.markdown $FILES
