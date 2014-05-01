@@ -595,29 +595,13 @@ global flags, of a sort.  It takes a term, which it uses as the failure message.
     + hsihdsihdsih
     ? Goodbye, world!
 
-### not ###
-
-Not...
-
-    | main = not k.
-    + l
-    = l
-
-    | main = not k.
-    + k
-    ? expected anything except 'k', found 'k'
-
-This can be used to parse strings and comments.
-
-    | main = "'" & T ← '' & {not '\'' → S & T ← T + S} & "'" & return T.
-    + 'any bloody
-    +   gobbledegook *!^*(^@)(@* (*@#(*^*(^(!^
-    + you like.'
-    = any bloody
-    =   gobbledegook *!^*(^@)(@* (*@#(*^*(^(!^
-    = you like.
-
 ### ! ###
+
+The `!` ("not") keyword is followed by a rule.  If the rule succeeds, the `!`
+expression fails.  If the rule fails, the `!` expression succeeds.  In
+*neither* case is input consumed — anything the rule matched, is backtracked.
+Thus `!` should almost always be followed by `&` and something which consumes
+input, such as `any`.
 
     | main = !"k" & any.
     + l
@@ -638,6 +622,9 @@ This can be used to parse strings and comments.
     | main = !("k" | "r") & any.
     + r
     ? expected anything except
+
+This is particularly useful for parsing strings and comments and anything
+that contains arbitrary text terminated by a sentinel.
 
     | main = "'" & T ← '' & {!"'" & any → S & T ← T + S} & "'" & return T.
     + 'any bloody
@@ -674,6 +661,21 @@ syntactic sugar for `«'foo'»`.
     | main = «'f'».
     + f
     = f
+
+Oh, and since we were speaking of sentinels earlier...
+
+    | main = {sentineled → A & print A & {" " | "\n"}} & return ok.
+    | sentineled =
+    |    "(" &
+    |    any → S &
+    |    T ← '' & {!«S» & any → A & T ← T + A} & «S» &
+    |    ")" &
+    |    T.
+    + (!do let's ))) put whatever &c. in this string!)
+    + (&and!this!one&)
+    = do let's ))) put whatever &c. in this string
+    = and!this!one
+    = ok
 
 Modules
 -------
@@ -1283,12 +1285,14 @@ best an LL(n) grammar, and try to write a left-recursive rule:
 Appendix A. Grammar
 -------------------
 
+First, in EBNF:
+
     Grammar    ::= {"@" Pragma "."} Production {Production "."}.
     Production ::= ProdName ["(" [Term {"," Term} ")" | "[" Expr0 "]"] "=" Expr0.
     Expr0      ::= Expr1 {("||" | "|") Expr1}.
     Expr1      ::= Expr2 {("&&" | "&") Expr2}.
     Expr2      ::= Expr3 ["using" ProdRef].
-    Expr3      ::= Expr4 ["→" Variable].
+    Expr3      ::= Expr4 [("→" | "->") Variable].
     Expr4      ::= "(" Expr0 ")"
                  | "[" Expr0 "]"
                  | "{" Expr0 "}"
@@ -1296,10 +1300,10 @@ Appendix A. Grammar
                  | "return" Term
                  | "fail" Term
                  | LitToken
-                 | ProdRef ["(" [Term {"," Term} ")"] ["@" Term].
+                 | ProdRef ["(" [Term {"," Term}] ")"] ["@" Term].
     Term       ::= Term0.
     Term0      ::= Term1 {"+" Term1}.
-    Term1      ::= Atom ["(" {Term0} ")"]
+    Term1      ::= Atom ["(" [Term {"," Term}] ")"]
                  | Variable.
     ProdRef    ::= [ModuleRef "."] ProdName.
     ModuleRef  ::= "$".
@@ -1308,6 +1312,34 @@ Appendix A. Grammar
     Atom       ::= ("'" {any} "'" | { "a".."z" | "0".."9" }) using $.char.
     Variable   ::= ("A".."Z" { "a".."z" | "0".."9" }) using $.char.
     ProdName   ::= { "a".."z" | "0".."9" } using $.char.
+
+
+Next, in Tamsin.  Approximate.
+
+    grammar    = {"@" & pragma & "."} & production & {production & "."} & eof.
+    production = word & ["(" & term & {"," & term} & ")"
+                        | "[" & expr0 & "]"] & "=" & expr0.
+    expr0      = expr1 & {("|" | "||") & expr1}.
+    expr1      = expr2 & {("&" | "&&") & expr2}.
+    expr2      = expr3 & ["using" & prodref].
+    expr3      = expr4 & [("→" | "->") variable].
+    expr4      = "(" & expr0 & ")"
+               | "[" & expr0 & "]"
+               | "{" & expr0 & "}"
+               | "set" & variable & "=" & term
+               | "return" & term
+               | "fail" & term"
+               | terminal
+               | prodref & ["(" & [term & {"," & term}] & ")"] & ["@" & term].
+    term       = term0.
+    term0      = term1 & {"+" & term1).
+    term1      = atom & ["(" & [term & {"," & term}] & ")"]
+               | variable.
+    prodref    = [modref & "."] & word.
+    modref     = "$".
+    pragma     = "alias" & word & word & "=" & prodref
+               | "unalias" & word.
+
 
 Appendix B. Tamsin Scanner
 --------------------------

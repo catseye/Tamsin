@@ -73,7 +73,6 @@ class Interpreter(EventProducer):
             formals = {
                 'expect': [Variable('X')],
                 'fail': [Variable('X')],
-                'not': [Variable('X')],
                 'print': [Variable('X')],
                 'return': [Variable('X')]
             }.get(name, [])
@@ -150,15 +149,6 @@ class Interpreter(EventProducer):
                 else:
                     return (False, Term("expected EOF found '%s'" %
                             self.scanner.peek()))
-            elif name == '$.not':
-                if self.scanner.eof() or self.scanner.peek() == str(bindings['X']):
-                    return (False,
-                       Term("expected anything except '%s', found '%s'" %
-                            (bindings['X'], self.scanner.peek()))
-                    )
-                else:
-                    token = self.scanner.consume_any()
-                    return (True, token)
             elif name == '$.any':
                 if self.scanner.eof():
                     return (False, Term("expected any token, found EOF"))

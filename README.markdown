@@ -179,10 +179,10 @@ BSD-style license; see the file [LICENSE](LICENSE).
 TODO
 ----
 
-*   have analyzer and interpreter both inherit from Processor or smth
 *   meta-circular implementation of scanner -- what we have is pretty close
 *   meta-circular implementation of parser
 *   meta-circular implementation of interpreter!
+*   system library
 
 ### compiler ###
 
@@ -201,11 +201,12 @@ TODO
 *   tamsin scanner sanity
 *   implied `set` -- maybe get rid of `set` entirely
 *   implied `return` of variables and single-quoted constructors
-*   $.not vs `!`
 *   pragmas and aliases
 
 ### lower-priority/experimental ###
 
+*   pretty-print AST for error messages
+*   have analyzer, interpreter, compiler all inherit from ASTWalker or smth?
 *   `$.alpha`
 *   `$.digit`
 *   arbitrary non-printable characters in terms and such
