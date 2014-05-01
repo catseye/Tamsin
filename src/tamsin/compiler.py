@@ -1,8 +1,11 @@
-# COMPLETELY EXPERIMENTAL.
 # encoding: UTF-8
 
-# spits out some kind of code based on a Tamsin AST.
-# certainly does not support `using` or `@` at the moment.
+# Copyright (c)2014 Chris Pressey, Cat's Eye Technologies.
+# Distributed under a BSD-style license; see LICENSE for more information.
+
+# Generates a C-language program which, when linked with -ltamsin, has
+# the same (we hope) behaviour as interpreting the input Tamsin program.
+# Does not support `using` or `@` at the moment.
 
 from tamsin.term import Term, Variable, Concat
 
@@ -341,7 +344,9 @@ class Compiler(object):
             else:
                 self.emit('struct term *%s = %s;' % (name, term.name))
         else:
-            self.emit('struct term *%s = term_new("%s");' % (name, term.name))
+            self.emit('struct term *%s = term_new("%s");' %
+                (name, escaped(term.name))
+            )
             i = 0
             # TODO: reversed() is provisional
             for subterm in reversed(term.contents):
@@ -349,3 +354,12 @@ class Compiler(object):
                 i += 1
                 self.emit_term(subterm, subname, pattern=pattern);
                 self.emit("term_add_subterm(%s, %s);" % (name, subname))
+
+def escaped(s):
+    escaped_name = s
+    escaped_name = escaped_name.replace("\\", r"\\")
+    escaped_name = escaped_name.replace("\n", r"\n")
+    escaped_name = escaped_name.replace("\t", r"\t")
+    escaped_name = escaped_name.replace('"', r'\"')
+    return escaped_name
+

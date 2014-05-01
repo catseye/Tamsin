@@ -33,15 +33,21 @@ Hello, world!
     | main = 'Hello, world!'.
     = Hello, world!
 
-Copy input to output, not unlike unix `cat`.
+Make a story more exciting!
 
-    | main = T ← '' & {any → S & T ← T + S} & T.
-    + This file
-    + gets catted.
-    = This file
-    = gets catted.
+    | main = S ← '' & {("." & '!' | "?" & '?!' | any) → C & S ← S + C} & S.
+    + Chapter 1
+    + ---------
+    + It was raining.  She knocked on the door.  She heard
+    + footsteps inside.  The door opened.  The butler peered
+    + out.  "Hello," she said.  "May I come in?"
+    = Chapter 1
+    = ---------
+    = It was raining!  She knocked on the door!  She heard
+    = footsteps inside!  The door opened!  The butler peered
+    = out!  "Hello," she said!  "May I come in?!"
 
-Parse an algebraic expression for correctness.
+Parse an algebraic expression for syntactic correctness.
 
     | main = (expr0 & eof & 'ok').
     | expr0 = expr1 & {"+" & expr1}.
@@ -49,13 +55,6 @@ Parse an algebraic expression for correctness.
     | term = "x" | "y" | "z" | "(" & expr0 & ")".
     + x+y*(z+x+y)
     = ok
-
-    | main = (expr0 & eof & 'ok').
-    | expr0 = expr1 & {"+" & expr1}.
-    | expr1 = term & {"*" & term}.
-    | term = "x" | "y" | "z" | "(" & expr0 & ")".
-    + x+xy
-    ? expected EOF found 'y'
 
 Parse an algebraic expression to a syntax tree.
 
@@ -77,20 +76,6 @@ Translate an algebraic expression to RPN (Reverse Polish Notation).
     | walk(X) = return ' '+X.
     + x+y*(z+x+y)
     =  x y z x + y + * +
-
-Make a story more exciting — a one-liner!
-
-    | main = S ← '' & {("." & '!' | "?" & '?!' | any) → C & S ← S + C} & S.
-    + Chapter 1
-    + ---------
-    + It was raining.  She knocked on the door.  She heard
-    + footsteps inside.  The door opened.  The butler peered
-    + out.  "Hello," she said.  "May I come in?"
-    = Chapter 1
-    = ---------
-    = It was raining!  She knocked on the door!  She heard
-    = footsteps inside!  The door opened!  The butler peered
-    = out!  "Hello," she said!  "May I come in?!"
 
 Reverse a list.
 
@@ -128,6 +113,7 @@ commas and double-quotes inside quotes.
     | extract(lines(Lines, Line)) = extract(Lines) & extract_field(Line).
     | extract(L) = L.
     | extract_field(fields(Last, fields(This, X))) = print This.
+    | extract_field(X) = return X.
     + Harold,1850,"21 Baxter Street",burgundy
     + Smythe,1833,"31 Little Street, St. James",mauve
     + Jones,1791,"41 ""The Gardens""",crimson
@@ -152,11 +138,19 @@ documents, which contain many more small examples written to demonstrate
 Quick Start
 -----------
 
+This repository contains the reference implementation of Tamsin, written in
+Python.  It can interpret a Tamsin program, and compile a program written
+in (core) Tamsin to C.  To start using it,
+
 *   Install [toolshelf](https://github.com/catseye/toolshelf).
 *   `toolshelf dock gh:catseye/tamsin`
 
 Or just clone this repo and make a symbolic link to `bin/tamsin` somewhere
 on your path (or alter your path to contain the `bin/` directory of this repo.)
+
+Then you can run `tamsin` like so:
+
+*   `tamsin run eg/csv_extract.tamsin < eg/names.csv`
 
 Design Goals
 ------------
@@ -168,8 +162,8 @@ Design Goals
     parsing techniques.
 *   Provide means to solve practical problems.
 *   Keep the language simple (grammar should fit on a page)
-*   Have a relatively simple reference implementation (currently ~1000 lines
-    of Python, not counting debugging).
+*   Have a relatively simple reference implementation (currently ~1700 lines,
+    including everything — debugging and the C runtime used by the compiler.)
 
 License
 -------
@@ -186,11 +180,7 @@ TODO
 *   `bin/tamsin runast astfile.txt` -- for testing the meta-circular parser
 *   `bin/tamsin runscan scanfile.txt` -- for testing the meta-circular scanner
 *   `bin/tamsin scan file.tamsin` -- to generate a scanfile
-
-### compiler ###
-
-*   refactor analyzer to find locals for each branch-prod
-*   handle evaluation
+*   refactor nastier bits of the compiler
 
 ### document ###
 
@@ -217,6 +207,7 @@ TODO
         expr1 = term → E & fold ("*" & term) E mul.
         term = "x" | "y" | "z" | "(" & expr0 → E & ")" & E.
 
+*   auto-generate terms from productions, like Rooibos does
 *   `;` = `&`?
 *   pretty-print AST for error messages
 *   have analyzer, interpreter, compiler all inherit from ASTWalker or smth?

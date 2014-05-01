@@ -5,30 +5,6 @@ This document is a **work in progress**.
 
     -> Tests for functionality "Intepret Tamsin program"
 
-Escape Characters
------------------
-
-A literal string may contain escape sequences.  Note, I hate escape sequences!
-So I might not leave this feature in, or, at least, not quite like this.
-
-    | main = "a" & "\"" & "b" & return 'don\'t'.
-    + a"b
-    = don't
-
-    | main = "a" & "\\" & "b" & return 'don\\t'.
-    + a\b
-    = don\t
-
-    | main = "a" & "\n" & "b" & return 'don\nt'.
-    + a
-    + b
-    = don
-    = t
-
-    | main = "a" & "\t" & "b" & return 'don\tt'.
-    + a	b
-    = don	t
-
 Advanced Scanning
 -----------------
 

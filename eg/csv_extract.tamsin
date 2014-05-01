@@ -1,0 +1,11 @@
+main = line → L & L ← lines(nil, L) &
+       {"\n" & line → M & L ← lines(L, M)} & extract(L) & ''.
+line = field → F & {"," & field → G & F ← fields(G, F)} & F.
+field = strings | bare.
+strings = string → T & {string → S & T ← T + '"' + S} & T.
+string = "\"" & T ← '' & {!"\"" & any → S & T ← T + S} & "\"" & T.
+bare = T ← '' & {!(","|"\n") & any → S & T ← T + S} & T.
+extract(lines(Lines, Line)) = extract(Lines) & extract_field(Line).
+extract(L) = L.
+extract_field(fields(Last, fields(This, X))) = print This.
+extract_field(X) = return X.

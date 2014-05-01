@@ -428,6 +428,29 @@ and atoms without quotes.
     | this_prod = set Var_name = this_atom & return Var_name.
     = this_atom
 
+### Escape Sequences ###
+
+A literal string may contain escape sequences.  Note, I hate escape sequences!
+So I might not leave this feature in, or, at least, not quite like this.
+
+    | main = "a" & "\"" & "b" & return 'don\'t'.
+    + a"b
+    = don't
+
+    | main = "a" & "\\" & "b" & return 'don\\t'.
+    + a\b
+    = don\t
+
+    | main = "a" & "\n" & "b" & return 'don\nt'.
+    + a
+    + b
+    = don
+    = t
+
+    | main = "a" & "\t" & "b" & return 'don\tt'.
+    + a	b
+    = don	t
+
 ### Examples using Terms ###
 
 This program accepts a pair of bits and evaluates to a term, a constructor
