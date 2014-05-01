@@ -179,12 +179,19 @@ Alternatives can select code to be executed, based on the input.
     | main = aorb & print aorb | cord & print cord & return ok.
     | aorb = "a" & print ay | "b" & print bee.
     | cord = "c" & print see | eorf & print eorf.
-    | eorf = "e" & print ee | f & print eff.
+    | eorf = "e" & print ee | "f" & print eff.
     + e
     = ee
     = eorf
     = cord
     = ok
+
+Note that the production named by a non-terminal must exist in the program,
+even if it is never evaluated.
+
+    | main = "k" | something_undefined.
+    + k
+    ? something_undefined
 
 And that's the basics.  With these tools, you can write simple
 recursive-descent parsers.  For example, to consume nested parentheses
@@ -1256,6 +1263,22 @@ Can't unalias an alias that isn't established.
     | main = return ok.
     ? KeyError
 
+Three good ways to shoot yourself in the foot
+---------------------------------------------
+    
+1, forget that Tamsin is still basically a *programming* language, or at
+best an LL(n) grammar, and try to write a left-recursive rule:
+    
+    expr = expr & "+" & expr | expr & "*" & expr | "0" | "1".
+
+2, base a `{}` loop around something that always succeeds, like `return` or
+`eof` at the end of the input.
+
+    expr = {"k" | return l}.
+    
+3, base a loop around something that doesn't consume any input, like `!`.
+
+    expr = !"\n" & expr
 
 Appendix A. Grammar
 -------------------

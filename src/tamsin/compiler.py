@@ -7,9 +7,9 @@
 from tamsin.term import Variable
 
 PRELUDE = r'''
-/* an example of what I would hope a Tamsin->C compiler to produce.
-   but this was written by hand. */
-
+/*
+ * Generated code!  Edit at your own risk!
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -205,8 +205,13 @@ class Compiler(object):
                     self.emit_term(args[0], "temp")
                     self.emit("result = temp;")
                     self.emit("ok = 1;")
+                elif name == 'print':
+                    self.emit_term(args[0], "temp")
+                    self.emit("result = temp;")
+                    self.emit(r'fprintf(stdout, "%s\n", term_format(result));')
+                    self.emit("ok = 1;")
                 else:
-                    raise NotImplementedError
+                    raise NotImplementedError(name)
             else:
                 prodmod = 'program'
                 args = ', '.join(["%s" % a for a in args])

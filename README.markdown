@@ -168,7 +168,7 @@ Design Goals
     parsing techniques.
 *   Provide means to solve practical problems.
 *   Keep the language simple (grammar should fit on a page)
-*   Have a relatively simple reference implementation (currently ~900 lines
+*   Have a relatively simple reference implementation (currently ~1000 lines
     of Python, not counting debugging).
 
 License
@@ -179,37 +179,38 @@ BSD-style license; see the file [LICENSE](LICENSE).
 TODO
 ----
 
-*   `$.alpha`
-*   `$.digit`
-*   improve `not` -- should be a real builtin, not `$.not`
-*   arbitrary non-printable characters in terms and such
-*   don't consume stdin until asked to scan.
-*   numeric values... somehow.  number('65') = #65.  decode(ascii, 'A') = #65.
-*   token classes... somehow.  (then numeric is just a special token class?)
-*   term expressions -- harder than it sounds
+*   have analyzer and interpreter both inherit from Processor
+*   compiler: implement backtracking on `|`
+*   compiler: implement `{}`
+*   compiler: write `-ltamsin` library and link to it
+*   meta-circular implementation of scanner -- what we have is pretty close
+*   meta-circular implementation of parser
+*   meta-circular implementation of interpreter!
 
 ### document ###
 
 *   tamsin scanner sanity
 *   implied `set` -- maybe get rid of `set` entirely
 *   implied `return` of variables and single-quoted constructors
-*   $.not
+*   $.not vs `!`
 *   pragmas and aliases
 
-### experimental ###
+### lower-priority/experimental ###
 
+*   `$.alpha`
+*   `$.digit`
+*   arbitrary non-printable characters in terms and such
+*   don't consume stdin until asked to scan.
+*   numeric values... somehow.  number('65') = #65.  decode(ascii, 'A') = #65.
+*   token classes... somehow.  (then numeric is just a special token class?)
+*   term expressions -- harder than it sounds
 *   be generous and allow "xyz" in term context position?
 *   non-backtracking versions of `|` and `{}`?  (very advanced)
 *   «» could be an alias w/right sym (`,,`, `„`)
     (still need to scan it specially though)
 *   dictionary values in variables?
 *   special form that consumes rest of input from the Tamsin source
-*   meta-circular implementation of scanner -- what we have is pretty close
-*   meta-circular implementation of parser
 *   feature-testing: `$.exists('$.blargh') | do_without_blargh`
 *   ternary: `foo ? bar : baz` -- if foo succeeded, do bar, else do baz.
-
-### performance ###
-
-*   a second implementation, in C
-*   a compiler (in Python) *to* C
+*   a second implementation, in C -- with compiler to C and meta-circular
+    implementation, this can be generated!
