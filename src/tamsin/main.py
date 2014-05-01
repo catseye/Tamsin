@@ -12,6 +12,7 @@ from tamsin.scanner import Scanner, CharScannerEngine
 from tamsin.parser import Parser
 from tamsin.interpreter import Interpreter
 from tamsin.analyzer import Analyzer
+from tamsin.compiler import Compiler
 
 
 def parse_and_check(filename):
@@ -21,7 +22,7 @@ def parse_and_check(filename):
         ast = parser.grammar()
         analyzer = Analyzer(ast)
         analyzer.analyze(ast)
-        return ast
+        return analyzer
 
 
 def main(args):
@@ -30,24 +31,23 @@ def main(args):
         listeners.append(DebugEventListener())
         args = args[1:]
     if args[0] == 'parse':
-        ast = parse_and_check(args[1])
-        print repr(ast)
+        a = parse_and_check(args[1])
+        print repr(a.program)
     elif args[0] == 'run':
-        ast = parse_and_check(args[1])
+        a = parse_and_check(args[1])
         scanner = Scanner(sys.stdin.read(), listeners=listeners)
         scanner.push_engine(CharScannerEngine())
         interpreter = Interpreter(
-            ast, scanner, listeners=listeners
+            a.program, scanner, a.prodmap, listeners=listeners
         )
-        (succeeded, result) = interpreter.interpret(ast)
+        (succeeded, result) = interpreter.interpret(a.program)
         if not succeeded:
             sys.stderr.write(str(result) + "\n")
             sys.exit(1)
         print str(result)
     elif args[0] == 'compile':
-        from tamsin.compiler import Compiler
-        ast = parse_and_check(args[1])
-        compiler = Compiler(sys.stdout)
-        compiler.compile(ast)
+        a = parse_and_check(args[1])
+        compiler = Compiler(sys.stdout, a.prodmap, a.localsmap)
+        compiler.compile(a.program)
     else:
         raise ValueError("first argument must be 'parse' or 'run'")

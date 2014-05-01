@@ -12,9 +12,16 @@ from tamsin.scanner import (
 
 
 class Analyzer(EventProducer):
+    """
+    look for undefined nonterminals
+    create a map of production name -> list of productions
+    create a map of production name -> list of local variables used therein
+    """
     def __init__(self, program, listeners=None):
         self.listeners = listeners
         self.program = program
+        self.prodmap = {}
+        self.localsmap = {}  # TODO: not great, does not handle multibody prods
 
     # TODO: inherit from ProgramProcessor
     def find_productions(self, prodref):
@@ -31,11 +38,13 @@ class Analyzer(EventProducer):
         self.event('interpret_ast', ast)
         if ast[0] == 'PROGRAM':
             for prod in ast[2]:
+                self.prodmap.setdefault(prod[1], []).append(prod)
                 self.analyze(prod)
             mains = self.find_productions(('PRODREF', '', 'main'))
             if not mains:
                 raise ValueError("no 'main' production defined")
         elif ast[0] == 'PROD':
+            self.collect_locals(ast, self.localsmap.setdefault(ast[1], []))
             self.analyze(ast[3])
         elif ast[0] == 'CALL':
             prodref = ast[1]
@@ -63,3 +72,17 @@ class Analyzer(EventProducer):
             self.analyze(ast[1])
         else:
             raise NotImplementedError(repr(ast))
+
+    def collect_locals(self, ast, locals_):
+        if ast[0] == 'PROD':
+            self.collect_locals(ast[3], locals_)
+        if ast[0] == 'SEND':
+            locals_.append(ast[2].name)
+        elif ast[0] == 'SET':
+            locals_.append(ast[1].name)
+        elif ast[0] == 'AND':
+            self.collect_locals(ast[1], locals_)
+            self.collect_locals(ast[2], locals_)
+        elif ast[0] == 'OR':
+            self.collect_locals(ast[1], locals_)
+            self.collect_locals(ast[2], locals_)

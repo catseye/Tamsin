@@ -143,9 +143,11 @@ int main(int argc, char **argv) {
 '''
 
 class Compiler(object):
-    def __init__(self, outfile):
+    def __init__(self, outfile, prodmap, localsmap):
         self.outfile = outfile
         self.indent_ = 0
+        self.prodmap = prodmap
+        self.localsmap = localsmap
 
     def indent(self):
         self.indent_ += 1
@@ -181,12 +183,10 @@ class Compiler(object):
             self.emit("void program_%s(%s) {" % (name, formals))
             self.indent()
             
-            locals_ = []
-            self.collect_locals(body, locals_)
-            for local in locals_:
+            for local in self.localsmap[name]:
                 self.emit("struct term *%s;" % local)
             self.emit("")
-            
+
             self.compile_r(body)
             self.outdent()
             self.emit("}")
@@ -269,18 +269,6 @@ class Compiler(object):
             self.emit("}")
         else:
             raise NotImplementedError(repr(ast))
-
-    def collect_locals(self, ast, locals_):
-        if ast[0] == 'SEND':
-            locals_.append(ast[2].name)
-        elif ast[0] == 'SET':
-            locals_.append(ast[1].name)
-        elif ast[0] == 'AND':
-            self.collect_locals(ast[1], locals_)
-            self.collect_locals(ast[2], locals_)
-        elif ast[0] == 'OR':
-            self.collect_locals(ast[1], locals_)
-            self.collect_locals(ast[2], locals_)
 
     def emit_term(self, term, name):
         if isinstance(term, Variable):
