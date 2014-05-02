@@ -3,6 +3,7 @@
 # Copyright (c)2014 Chris Pressey, Cat's Eye Technologies.
 # Distributed under a BSD-style license; see LICENSE for more information.
 
+from tamsin.ast import Program, Production
 from tamsin.term import Term, Variable
 from tamsin.event import EventProducer
 from tamsin.scanner import (
@@ -33,16 +34,17 @@ class Analyzer(EventProducer):
             # regen prodmap to pick up local variables
             self.prodmap = {}
             for prod in prodlist:
-                self.prodmap.setdefault(prod[1], []).append(prod)
+                # todo: also set prod rank here
+                self.prodmap.setdefault(prod.name, []).append(prod)
             if 'main' not in self.prodmap:
                 raise ValueError("no 'main' production defined")
-            return ('PROGRAM', self.prodmap, prodlist)
+            return Program(self.prodmap)
         elif ast[0] == 'PROD':
             # ('PROD', name, formals, locals, body)
             locals_ = set()
             self.collect_locals(ast, locals_)
             body = self.analyze(ast[4])
-            return ('PROD', ast[1], ast[2], locals_, body)
+            return Production(ast[1], 0, ast[2], locals_, body)
         elif ast[0] == 'CALL':
             # ('CALL', prodref, args, ibuf)
             prodref = ast[1]

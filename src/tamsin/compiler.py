@@ -7,6 +7,7 @@
 # the same (we hope) behaviour as interpreting the input Tamsin program.
 # Does not support `using` or `@` at the moment.
 
+from tamsin.ast import Program, Production
 from tamsin.term import Term, Variable, Concat
 
 PRELUDE = r'''
@@ -87,43 +88,43 @@ class Compiler(object):
         
         # this phase is kind of shoehorned in, I admit.
         def rename_prods(prods):
-            i = 0
+            rank = 0
             new_prods = []
             for prod in prods:
-                new_prods.append((
-                    'PROD', '%s%s' % (prod[1], i), prod[2], prod[3], prod[4]
-                ))
-                i += 1
+                new_prods.append(
+                    Production(prod.name, rank, prod.formals, prod.locals_, prod.body)
+                )
+                rank += 1
             return new_prods
-        prodmap = self.program[1]
+        prodmap = self.program.prodmap
         for key in prodmap:
             prodmap[key] = rename_prods(prodmap[key])
         self.prodmap = prodmap
         # we might want to blow away self.program now...
 
         self.emit(PRELUDE)
-        self.compile_r(self.program)
+
+        for key in self.prodmap:
+            for prod in self.prodmap[key]:
+                self.emit("void program_%s%s(%s);" % (
+                    prod.name, prod.rank,
+                    ', '.join(["struct term *" % f for f in prod.formals])
+                ))
+        self.emit("")
+        for key in self.prodmap:
+            self.current_prod_name = key
+            for prod in self.prodmap[key]:
+                self.compile_r(prod)
+            self.current_prod_name = None
+
         self.emit(POSTLUDE)
 
     def compile_r(self, ast):
-        if ast[0] == 'PROGRAM':
-            for key in self.prodmap:
-                for prod in self.prodmap[key]:
-                    name = prod[1]
-                    formals = prod[2]
-                    formals = ', '.join(["struct term *" % f for f in formals])
-                    self.emit("void program_%s(%s);" % (name, formals))
-            self.emit("")
-            for key in self.prodmap:
-                self.current_prod_name = key
-                for prod in self.prodmap[key]:
-                    self.compile_r(prod)
-                self.current_prod_name = None
-        elif ast[0] == 'PROD':
-            name = ast[1]
-            formals = ast[2]
-            locals_ = ast[3]
-            body = ast[4]
+        if isinstance(ast, Production):
+            name = ast.name
+            formals = ast.formals
+            locals_ = ast.locals_
+            body = ast.body
 
             self.emit("/*")
             self.emit(repr(ast))
@@ -136,7 +137,7 @@ class Compiler(object):
                 i += 1
 
             fmls = ', '.join(fmls)
-            self.emit("void program_%s(%s) {" % (name, fmls))
+            self.emit("void program_%s%s(%s) {" % (name, ast.rank, fmls))
             self.indent()
 
             all_pattern_variables = set()
@@ -150,18 +151,14 @@ class Compiler(object):
                 
                 # ...
                 next = None
-                get_next = False
-                all_prods = self.prodmap[self.current_prod_name]
-                for p in all_prods:
-                    if get_next:
-                        next = p[1]
+                for prod in self.prodmap[self.current_prod_name]:
+                    if prod.rank == ast.rank + 1:
+                        next = prod
                         break
-                    if p[1] == name:
-                        get_next = True
                 
                 if next:
                     args = ', '.join(["i%s" % i for i in xrange(0, len(formals))])
-                    self.emit("program_%s(%s);" % (next, args))
+                    self.emit("program_%s%s(%s);" % (name, next.rank, args))
                 else:
                     self.emit('result = term_new'
                               '("No \'%s\' production matched arguments");' %
@@ -313,13 +310,13 @@ class Compiler(object):
             raise NotImplementedError(repr(ast))
 
     def emit_decl_state(self):
-        for local in self.current_prod[3]:
+        for local in self.current_prod.locals_:
             self.emit("struct term *save_%s;" % local)
         self.emit("int position;")
         self.emit("int reset_position;")
 
     def emit_save_state(self):
-        for local in self.current_prod[3]:
+        for local in self.current_prod.locals_:
             self.emit("save_%s = %s;" % (local, local))
         self.emit("position = scanner->position;")
         self.emit("reset_position = scanner->reset_position;")
@@ -327,7 +324,7 @@ class Compiler(object):
     def emit_restore_state(self):
         self.emit("scanner->position = position;")
         self.emit("scanner->reset_position = reset_position;")
-        for local in self.current_prod[3]:
+        for local in self.current_prod.locals_:
             self.emit("%s = save_%s;" % (local, local))
 
     def emit_term(self, term, name, pattern=False):

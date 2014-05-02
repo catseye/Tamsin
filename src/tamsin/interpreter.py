@@ -3,6 +3,7 @@
 # Copyright (c)2014 Chris Pressey, Cat's Eye Technologies.
 # Distributed under a BSD-style license; see LICENSE for more information.
 
+from tamsin.ast import Program, Production
 from tamsin.term import Term, Variable
 from tamsin.event import EventProducer
 from tamsin.scanner import (
@@ -54,28 +55,12 @@ class Interpreter(EventProducer):
         self.program = program
         self.scanner = scanner
         self.context = Context(listeners=self.listeners)
-        self.prodmap = program[1]
+        self.prodmap = program.prodmap
 
     def __repr__(self):
         return "Interpreter(%r, %r, %r)" % (
             self.program, self.scanner, self.context
         )
-
-    ### grammar stuff ---------------------------------------- ###
-    
-    def find_productions(self, prodref):
-        mod = prodref[1]
-        name = prodref[2]
-        if mod == '':
-            return self.prodmap[name]
-        elif mod == '$':
-            formals = {
-                'expect': [Variable('X')],
-                'fail': [Variable('X')],
-                'print': [Variable('X')],
-                'return': [Variable('X')]
-            }.get(name, [])
-            return [('PROD', '$.' + name, formals, ('MAGIC',))]
 
     ### term matching ---------------------------------------- ###
     
@@ -116,18 +101,19 @@ class Interpreter(EventProducer):
             return bindings
 
     ### interpreter proper ---------------------------------- ###
-    
+
+    def interpret_program(self, program):
+        prods = program.find_productions(('PRODREF', '', 'main'))
+        return self.interpret(prods[0])
+
     def interpret(self, ast, bindings=None):
         """Returns a pair (bool, result) where bool is True if it
         succeeded and False if it failed.
 
         """
         self.event('interpret_ast', ast)
-        if ast[0] == 'PROGRAM':
-            mains = self.find_productions(('PRODREF', '', 'main'))
-            return self.interpret(mains[0])
-        elif ast[0] == 'PROD':
-            name = ast[1]
+        if isinstance(ast, Production):
+            name = ast.name
             if name == '$.expect':
                 upcoming_token = self.scanner.peek()
                 term = bindings['X']
@@ -135,7 +121,7 @@ class Interpreter(EventProducer):
                 if self.scanner.consume(token):
                     return (True, term)
                 else:
-                    self.event('fail_term', ast[1], self.scanner)
+                    self.event('fail_term', ast.name, self.scanner)
                     s = ("expected '%s' found '%s' (at '%s')" %
                          (token, upcoming_token,
                           self.scanner.report_buffer(self.scanner.position, 20)))
@@ -172,10 +158,10 @@ class Interpreter(EventProducer):
             if bindings:
                 for name in bindings.keys():
                     self.context.store(name, bindings[name])
-            self.event('begin_interpret_rule', ast[4])
-            (succeeded, x) = self.interpret(ast[4])
-            self.event('end_interpret_rule', ast[4])
-            self.context.pop_scope(ast[1])
+            self.event('begin_interpret_rule', ast.body)
+            (succeeded, x) = self.interpret(ast.body)
+            self.event('end_interpret_rule', ast.body)
+            self.context.pop_scope(ast.name)
             return (succeeded, x)
         elif ast[0] == 'CALL':
             prodref = ast[1]
@@ -183,11 +169,11 @@ class Interpreter(EventProducer):
             name = prodref[2]
             args = ast[2]
             ibuf = ast[3]
-            prods = self.find_productions(prodref)
+            prods = self.program.find_productions(prodref)
             self.event('call_candidates', prods)
             args = [x.expand(self.context) for x in args]
             for prod in prods:
-                formals = prod[2]
+                formals = prod.formals
                 self.event('call_args', formals, args)
                 if isinstance(formals, list):
                     bindings = self.match_all(formals, args)
@@ -203,20 +189,20 @@ class Interpreter(EventProducer):
                 else:
                     self.event('call_newfangled_parsing_args', prod)
                     # start a new scope.  arg bindings will appear here.
-                    self.context.push_scope(prod[1])
+                    self.context.push_scope(prod.name)
                     (success, result) = self.interpret_on_buffer(
                         formals, str(args[0])
                     )
                     # we do not want to start a new scope here, and we
                     # interpret the rule directly, not the prod.
                     if success:
-                        self.event('begin_interpret_rule', prod[4])
-                        (success, result) = self.interpret(prod[4])
-                        self.event('end_interpret_rule', prod[4])
-                        self.context.pop_scope(prod[1])
+                        self.event('begin_interpret_rule', prod.body)
+                        (success, result) = self.interpret(prod.body)
+                        self.event('end_interpret_rule', prod.body)
+                        self.context.pop_scope(prod.name)
                         return (success, result)
                     else:
-                        self.context.pop_scope(prod[1])
+                        self.context.pop_scope(prod.name)
             raise ValueError("No '%s' production matched arguments %r" %
                 (name, args)
             )
@@ -278,7 +264,7 @@ class Interpreter(EventProducer):
             elif scanner_name == u'char':
                 new_engine = CharScannerEngine()
             else:
-                prods = self.find_productions(prodref)
+                prods = self.program.find_productions(prodref)
                 if len(prods) != 1:
                     raise ValueError("No such scanner '%s'" % scanner_name)
                 new_engine = ProductionScannerEngine(self, prods[0])

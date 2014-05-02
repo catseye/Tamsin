@@ -24,6 +24,20 @@ def parse_and_check(filename):
         return ast
 
 
+def run(filename, listeners=None):
+    ast = parse_and_check(filename)
+    scanner = Scanner(sys.stdin.read(), listeners=listeners)
+    scanner.push_engine(CharScannerEngine())
+    interpreter = Interpreter(
+        ast, scanner, listeners=listeners
+    )
+    (succeeded, result) = interpreter.interpret_program(ast)
+    if not succeeded:
+        sys.stderr.write(str(result) + "\n")
+        sys.exit(1)
+    print str(result)
+
+
 def main(args):
     listeners = []
     if args[0] == '--debug':
@@ -33,21 +47,12 @@ def main(args):
         ast = parse_and_check(args[1])
         print repr(ast)
     elif args[0] == 'run':
-        ast = parse_and_check(args[1])
-        scanner = Scanner(sys.stdin.read(), listeners=listeners)
-        scanner.push_engine(CharScannerEngine())
-        interpreter = Interpreter(
-            ast, scanner, listeners=listeners
-        )
-        (succeeded, result) = interpreter.interpret(ast)
-        if not succeeded:
-            sys.stderr.write(str(result) + "\n")
-            sys.exit(1)
-        print str(result)
+        run(args[1], listeners=listeners)
     elif args[0] == 'compile':
         ast = parse_and_check(args[1])
         #print >>sys.stderr, repr(ast)
         compiler = Compiler(ast, sys.stdout)
         compiler.compile()
     else:
-        raise ValueError("first argument must be 'parse' or 'run'")
+        run(args[0], listeners=listeners)
+    
