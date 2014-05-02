@@ -17,8 +17,9 @@ makes it easy to write recursive-descent parsers, and force all programs
 to be written as recursive-descent parsers?  Then *all* code will be pretty!
 (Yeah, sure, OK.)
 
-Where I'm going with this, I don't quite know yet.  It is a
-**work in progress** and will definitely change as time goes on.
+Tamsin is still a **work in progress**, but the basic ideas have crystallized,
+and a 0.1 release will probably happen soon (with the usual caveat that
+version 0.2 might look completely different.)
 
 Teaser Examples
 ---------------
@@ -150,7 +151,16 @@ on your path (or alter your path to contain the `bin/` directory of this repo.)
 
 Then you can run `tamsin` like so:
 
-*   `tamsin run eg/csv_extract.tamsin < eg/names.csv`
+*   `tamsin run eg/csv_parse.tamsin < eg/names.csv`
+
+You can also compile to C and compile the C to an executable and run the
+executable all in one step, from the repo directory, like so:
+
+*   `./loadngo eg/csv_extract.tamsin < eg/names.csv`
+
+While the reference implementation is fine for prototyping, note that initial
+benchmarking reveals the compiled C programs to be about 30x faster.  (I'll
+write up something more detailed about this eventually.)
 
 Design Goals
 ------------
@@ -170,6 +180,13 @@ License
 
 BSD-style license; see the file [LICENSE](LICENSE).
 
+Related work
+------------
+
+*   CoCo/R
+*   Parsec
+*   Squishy2K, Arboretuum, and Treacle
+
 TODO
 ----
 
@@ -181,6 +198,10 @@ TODO
 *   `bin/tamsin runscan scanfile.txt` -- for testing the meta-circular scanner
 *   `bin/tamsin scan file.tamsin` -- to generate a scanfile
 *   refactor nastier bits of the compiler
+*   8-bit clean strings, in both Python and C.  tests for these as string
+    literals, ability to scan them on input, and ability to produce them
+    on output.
+*   better command-line argument parsing
 
 ### document ###
 
@@ -192,6 +213,11 @@ TODO
 
 ### lower-priority/experimental ###
 
+*   pattern match in send:
+    *   `fields → F@fields(H,T) & H`
+*   maps, implemented as hash tables.
+    *   `Table ← {} & fields → F@fields(H,T) & Table[H] ← T`
+*   global variables.  or better, variables scoped to a set of productions.
 *   these idioms are so common there ought to be a form for them:
     *   `set A = '' & {rule → B & A ← A + B} & A`
     *   `set A = nil & {rule → B & A ← cons(A, B)} & A`

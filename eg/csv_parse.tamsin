@@ -1,0 +1,6 @@
+main = line & {"\n" & line} & 'ok'.
+line = field → F & {"," & field → G & F ← fields(G, F)} & F.
+field = strings | bare.
+strings = string → T & {string → S & T ← T + '"' + S} & T.
+string = "\"" & T ← '' & {!"\"" & any → S & T ← T + S} & "\"" & T.
+bare = T ← '' & {!(","|"\n") & any → S & T ← T + S} & T.
