@@ -85,35 +85,18 @@ class Compiler(object):
         self.outfile.write("    " * self.indent_ + ''.join(args) + "\n")
 
     def compile(self):
-        
-        # this phase is kind of shoehorned in, I admit.
-        def rename_prods(prods):
-            rank = 0
-            new_prods = []
-            for prod in prods:
-                new_prods.append(
-                    Production(prod.name, rank, prod.formals, prod.locals_, prod.body)
-                )
-                rank += 1
-            return new_prods
-        prodmap = self.program.prodmap
-        for key in prodmap:
-            prodmap[key] = rename_prods(prodmap[key])
-        self.prodmap = prodmap
-        # we might want to blow away self.program now...
-
         self.emit(PRELUDE)
 
-        for key in self.prodmap:
-            for prod in self.prodmap[key]:
+        for key in self.program.prodmap:
+            for prod in self.program.prodmap[key]:
                 self.emit("void program_%s%s(%s);" % (
                     prod.name, prod.rank,
                     ', '.join(["struct term *" % f for f in prod.formals])
                 ))
         self.emit("")
-        for key in self.prodmap:
+        for key in self.program.prodmap:
             self.current_prod_name = key
-            for prod in self.prodmap[key]:
+            for prod in self.program.prodmap[key]:
                 self.compile_r(prod)
             self.current_prod_name = None
 
@@ -151,7 +134,7 @@ class Compiler(object):
                 
                 # ...
                 next = None
-                for prod in self.prodmap[self.current_prod_name]:
+                for prod in self.program.prodmap[self.current_prod_name]:
                     if prod.rank == ast.rank + 1:
                         next = prod
                         break

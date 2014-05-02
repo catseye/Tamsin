@@ -21,6 +21,7 @@ class Analyzer(EventProducer):
     def __init__(self, program, listeners=None):
         self.listeners = listeners
         self.program = program
+        self.prodnames = set()
         self.prodmap = {}
 
     def analyze(self, ast):
@@ -28,14 +29,11 @@ class Analyzer(EventProducer):
             # ('PROGRAM', prodmap, prodlist)
             prodlist = []
             for prod in ast[2]:
-                self.prodmap.setdefault(prod[1], []).append(prod)
+                self.prodnames.add(prod[1])
             for prod in ast[2]:
-                prodlist.append(self.analyze(prod))
-            # regen prodmap to pick up local variables
-            self.prodmap = {}
-            for prod in prodlist:
-                # todo: also set prod rank here
-                self.prodmap.setdefault(prod.name, []).append(prod)
+                prod = self.analyze(prod)
+                prod.rank = len(self.prodmap.setdefault(prod.name, []))
+                self.prodmap[prod.name].append(prod)
             if 'main' not in self.prodmap:
                 raise ValueError("no 'main' production defined")
             return Program(self.prodmap)
@@ -50,7 +48,7 @@ class Analyzer(EventProducer):
             prodref = ast[1]
             mod = prodref[1]
             name = prodref[2]
-            if mod == '' and name not in self.prodmap:
+            if mod == '' and name not in self.prodnames:
                raise ValueError("no '%s' production defined" % name)
                # TODO: also check builtins?
             return ('CALL', prodref, ast[2], ast[3])
