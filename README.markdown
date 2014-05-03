@@ -203,10 +203,6 @@ TODO
     on output.
 *   better command-line argument parsing
 
-### document ###
-
-*   pragmas and aliases
-
 ### lower-priority/experimental ###
 
 *   use `←` instead of `@`, why not?
