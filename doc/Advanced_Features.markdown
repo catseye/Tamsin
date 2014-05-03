@@ -35,9 +35,7 @@ character scanner is available as `$.char`.
     ? expected 'abc' found 'a'
 
 There is also a scanner which implements the lexical rules of the Tamsin
-language itself, which are documented in Appendix B.  Since all implementations
-of Tamsin will implement the Tamsin scanner, it should be no great burden on a
-Tamsin implementation to expose it to the Tamsin program.
+language itself, which are documented in Appendix B.
 
     | main = ("a" & "b" & "c") using $.tamsin.
     + a b c
@@ -51,7 +49,25 @@ Tamsin implementation to expose it to the Tamsin program.
     + abc
     = abc
 
-(TODO: more notes on the handiness of the tamsin scanner here.)
+The Tamsin scanner is designed to be relatively simple and predictable.
+One property in particular is that the token returned by this scanner is
+identical to the token that is scanned.  (For example, `&` and `&&`
+represent the same operator; thus the Tamsin scanner could return `&`
+for both of them, or even something more abstract like `OP_SEQUENCE`.
+But it doesn't; it returns `&&` for `&&` and `&` for `&`.
+
+    | main = ("&&" → S & "&" → T & 'pair'(S,T)) using $.tamsin.
+    + &&&
+    = pair(&&, &)
+
+An implementation of Tamsin may or may not expose the Tamsin scanner as
+`$.tamsin`; since a Tamsin interpreter will itself implement the Tamsin
+scanner, it should be no great burden to expose it to the running program.
+However, for a compiler, this may be a different matter.  (However however,
+the Tamsin scanner should be simple enough to implement without major
+difficulties.  In fact, there is a partial implementation in Tamsin; which
+means that `$.tamsin` need not be a system production, but could be 
+provided as a library.)
 
 You can mix two scanners in one production.  Note that the tamsin scanner
 doesn't consume spaces after a token, and that the char scanner doesn't skip

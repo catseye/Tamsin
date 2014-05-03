@@ -205,7 +205,6 @@ TODO
 
 ### document ###
 
-*   tamsin scanner sanity
 *   pragmas and aliases
 
 ### lower-priority/experimental ###
