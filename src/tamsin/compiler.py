@@ -201,6 +201,8 @@ class Compiler(object):
                     self.emit('tamsin_any(scanner);')
                 elif name == 'alnum':
                     self.emit('tamsin_alnum(scanner);')
+                elif name == 'upper':
+                    self.emit('tamsin_upper(scanner);')
                 elif name == 'fail':
                     self.emit_term(args[0], "temp")
                     self.emit("result = temp;")
@@ -251,7 +253,7 @@ class Compiler(object):
             self.emit("{")
             self.indent()
             self.emit_decl_state()
-            self.emit_term(Term('nil'), 'successful_result')
+            self.emit_term(Term(u'nil'), 'successful_result')
             self.emit("ok = 1;")
             self.emit("while (ok) {")
             self.indent()

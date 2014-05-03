@@ -130,20 +130,21 @@ class Parser(EventProducer):
             e = self.expr0()
             self.expect(']')
             return ('OR', e,
-                ('CALL', ('PRODREF', '$', 'return'), [Term('nil')], None)
+                ('CALL', ('PRODREF', '$', 'return'), [Term(u'nil')], None)
             )
         elif self.consume('{'):
             e = self.expr0()
             self.expect('}')
             return ('WHILE', e)
         elif self.peek()[0] == '"':
-            literal = Term(self.consume_any()[1:-1])
-            self.autoterm_accum.append(literal)
+            s = unicode(self.consume_any()[1:-1])
+            literal = Term(s)
+            #self.autoterm_accum.append(literal)
             return ('CALL', ('PRODREF', '$', 'expect'), [literal], None)
         elif self.consume(u'«') or self.consume('<<'):
             t = self.term()
             if self.consume(u'»') or self.consume('>>'):
-                self.autoterm_accum.append(t)
+                #self.autoterm_accum.append(t)
                 return ('CALL', ('PRODREF', '$', 'expect'), [t], None)
             else:
                 self.error("'>>'")
@@ -187,7 +188,7 @@ class Parser(EventProducer):
                             args.append(self.term())
                     self.expect(')')
             ibuf = None
-            self.autoterm_accum.append(Term(prodref[2]))
+            #self.autoterm_accum.append(Term(prodref[2]))
             if self.consume('@'):
                 ibuf = self.term()
             return ('CALL', prodref, args, ibuf)
@@ -230,6 +231,6 @@ class Parser(EventProducer):
                 while self.consume(','):
                     subs.append(self.term())
                 self.expect(')')
-            return Term(atom, subs)
+            return Term(unicode(atom), subs)
         else:
             self.error('term')

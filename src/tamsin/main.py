@@ -57,8 +57,11 @@ def main(args):
                 print tok.encode('UTF-8')
         print
     elif args[0] == 'parse':
-        ast = parse_and_check(args[1])
-        print repr(ast)
+        with codecs.open(args[1], 'r', 'UTF-8') as f:
+            contents = f.read()
+            parser = Parser(contents)
+            ast = parser.grammar()
+        print unicode(repr(ast)).encode('UTF-8')
     elif args[0] == 'compile':
         ast = parse_and_check(args[1])
         #print >>sys.stderr, repr(ast)
@@ -67,4 +70,3 @@ def main(args):
     else:
         ast = parse_and_check(args[0])
         run(ast, listeners=listeners)
-    

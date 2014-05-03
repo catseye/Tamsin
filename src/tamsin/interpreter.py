@@ -122,7 +122,7 @@ class Interpreter(EventProducer):
                     return (True, term)
                 else:
                     self.event('fail_term', ast.name, self.scanner)
-                    s = ("expected '%s' found '%s' (at '%s')" %
+                    s = (u"expected '%s' found '%s' (at '%s')" %
                          (token, upcoming_token,
                           self.scanner.report_buffer(self.scanner.position, 20)))
                     return (False, Term(s))
@@ -132,19 +132,25 @@ class Interpreter(EventProducer):
                 if self.scanner.eof():
                     return (True, EOF)
                 else:
-                    return (False, Term("expected EOF found '%s'" %
+                    return (False, Term(u"expected EOF found '%s'" %
                             self.scanner.peek()))
             elif name == '$.any':
                 if self.scanner.eof():
-                    return (False, Term("expected any token, found EOF"))
+                    return (False, Term(u"expected any token, found EOF"))
                 else:
                     token = self.scanner.consume_any()
                     return (True, token)
             elif name == '$.alnum':
-                if not self.scanner.eof() and self.scanner.peek()[0].isalnum():
+                if self.scanner.peek() is not EOF and self.scanner.peek()[0].isalnum():
                     return (True, self.scanner.consume_any())
                 else:
-                    return (False, Term("expected alphanumeric, found '%s'" %
+                    return (False, Term(u"expected alphanumeric, found '%s'" %
+                                        self.scanner.peek()))
+            elif name == '$.upper':
+                if self.scanner.peek() is not EOF and self.scanner.peek()[0].isupper():
+                    return (True, self.scanner.consume_any())
+                else:
+                    return (False, Term(u"expected uppercase alphabetic, found '%s'" %
                                         self.scanner.peek()))
             elif name == '$.print':
                 val = bindings['X']
@@ -254,7 +260,7 @@ class Interpreter(EventProducer):
                         (repr(expr), self.scanner.peek()))
                 )
             else:
-                return (True, Term("nil"))
+                return (True, Term(u'nil'))
         elif ast[0] == 'USING':
             sub = ast[1]
             prodref = ast[2]
@@ -275,7 +281,7 @@ class Interpreter(EventProducer):
             self.scanner.pop_engine()
             return (succeeded, result)
         elif ast[0] == 'WHILE':
-            result = Term('nil')
+            result = Term(u'nil')
             self.event('begin_while')
             succeeded = True
             successful_result = result

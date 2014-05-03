@@ -19,6 +19,7 @@ escape = "\\" & "n" & '\n'
        | "\\" & "'" & '\''
        | "\\" & "\"" & '"'.
 word = $.alnum → T & { ($.alnum | "_") → S & T ← T + S } & T.
+variable = $.upper → T & { ($.alnum | "_") → S & T ← T + S } & T.
 skippable = {whitespace | comment}.
 whitespace = " " | "\t" | "\r" | "\n".
 comment = "#" & {!"\n" & any} & "\n".

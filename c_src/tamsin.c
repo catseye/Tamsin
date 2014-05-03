@@ -69,3 +69,18 @@ void tamsin_alnum(struct scanner *s) {
         ok = 0;
     }
 };
+
+void tamsin_upper(struct scanner *s) {
+    char c = scan(s);
+    if (isupper(c)) {
+        commit(s);
+        result = term_new_from_char(c);
+        ok = 1;
+    } else {
+        unscan(s);
+        result = term_new("expected uppercase alphabetic, found '");
+        result = term_concat(result, term_new_from_char(c));
+        result = term_concat(result, term_new("'"));
+        ok = 0;
+    }
+};

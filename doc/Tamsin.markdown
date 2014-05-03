@@ -854,6 +854,16 @@ Here's `$.alnum`, which only consumes alphanumeric tokens.
     + (abc123deefghi459876!jklmnopqRSTUVXYZ0)
     ? expected ')' found '!'
 
+Here's `$.upper`, which only consumes uppercase alphabetic tokens.
+
+    | main = "(" & {$.upper → A} & ")" & A.
+    + (ABCDEFGHIJKLMNOPQRSTUVWXYZ)
+    = Z
+
+    | main = "(" & {$.upper → A} & ")" & A.
+    + (ABCDEFGHIJKLMNoPQRSTUVWXYZ)
+    ? expected ')' found 'o'
+
 Evaluation
 ----------
 
@@ -1045,20 +1055,23 @@ Next, in Tamsin.  Approximate.
     expr0      = expr1 & {("|" | "||") & expr1}.
     expr1      = expr2 & {("&" | "&&") & expr2}.
     expr2      = expr3 & ["using" & prodref].
-    expr3      = expr4 & [("→" | "->") variable].
+    expr3      = expr4 & [("→" | "->") & variable].
     expr4      = "(" & expr0 & ")"
                | "[" & expr0 & "]"
                | "{" & expr0 & "}"
                | "!" & expr0
                | "set" & variable & "=" & term
                | "return" & term
-               | "fail" & term"
+               | "fail" & term
                | terminal
                | prodref & ["(" & [term & {"," & term}] & ")"] & ["@" & term].
     term       = term0.
-    term0      = term1 & {"+" & term1).
+    term0      = term1 & {"+" & term1}.
     term1      = atom & ["(" & [term & {"," & term}] & ")"]
                | variable.
+    atom       = word | str('\'').
+    terminal   = str('"')
+               | ("«" | "<<") & term & ("»" | ">>").
     prodref    = [modref & "."] & word.
     modref     = "$".
     pragma     = "alias" & word & word & "=" & prodref
@@ -1088,6 +1101,7 @@ Written in Tamsin.  Should be very close to true.
            | "\\" & "'" & '\''
            | "\\" & "\"" & '"'.
     word = $.alnum → T & { ($.alnum | "_") → S & T ← T + S } & T.
+    variable = $.upper → T & { ($.alnum | "_") → S & T ← T + S } & T.
     skippable = {whitespace | comment}.
     whitespace = " " | "\t" | "\r" | "\n".
     comment = "#" & {!"\n" & any} & "\n".

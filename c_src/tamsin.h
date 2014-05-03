@@ -94,6 +94,7 @@ void tamsin_eof(struct scanner *);
 void tamsin_any(struct scanner *);
 void tamsin_expect(struct scanner *, char *);
 void tamsin_alnum(struct scanner *);
+void tamsin_upper(struct scanner *);
 
 /* --------------------------------------------------------------- */
 /* global state: result of last action */

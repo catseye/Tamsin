@@ -470,13 +470,13 @@ The rule formals may call on other rules in the program.
 ### Auto-term creation from productions ###
 
 An experimental feature.  But Rooibos does it, and it could help make
-parser development faster/shorter.  Note that even though test passes,
-feature is not fully implemented.
+parser development faster/shorter.  Note that feature is not fully implemented.
+Therefore test disabled.
 
-    | main = expr0.
-    | expr0! = expr1 & {"+" & expr1}.
-    | expr1! = term & {"*" & term}.
-    | term = "x" | "y" | "z" | "(" & expr0 & ")".
-    + x+y*(z+x+y)
-    = expr0(expr1, +, expr1)
-
+        | main = expr0.
+        | expr0! = expr1 & {"+" & expr1}.
+        | expr1! = term & {"*" & term}.
+        | term = "x" | "y" | "z" | "(" & expr0 & ")".
+        + x+y*(z+x+y)
+        = expr0(expr1, +, expr1)
+        

@@ -5,6 +5,7 @@
 
 class Term(object):
     def __init__(self, name, contents=None):
+        assert isinstance(name, unicode)
         self.name = name
         if contents is None:
             contents = []
@@ -30,8 +31,11 @@ class Term(object):
         )
 
     def __repr__(self):
-        # sigh
-        return unicode(self)
+        if not self.contents:
+            return repr(self.name)
+        return "%s(%s)" % (
+            self.name, ', '.join([repr(x) for x in self.contents])
+        )
 
 
 class Variable(Term):
@@ -64,4 +68,7 @@ class Concat(Term):
         self.rhs.collect_variables(variables)
 
     def __str__(self):
-        return "%s + %s" % (self.lhs, self.rhs)
+        return "%s%s" % (self.lhs, self.rhs)
+
+    def __repr__(self):
+        return "%r%r" % (self.lhs, self.rhs)
