@@ -488,6 +488,141 @@ We can also use concatenation to construct the resulting term as an atom.
     + 0000
     = ZZZZ
 
+Implicit `set` and `return`
+---------------------------
+
+Unquotes atoms and constructors ("barewords") can have the same names as
+productions.  If they are used in rule context, they are assumed to refer
+to productions.  If they are used in term context, they are assumed to
+refer to terms.
+
+    | main = blerf.
+    | blerf = return blerf.
+    = blerf
+
+Because variable names cannot be mistaken for productions, if they are used
+in rule context and followed by `←`, this is equivalent to `set`.
+
+    | main = S ← blerf & "x" & return S.
+    + x
+    = blerf
+
+There is of course an ASCII digraph for the left-pointing arrow.  (The
+right-pointing symbol in the input in this test is just to get keep my
+text editor's syntax highlighting under control.)
+
+    | main = S <- blerf & "x" & return S.
+    + x->
+    = blerf
+
+If the variable name is not followed by `←`, this is an implied `return`
+of the variable's value.
+
+    | main = S ← blerf & "x" & S.
+    + x
+    = blerf
+
+If a *quoted* term (atom or constructor) is used in rule context, this too
+cannot be mistaken for a production.  So this, too, implies a `return` of
+that term.
+
+    | main = S ← blerf & "x" & 'frelb'.
+    + x
+    = frelb
+
+    | main = S ← blerf & "x" & 'frelb'(S).
+    + x
+    = frelb(blerf)
+
+But it must be quoted, or Tamsin'll think it's a production.
+
+    | main = S ← blerf & "x" & frelb.
+    + x
+    ? no 'frelb' production defined
+
+### Aside: ← vs. → ###
+
+One may well ask why Tamsin has both `→`, to send the result of a rule
+into a variable, and `←`, to send a term into a variable, when both of these
+could be done with one symbol, in one direction, and in fact most languages
+do it this way (with a symbol like `=`, usually.)
+
+Two reasons:
+
+This way gives us two disjoint syntax contexts (rule context and term
+context) which lets us re-use the same symbols (such as lowercased barewords)
+for dual purposes.  Which in turn lets us write more compact code.
+
+And also, parsing is a linear process.  When we consume tokens from the
+input, whether directly with a terminal, or indirectly via a non-terminal,
+we want them to be easily located.  We want all our ducks to be in a row,
+so to speak.  This setup ensures that the focus of parsing is always on
+the left and not nested inside a term.  Like so:
+    
+    | main = "(" &
+    |        expr → S &
+    |        "," &
+    |        expr → T &
+    |        U ← pair(S,T) &
+    |        ")" &
+    |        U.
+    | expr = "a"
+    |      | "b"
+    |      | "c".
+    + (b,c)
+    = pair(b, c)
+
+That said, it is possible to use only the → if you like, by using `return`
+(or implicit return!) instead of `set`.  Like so:
+
+    | main = "(" &
+    |        expr → S &
+    |        "," &
+    |        expr → T &
+    |        return pair(S,T) → U &
+    |        ")" &
+    |        U.
+    | expr = "a"
+    |      | "b"
+    |      | "c".
+    + (b,c)
+    = pair(b, c)
+
+    | main = "(" &
+    |        expr → S &
+    |        "," &
+    |        expr → T &
+    |        'pair'(S,T) → U &
+    |        ")" &
+    |        U.
+    | expr = "a"
+    |      | "b"
+    |      | "c".
+    + (b,c)
+    = pair(b, c)
+
+In my opinion, this style is not as clear, because at the rule which updates
+`U`, `U` itself is the focus and should be on the left.
+
+What about the other way around?  We could introduce some symbol (say, `/`)
+which allows a rule in what would otherwise be a term context, for example
+
+    main = "(" &
+           S ← /expr &
+           "," &
+           T ← /expr &
+           U ← pair(S,T) &
+           ")" &
+           U.
+    expr = "a"
+         | "b"
+         | "c".
+
+This would also work, and is more similar to conventional programming
+languages; however, in my opinion, it is not as clear either, because in
+the rules which parse the sub-expressions, it is `expr` that is the focus
+of the logic, rather than the variables the results are being sent into.
+
 Advanced Parsing
 ----------------
 

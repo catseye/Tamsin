@@ -3,7 +3,7 @@
 # Copyright (c)2014 Chris Pressey, Cat's Eye Technologies.
 # Distributed under a BSD-style license; see LICENSE for more information.
 
-from tamsin.ast import Program, Production
+from tamsin.ast import Production
 from tamsin.term import Term, Variable
 from tamsin.event import EventProducer
 from tamsin.scanner import (

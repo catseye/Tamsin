@@ -7,7 +7,7 @@
 # the same (we hope) behaviour as interpreting the input Tamsin program.
 # Does not support `using` or `@` at the moment.
 
-from tamsin.ast import Program, Production
+from tamsin.ast import Production
 from tamsin.term import Term, Variable, Concat
 
 PRELUDE = r'''

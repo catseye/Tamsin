@@ -60,8 +60,8 @@ class Concat(Term):
         return Term(str(lhs) + str(rhs))
 
     def collect_variables(self, variables):
-        lhs.collect_variables(variables)
-        rhs.collect_variables(variables)
+        self.lhs.collect_variables(variables)
+        self.rhs.collect_variables(variables)
 
     def __str__(self):
         return "%s + %s" % (self.lhs, self.rhs)

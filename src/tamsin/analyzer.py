@@ -4,12 +4,7 @@
 # Distributed under a BSD-style license; see LICENSE for more information.
 
 from tamsin.ast import Program, Production
-from tamsin.term import Term, Variable
 from tamsin.event import EventProducer
-from tamsin.scanner import (
-    EOF,
-    TamsinScannerEngine, CharScannerEngine, ProductionScannerEngine
-)
 
 
 class Analyzer(EventProducer):
@@ -27,7 +22,6 @@ class Analyzer(EventProducer):
     def analyze(self, ast):
         if ast[0] == 'PROGRAM':
             # ('PROGRAM', prodmap, prodlist)
-            prodlist = []
             for prod in ast[2]:
                 self.prodnames.add(prod[1])
             for prod in ast[2]:

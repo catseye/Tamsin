@@ -206,13 +206,14 @@ TODO
 ### document ###
 
 *   tamsin scanner sanity
-*   implied `set` -- maybe get rid of `set` entirely
-*   implied `return` of variables and single-quoted constructors
 *   pragmas and aliases
-*   why we have both → and ← (and how we could write "studly" code with just ←)
 
 ### lower-priority/experimental ###
 
+*   use `←` instead of `@`, why not?
+*   `¶foo` means production called `foo`, to disambiguate
+    (this would mean unaliasing is less necessary -- call your production
+    `¶return` if you like) -- ASCII version?  `p^foo`?
 *   pattern match in send:
     *   `fields → F@fields(H,T) & H`
 *   maps, implemented as hash tables.
@@ -248,8 +249,7 @@ TODO
 *   non-backtracking versions of `|` and `{}`?  (very advanced)
 *   «» could be an alias w/right sym (`,,`, `„`)
     (still need to scan it specially though)
-*   dictionary values in variables?
-*   special form that consumes rest of input from the Tamsin source
+*   special form that consumes rest of input from the Tamsin source -- gimmick
 *   feature-testing: `$.exists('$.blargh') | do_without_blargh`
 *   ternary: `foo ? bar : baz` -- if foo succeeded, do bar, else do baz.
 *   a second implementation, in C -- with compiler to C and meta-circular
