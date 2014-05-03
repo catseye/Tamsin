@@ -466,3 +466,17 @@ The rule formals may call on other rules in the program.
     | pair = "pair" & "(" & thing → A & "," & thing → B & ")" & return pair(A,B).
     | bit = "0" | "1".
     = its_a_pair(pair(pair(0, 1), 1))
+
+### Auto-term creation from productions ###
+
+An experimental feature.  But Rooibos does it, and it could help make
+parser development faster/shorter.  Note that even though test passes,
+feature is not fully implemented.
+
+    | main = expr0.
+    | expr0! = expr1 & {"+" & expr1}.
+    | expr1! = term & {"*" & term}.
+    | term = "x" | "y" | "z" | "(" & expr0 & ")".
+    + x+y*(z+x+y)
+    = expr0(expr1, +, expr1)
+

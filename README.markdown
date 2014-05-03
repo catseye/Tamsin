@@ -197,7 +197,6 @@ TODO
 *   `bin/tamsin runast astfile.txt` -- for testing the meta-circular parser
 *   `bin/tamsin runscan scanfile.txt` -- for testing the meta-circular scanner
 *   `bin/tamsin scan file.tamsin` -- to generate a scanfile
-*   refactor nastier bits of the compiler
 *   8-bit clean strings, in both Python and C.  tests for these as string
     literals, ability to scan them on input, and ability to produce them
     on output.
@@ -205,6 +204,8 @@ TODO
 
 ### lower-priority/experimental ###
 
+*   Tamsin scanner: more liberal (every non-alphanum+_ symbol scans as itself,
+    incl. ones that have no meaning currently like `/` and `?`)
 *   use `←` instead of `@`, why not?
 *   `¶foo` means production called `foo`, to disambiguate
     (this would mean unaliasing is less necessary -- call your production

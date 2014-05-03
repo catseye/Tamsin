@@ -22,6 +22,7 @@ class Parser(EventProducer):
             'fail': (1, ('PRODREF', '$', 'fail')),
             'return': (1, ('PRODREF', '$', 'return')),
         }
+        self.autoterm_accum = []
 
     def eof(self):
         return self.scanner.eof()
@@ -76,10 +77,21 @@ class Parser(EventProducer):
         elif self.consume('['):
             formals = self.expr0()
             self.expect(']')
+        autoterm = False
+        if self.consume('!'):
+            autoterm = True
+            self.autoterm_accum = []
         self.expect('=')
         body = self.expr0()
         self.expect('.')
-        return ('PROD', name, formals, (), body)
+        ast = ('PROD', name, formals, (), body)
+        if autoterm:
+            return_this_ish = Term(name, self.autoterm_accum)
+            print return_this_ish
+            import sys
+            sys.exit(0)
+            #ast = self.autoterm_accum
+        return ast
 
     def expr0(self):
         lhs = self.expr1()
@@ -125,11 +137,13 @@ class Parser(EventProducer):
             self.expect('}')
             return ('WHILE', e)
         elif self.peek()[0] == '"':
-            literal = self.consume_any()[1:-1]
-            return ('CALL', ('PRODREF', '$', 'expect'), [Term(literal)], None)
+            literal = Term(self.consume_any()[1:-1])
+            self.autoterm_accum.append(literal)
+            return ('CALL', ('PRODREF', '$', 'expect'), [literal], None)
         elif self.consume(u'«') or self.consume('<<'):
             t = self.term()
             if self.consume(u'»') or self.consume('>>'):
+                self.autoterm_accum.append(t)
                 return ('CALL', ('PRODREF', '$', 'expect'), [t], None)
             else:
                 self.error("'>>'")
@@ -173,6 +187,7 @@ class Parser(EventProducer):
                             args.append(self.term())
                     self.expect(')')
             ibuf = None
+            self.autoterm_accum.append(Term(prodref[2]))
             if self.consume('@'):
                 ibuf = self.term()
             return ('CALL', prodref, args, ibuf)
