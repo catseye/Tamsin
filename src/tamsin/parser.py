@@ -11,10 +11,10 @@ from tamsin.scanner import (
 
 
 class Parser(EventProducer):
-    def __init__(self, buffer, listeners=None):
+    def __init__(self, buffer, scanner_engine=None, listeners=None):
         self.listeners = listeners
         self.scanner = Scanner(buffer, listeners=self.listeners)
-        self.scanner.push_engine(TamsinScannerEngine())
+        self.scanner.push_engine(scanner_engine or TamsinScannerEngine())
         self.aliases = {
             'eof': (0, ('PRODREF', '$', 'eof')),
             'any': (0, ('PRODREF', '$', 'any')),

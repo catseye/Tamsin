@@ -1,0 +1,14 @@
+# Scanner for Tamsin tokens, written in Tamsin.
+# Distributed under a BSD-style license; see LICENSE.
+
+tamsin = skippable & (symbol | str('\'') | str('"') | word).
+symbol = "&&" | "||" | "->" | "<-" | "<<" | ">>"
+       | "=" | "(" | ")" | "[" | "]" | "{" | "}" | "!" | "|" | "&"
+       | "," | "." | "@" | "+" | "$" | "→" | "←" | "«" | "»".
+str(Q) = «Q» & {escape | !Q & any} & «Q».
+escape = "\\" & ("n" | "r" | "t" | "\\" | "'" | "\"").
+word = $.alnum → T & { ($.alnum | "_") → S & T ← T + S } & T.
+skippable = {whitespace | comment}.
+whitespace = " " | "\t" | "\r" | "\n".
+comment = "#" & {!'\n' & any} & "\n".
+main = {tamsin -> T & print T}.

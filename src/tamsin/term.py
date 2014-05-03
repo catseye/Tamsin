@@ -26,12 +26,12 @@ class Term(object):
         if not self.contents:
             return self.name
         return "%s(%s)" % (
-            self.name, ', '.join([str(x) for x in self.contents])
+            self.name, ', '.join([unicode(x) for x in self.contents])
         )
 
     def __repr__(self):
         # sigh
-        return str(self)
+        return unicode(self)
 
 
 class Variable(Term):

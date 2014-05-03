@@ -117,7 +117,7 @@ class Interpreter(EventProducer):
             if name == '$.expect':
                 upcoming_token = self.scanner.peek()
                 term = bindings['X']
-                token = str(term)
+                token = unicode(term)
                 if self.scanner.consume(token):
                     return (True, term)
                 else:
@@ -141,7 +141,7 @@ class Interpreter(EventProducer):
                     token = self.scanner.consume_any()
                     return (True, token)
             elif name == '$.alnum':
-                if self.scanner.peek()[0].isalnum():
+                if not self.scanner.eof() and self.scanner.peek()[0].isalnum():
                     return (True, self.scanner.consume_any())
                 else:
                     return (False, Term("expected alphanumeric, found '%s'" %
@@ -181,7 +181,7 @@ class Interpreter(EventProducer):
                     if bindings != False:
                         if ibuf is not None:
                             return self.interpret_on_buffer(
-                                prod, str(ibuf.expand(self.context)),
+                                prod, unicode(ibuf.expand(self.context)),
                                 bindings=bindings
                             )
                         else:
@@ -191,7 +191,7 @@ class Interpreter(EventProducer):
                     # start a new scope.  arg bindings will appear here.
                     self.context.push_scope(prod.name)
                     (success, result) = self.interpret_on_buffer(
-                        formals, str(args[0])
+                        formals, unicode(args[0])
                     )
                     # we do not want to start a new scope here, and we
                     # interpret the rule directly, not the prod.

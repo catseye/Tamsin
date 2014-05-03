@@ -28,6 +28,9 @@ class Program(object):
                 'return': [Variable('X')]
             }.get(name, [])
             return [Production('$.%s' % name, 0, formals, [], None)]
+    
+    def __repr__(self):
+        return u"Program(%r)" % self.prodmap
 
 class Production(object):
     def __init__(self, name, rank, formals, locals_, body):
@@ -36,3 +39,12 @@ class Production(object):
         self.formals = formals
         self.locals_ = locals_
         self.body = body
+
+    def __repr__(self):
+        return u"Production(%r, %r, %r, %r, %r)" % (
+            self.name,
+            self.rank,
+            self.formals,
+            self.locals_,
+            '...' # self.body
+        )
