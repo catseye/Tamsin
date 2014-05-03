@@ -57,7 +57,7 @@ class Concat(Term):
     def expand(self, context):
         lhs = self.lhs.expand(context)
         rhs = self.rhs.expand(context)
-        return Term(str(lhs) + str(rhs))
+        return Term(unicode(lhs) + unicode(rhs))
 
     def collect_variables(self, variables):
         self.lhs.collect_variables(variables)

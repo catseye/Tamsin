@@ -16,6 +16,12 @@ if [ x$1 = xcompiler ]; then
     #FILES="doc/Tamsin.markdown README.markdown"
     #FILES="doc/Tamsin.markdown doc/Case_Study.markdown README.markdown"
     falderal --substring-error fixture/compiler.py.markdown $FILES
+elif [ x$1 = xscanner ]; then
+    for EG in eg/*.tamsin; do
+        bin/tamsin scan <$EG > 1.txt
+        bin/tamsin eg/tamsin-scanner.tamsin <$EG > 2.txt
+        diff -ru 1.txt 2.txt || exit 1
+    done
 else
     falderal --substring-error fixture/tamsin.py.markdown $FILES
 fi

@@ -15,7 +15,10 @@ EOF = EOF()  # unique
 
 
 def enc(x):
-    if not isinstance(x, str):
+    if isinstance(x, str):
+        x = x.decode('UTF-8')
+        assert isinstance(x, unicode)
+    else:
         x = unicode(x)
     return x.encode('ascii', 'xmlcharrefreplace')
 

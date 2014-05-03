@@ -1068,18 +1068,29 @@ Next, in Tamsin.  Approximate.
 Appendix B. Tamsin Scanner
 --------------------------
 
-Approximate.  Written in Tamsin.
+Written in Tamsin.  Should be very close to true.
 
-    tamsin = [skippable] & ($.eof | symbol | str('\'') | str('"') | word).
-    symbol = "&&" | "||" | "->" | "<-" | "<<" | ">>"
+    tamsin = skippable & (symbol | str('\'') | str('"') | word).
+    symbol = "&" & "&" & '&&'
+           | "|" & "|" & '||'
+           | "-" & ">" & '->'
+           | "<" & "-" & '<-'
+           | "<" & "<" & '<<'
+           | ">" & ">" & '>>'
            | "=" | "(" | ")" | "[" | "]" | "{" | "}" | "!" | "|" | "&"
            | "," | "." | "@" | "+" | "$" | "→" | "←" | "«" | "»".
-    str(Q) = «Q» & {escape | not Q} & «Q».
-    escape = "\\" & ("n" | "r" | "t" | "\\" | "'" | "\"").
+    str(Q) = «Q» → T & {(escape | !«Q» & any) → S & T ← T + S} & «Q» &
+             return T + Q.
+    escape = "\\" & "n" & '\n'
+           | "\\" & "r" & '\r'
+           | "\\" & "t" & '\t'
+           | "\\" & "\\" & '\\'
+           | "\\" & "'" & '\''
+           | "\\" & "\"" & '"'.
     word = $.alnum → T & { ($.alnum | "_") → S & T ← T + S } & T.
-    skippable = {whitespace | comment}.         # could be greedy
-    whitespace = {" " | "\t" | "\r" | "\n"}.
-    comment = "#" & {not '\n'} & "\n".
+    skippable = {whitespace | comment}.
+    whitespace = " " | "\t" | "\r" | "\n".
+    comment = "#" & {!"\n" & any} & "\n".
 
 
 Appendix C. System Module

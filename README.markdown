@@ -190,16 +190,14 @@ Related work
 TODO
 ----
 
-*   meta-circular implementation of scanner -- what we have is pretty close
 *   meta-circular implementation of parser
 *   meta-circular implementation of interpreter!
 *   system library in its own Python module
 *   `bin/tamsin runast astfile.txt` -- for testing the meta-circular parser
-*   `bin/tamsin runscan scanfile.txt` -- for testing the meta-circular scanner
-*   `bin/tamsin scan file.tamsin` -- to generate a scanfile
 *   8-bit clean strings, in both Python and C.  tests for these as string
     literals, ability to scan them on input, and ability to produce them
     on output.
+*   decode UTF-8 in compiled C code
 *   better command-line argument parsing
 
 ### lower-priority/experimental ###

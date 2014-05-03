@@ -2,13 +2,24 @@
 # Distributed under a BSD-style license; see LICENSE.
 
 tamsin = skippable & (symbol | str('\'') | str('"') | word).
-symbol = "&&" | "||" | "->" | "<-" | "<<" | ">>"
+symbol = "&" & "&" & '&&'
+       | "|" & "|" & '||'
+       | "-" & ">" & '->'
+       | "<" & "-" & '<-'
+       | "<" & "<" & '<<'
+       | ">" & ">" & '>>'
        | "=" | "(" | ")" | "[" | "]" | "{" | "}" | "!" | "|" | "&"
        | "," | "." | "@" | "+" | "$" | "→" | "←" | "«" | "»".
-str(Q) = «Q» & {escape | !Q & any} & «Q».
-escape = "\\" & ("n" | "r" | "t" | "\\" | "'" | "\"").
+str(Q) = «Q» → T & {(escape | !«Q» & any) → S & T ← T + S} & «Q» &
+         return T + Q.
+escape = "\\" & "n" & '\n'
+       | "\\" & "r" & '\r'
+       | "\\" & "t" & '\t'
+       | "\\" & "\\" & '\\'
+       | "\\" & "'" & '\''
+       | "\\" & "\"" & '"'.
 word = $.alnum → T & { ($.alnum | "_") → S & T ← T + S } & T.
 skippable = {whitespace | comment}.
 whitespace = " " | "\t" | "\r" | "\n".
-comment = "#" & {!'\n' & any} & "\n".
-main = {tamsin -> T & print T}.
+comment = "#" & {!"\n" & any} & "\n".
+main = {tamsin -> T & print T} & ''.

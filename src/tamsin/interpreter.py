@@ -148,7 +148,7 @@ class Interpreter(EventProducer):
                                         self.scanner.peek()))
             elif name == '$.print':
                 val = bindings['X']
-                print val
+                print unicode(val).encode('UTF-8')
                 return (True, val)
             elif name == '$.fail':
                 return (False, bindings['X'])

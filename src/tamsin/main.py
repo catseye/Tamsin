@@ -7,7 +7,7 @@ import codecs
 import sys
 
 from tamsin.event import DebugEventListener
-from tamsin.scanner import Scanner, CharScannerEngine, ProductionScannerEngine
+from tamsin.scanner import EOF, Scanner, CharScannerEngine, TamsinScannerEngine
 from tamsin.parser import Parser
 from tamsin.interpreter import Interpreter
 from tamsin.analyzer import Analyzer
@@ -25,7 +25,7 @@ def parse_and_check(filename, scanner_engine=None):
 
 
 def mk_interpreter(ast, listeners=None):
-    scanner = Scanner(sys.stdin.read(), listeners=listeners)
+    scanner = Scanner(sys.stdin.read().decode('UTF-8'), listeners=listeners)
     scanner.push_engine(CharScannerEngine())
     interpreter = Interpreter(
         ast, scanner, listeners=listeners
@@ -47,19 +47,18 @@ def main(args):
     if args[0] == '--debug':
         listeners.append(DebugEventListener())
         args = args[1:]
-    if args[0] == 'parse':
+    if args[0] == 'scan':
+        scanner = Scanner(sys.stdin.read().decode('UTF-8'), listeners=listeners)
+        scanner.push_engine(TamsinScannerEngine())
+        tok = None
+        while tok is not EOF:
+            tok = scanner.consume_any()
+            if tok is not EOF:
+                print tok.encode('UTF-8')
+        print
+    elif args[0] == 'parse':
         ast = parse_and_check(args[1])
         print repr(ast)
-    elif args[0] == 'runscan':
-        tamsin_scanner_ast = parse_and_check('eg/tamsin-scanner.tamsin')
-        print repr(tamsin_scanner_ast)
-        scanner_interpreter = mk_interpreter(tamsin_scanner_ast)
-        s = ProductionScannerEngine(scanner_interpreter,
-            tamsin_scanner_ast.find_productions(
-                ('PRODREF', '', 'tamsin')
-            )[0])
-        ast = parse_and_check(args[1], scanner_engine=s)
-        run(ast, listeners=listeners)
     elif args[0] == 'compile':
         ast = parse_and_check(args[1])
         #print >>sys.stderr, repr(ast)
