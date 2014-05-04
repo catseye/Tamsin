@@ -180,6 +180,44 @@ class Interpreter(EventProducer):
             self.event('end_interpret_rule', ast.body)
             self.context.pop_scope(ast.name)
             return (succeeded, x)
+        elif isinstance(ast, And):
+            (succeeded, value_lhs) = self.interpret(ast.lhs)
+            if not succeeded:
+                return (False, value_lhs)
+            (succeeded, value_rhs) = self.interpret(ast.rhs)
+            return (succeeded, value_rhs)
+        elif isinstance(ast, Or):
+            saved_context = self.context.clone()
+            saved_scanner_state = self.scanner.get_state()
+            self.event('begin_or', ast.lhs, ast.rhs, saved_context, saved_scanner_state)
+            (succeeded, result) = self.interpret(ast.lhs)
+            if succeeded:
+                self.event('succeed_or', result)
+                return (True, result)
+            else:
+                self.event('fail_or', self.context, self.scanner, result)
+                self.context = saved_context
+                self.scanner.install_state(saved_scanner_state)
+                return self.interpret(ast.rhs)
+        elif isinstance(ast, Using):
+            sub = ast.lhs
+            prodref = ast.prodref
+            scanner_name = prodref.name
+            if scanner_name == u'tamsin':
+                new_engine = TamsinScannerEngine()
+            elif scanner_name == u'char':
+                new_engine = CharScannerEngine()
+            else:
+                prods = self.program.find_productions(prodref)
+                if len(prods) != 1:
+                    raise ValueError("No such scanner '%s'" % scanner_name)
+                new_engine = ProductionScannerEngine(self, prods[0])
+            self.scanner.push_engine(new_engine)
+            self.event('enter_with')
+            (succeeded, result) = self.interpret(sub)
+            self.event('leave_with', succeeded, result)
+            self.scanner.pop_engine()
+            return (succeeded, result)
         elif ast[0] == 'CALL':
             prodref = ast[1]
             #prodmod = prodref[1]
@@ -234,29 +272,6 @@ class Interpreter(EventProducer):
             result = ast[2].expand(self.context)
             self.context.store(ast[1].name, result)
             return (True, result)
-        elif ast[0] == 'AND':
-            lhs = ast[1]
-            rhs = ast[2]
-            (succeeded, value_lhs) = self.interpret(lhs)
-            if not succeeded:
-                return (False, value_lhs)
-            (succeeded, value_rhs) = self.interpret(rhs)
-            return (succeeded, value_rhs)
-        elif ast[0] == 'OR':
-            lhs = ast[1]
-            rhs = ast[2]
-            saved_context = self.context.clone()
-            saved_scanner_state = self.scanner.get_state()
-            self.event('begin_or', lhs, rhs, saved_context, saved_scanner_state)
-            (succeeded, result) = self.interpret(lhs)
-            if succeeded:
-                self.event('succeed_or', result)
-                return (True, result)
-            else:
-                self.event('fail_or', self.context, self.scanner, result)
-                self.context = saved_context
-                self.scanner.install_state(saved_scanner_state)
-                return self.interpret(rhs)
         elif ast[0] == 'NOT':
             expr = ast[1]
             saved_context = self.context.clone()
@@ -272,25 +287,6 @@ class Interpreter(EventProducer):
                 )
             else:
                 return (True, Term(u'nil'))
-        elif ast[0] == 'USING':
-            sub = ast[1]
-            prodref = ast[2]
-            scanner_name = prodref.name
-            if scanner_name == u'tamsin':
-                new_engine = TamsinScannerEngine()
-            elif scanner_name == u'char':
-                new_engine = CharScannerEngine()
-            else:
-                prods = self.program.find_productions(prodref)
-                if len(prods) != 1:
-                    raise ValueError("No such scanner '%s'" % scanner_name)
-                new_engine = ProductionScannerEngine(self, prods[0])
-            self.scanner.push_engine(new_engine)
-            self.event('enter_with')
-            (succeeded, result) = self.interpret(sub)
-            self.event('leave_with', succeeded, result)
-            self.scanner.pop_engine()
-            return (succeeded, result)
         elif ast[0] == 'WHILE':
             result = Term(u'nil')
             self.event('begin_while')

@@ -35,6 +35,12 @@ class Analyzer(EventProducer):
             self.collect_locals(ast, locals_)
             body = self.analyze(ast.body)
             return Production(ast.name, 0, ast.formals, locals_, body)
+        elif isinstance(ast, Or):
+            return Or(self.analyze(ast.lhs), self.analyze(ast.rhs))
+        elif isinstance(ast, And):
+            return And(self.analyze(ast.lhs), self.analyze(ast.rhs))
+        elif isinstance(ast, Using):
+            return Using(self.analyze(ast.lhs), ast.prodref)
         elif ast[0] == 'CALL':
             # ('CALL', prodref, args, ibuf)
             prodref = ast[1]
@@ -46,15 +52,8 @@ class Analyzer(EventProducer):
             return ('SEND', self.analyze(ast[1]), ast[2])
         elif ast[0] == 'SET':
             return ast
-        elif ast[0] == 'AND':
-            return ('AND', self.analyze(ast[1]), self.analyze(ast[2]))
-        elif ast[0] == 'OR':
-            return ('OR', self.analyze(ast[1]), self.analyze(ast[2]))
         elif ast[0] == 'NOT':
             return ('NOT', self.analyze(ast[1]))
-        elif ast[0] == 'USING':
-            # ('USING', lhs, prodref)
-            return ('USING', self.analyze(ast[1]), ast[2])
         elif ast[0] == 'WHILE':
             return ('WHILE', self.analyze(ast[1]))
         else:
@@ -65,16 +64,15 @@ class Analyzer(EventProducer):
 
         if isinstance(ast, Production):
             self.collect_locals(ast.body, locals_)
+        elif isinstance(ast, And) or isinstance(ast, Or):
+            self.collect_locals(ast.lhs, locals_)
+            self.collect_locals(ast.rhs, locals_)
+        elif isinstance(ast, Using):
+            self.collect_locals(ast.lhs, locals_)
         elif ast[0] == 'SEND':
             locals_.add(ast[2].name)
         elif ast[0] == 'SET':
             locals_.add(ast[1].name)
-        elif ast[0] == 'AND':
-            self.collect_locals(ast[1], locals_)
-            self.collect_locals(ast[2], locals_)
-        elif ast[0] == 'OR':
-            self.collect_locals(ast[1], locals_)
-            self.collect_locals(ast[2], locals_)
         elif ast[0] == 'WHILE':
             self.collect_locals(ast[1], locals_)
         elif ast[0] == 'NOT':

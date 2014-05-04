@@ -87,21 +87,21 @@ class Parser(EventProducer):
         lhs = self.expr1()
         while self.consume('|') or self.consume('||'):
             rhs = self.expr1()
-            lhs = ('OR', lhs, rhs)
+            lhs = Or(lhs, rhs)
         return lhs
 
     def expr1(self):
         lhs = self.expr2()
         while self.consume('&') or self.consume('&&'):
             rhs = self.expr2()
-            lhs = ('AND', lhs, rhs)
+            lhs = And(lhs, rhs)
         return lhs
 
     def expr2(self):
         lhs = self.expr3()
         if self.consume('using'):
             prodref = self.prodref()
-            lhs = ('USING', lhs, prodref)
+            lhs = Using(lhs, prodref)
         return lhs
 
     def expr3(self):
@@ -119,7 +119,7 @@ class Parser(EventProducer):
         elif self.consume('['):
             e = self.expr0()
             self.expect(']')
-            return ('OR', e,
+            return Or(e,
                 ('CALL', Prodref('$', 'return'), [Term(u'nil')], None)
             )
         elif self.consume('{'):

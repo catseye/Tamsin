@@ -61,3 +61,37 @@ class Prodref(AST):
             self.module,
             self.name
         )
+
+class Or(AST):
+    def __init__(self, lhs, rhs):
+        self.lhs = lhs
+        self.rhs = rhs
+
+    def __repr__(self):
+        return u"Or(%r, %r)" % (
+            self.lhs,
+            self.rhs
+        )
+
+class And(AST):
+    def __init__(self, lhs, rhs):
+        self.lhs = lhs
+        self.rhs = rhs
+
+    def __repr__(self):
+        return u"And(%r, %r)" % (
+            self.lhs,
+            self.rhs
+        )
+
+class Using(AST):
+    def __init__(self, lhs, prodref):
+        self.lhs = lhs
+        assert isinstance(prodref, Prodref)
+        self.prodref = prodref
+
+    def __repr__(self):
+        return u"Using(%r, %r)" % (
+            self.lhs,
+            self.prodref
+        )

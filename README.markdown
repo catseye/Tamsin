@@ -172,8 +172,9 @@ Design Goals
     parsing techniques.
 *   Provide means to solve practical problems.
 *   Keep the language simple (grammar should fit on a page)
-*   Have a relatively simple reference implementation (currently ~1700 lines,
-    including everything — debugging and the C runtime used by the compiler.)
+*   Have a relatively simple reference implementation (currently less than
+    3 KLoc, including everything — debugging and the C runtime used by the
+    compiler.)
 
 License
 -------
