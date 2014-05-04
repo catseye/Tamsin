@@ -55,7 +55,7 @@ class Analyzer(EventProducer):
             return Send(self.analyze(ast.rule), ast.variable)
         elif isinstance(ast, Set):
             assert isinstance(ast.variable, Variable), ast
-            assert isinstance(ast.term, Term), ast
+            assert isinstance(ast.term, Term), repr(ast)
             return ast
         elif isinstance(ast, Not):
             return Not(self.analyze(ast.rule))

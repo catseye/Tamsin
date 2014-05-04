@@ -6,10 +6,9 @@
 from tamsin.ast import (
     Production, And, Or, Not, While, Call, Send, Set, Using, Prodref
 )
-from tamsin.term import Term, Variable
+from tamsin.term import Term, EOF, Atom, Constructor, Variable
 from tamsin.event import EventProducer
 from tamsin.scanner import (
-    EOF,
     CharScannerEngine, ProductionScannerEngine
 )
 
@@ -90,9 +89,13 @@ class Interpreter(EventProducer):
         if isinstance(pattern, Variable):
             # TODO: check existing binding!  oh well, assume unique for now.
             return {pattern.name: value}
-        elif isinstance(pattern, Term):
+        elif isinstance(pattern, Atom) and isinstance(value, Atom):
+            return {} if pattern.text == value.text else False
+        elif isinstance(pattern, Atom) or isinstance(value, Atom):
+            return False
+        elif isinstance(pattern, Constructor):
             i = 0
-            if pattern.name != value.name:
+            if pattern.tag != value.tag:
                 return False
             bindings = {}
             while i < len(pattern.contents):
@@ -128,54 +131,58 @@ class Interpreter(EventProducer):
                     s = (u"expected '%s' found '%s' (at '%s')" %
                          (token, upcoming_token,
                           self.scanner.report_buffer(self.scanner.position, 20)))
-                    return (False, Term(s))
+                    return (False, Atom(s))
             elif name == '$.return':
                 return (True, bindings['X'])
             elif name == '$.eof':
                 if self.scanner.peek() is EOF:
                     return (True, EOF)
                 else:
-                    return (False, Term(u"expected EOF found '%s'" %
+                    return (False, Atom(u"expected EOF found '%s'" %
                             self.scanner.peek()))
             elif name == '$.any':
                 if self.scanner.peek() is EOF:
-                    return (False, Term(u"expected any token, found EOF"))
+                    return (False, Atom(u"expected any token, found EOF"))
                 else:
-                    return (True, Term(self.scanner.consume_any()))
+                    return (True, Atom(self.scanner.consume_any()))
             elif name == '$.alnum':
                 if (self.scanner.peek() is not EOF and
                     self.scanner.peek()[0].isalnum()):
-                    return (True, Term(self.scanner.consume_any()))
+                    return (True, Atom(self.scanner.consume_any()))
                 else:
-                    return (False, Term(u"expected alphanumeric, found '%s'" %
+                    return (False, Atom(u"expected alphanumeric, found '%s'" %
                                         self.scanner.peek()))
             elif name == '$.upper':
                 if (self.scanner.peek() is not EOF and
                     self.scanner.peek()[0].isupper()):
-                    return (True, Term(self.scanner.consume_any()))
+                    return (True, Atom(self.scanner.consume_any()))
                 else:
-                    return (False, Term(u"expected uppercase alphabetic, found '%s'" %
+                    return (False, Atom(u"expected uppercase alphabetic, found '%s'" %
                                         self.scanner.peek()))
             elif name == '$.startswith':
                 if (self.scanner.peek() is not EOF and
                     self.scanner.peek()[0].startswith(unicode(bindings['X']))):
-                    return (True, Term(self.scanner.consume_any()))
+                    return (True, Atom(self.scanner.consume_any()))
                 else:
-                    return (False, Term(u"expected '%s, found '%s'" %
+                    return (False, Atom(u"expected '%s, found '%s'" %
                                         (bindings['X'], self.scanner.peek())))
             elif name == '$.unquote':  # TODO this is definitely a bodge
                 x = unicode(bindings['X'])
                 if (x.startswith((u'"', u"'"))):
-                    return (True, Term(x[1:-1]))
+                    return (True, Atom(x[1:-1]))
                 else:
                     return (True, bindings['X'])
             elif name == '$.mkterm':  # TODO another categorical bodge
                 t = bindings['T']
                 l = bindings['L']
-                while l.name == 'list':
-                    t.contents.append(l.contents[0])
+                contents = []
+                while isinstance(l, Constructor) and l.tag == 'list':
+                    contents.append(l.contents[0])
                     l = l.contents[1]
-                return (True, t)
+                if contents:
+                    return (True, Constructor(t.text, contents))
+                else:
+                    return (True, t)
             elif name == '$.print':
                 val = bindings['X']
                 print unicode(val).encode('UTF-8')
@@ -290,13 +297,13 @@ class Interpreter(EventProducer):
             self.scanner.install_state(saved_scanner_state)
             if succeeded:
                 return (False,
-                   Term("expected anything except '%s', found '%s'" %
+                   Atom("expected anything except '%s', found '%s'" %
                         (repr(expr), self.scanner.peek()))
                 )
             else:
-                return (True, Term(u'nil'))
+                return (True, Atom(u'nil'))
         elif isinstance(ast, While):
-            result = Term(u'nil')
+            result = Atom(u'nil')
             self.event('begin_while')
             succeeded = True
             successful_result = result

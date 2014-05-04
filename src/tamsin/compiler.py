@@ -10,7 +10,7 @@
 from tamsin.ast import (
     Production, And, Or, Not, While, Call, Send, Set, Using
 )
-from tamsin.term import Term, Variable, Concat
+from tamsin.term import Term, Atom, Constructor, Variable, Concat
 
 PRELUDE = r'''
 /*
@@ -269,7 +269,7 @@ class Compiler(object):
             self.emit("{")
             self.indent()
             self.emit_decl_state()
-            self.emit_term(Term(u'nil'), 'successful_result')
+            self.emit_term(Atom(u'nil'), 'successful_result')
             self.emit("ok = 1;")
             self.emit("while (ok) {")
             self.indent()
@@ -350,9 +350,13 @@ class Compiler(object):
                     (name, term.name, 'term_new("nil_%s")' % term.name))
             else:
                 self.emit('struct term *%s = %s;' % (name, term.name))
-        else:
+        elif isinstance(term, Atom):
             self.emit('struct term *%s = term_new("%s");' %
-                (name, escaped(term.name))
+                (name, escaped(term.text))
+            )
+        elif isinstance(term, Constructor):
+            self.emit('struct term *%s = term_new("%s");' %
+                (name, escaped(term.tag))
             )
             i = 0
             # TODO: reversed() is provisional
@@ -361,6 +365,9 @@ class Compiler(object):
                 i += 1
                 self.emit_term(subterm, subname, pattern=pattern);
                 self.emit("term_add_subterm(%s, %s);" % (name, subname))
+        else:
+            raise NotImplementedError
+
 
 def escaped(s):
     escaped_name = s

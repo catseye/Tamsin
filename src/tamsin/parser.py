@@ -6,10 +6,12 @@
 from tamsin.ast import (
     Program, Production, And, Or, Not, While, Call, Send, Set, Using, Prodref
 )
-from tamsin.term import Term, Variable, Concat
+from tamsin.term import (
+    Atom, Constructor, Variable, Concat, EOF
+)
 from tamsin.event import EventProducer
 from tamsin.scanner import (
-    EOF, Scanner, TamsinScannerEngine
+    Scanner, TamsinScannerEngine
 )
 
 
@@ -122,7 +124,7 @@ class Parser(EventProducer):
             e = self.expr0()
             self.expect(']')
             return Or(e,
-                Call(Prodref('$', 'return'), [Term(u'nil')], None)
+                Call(Prodref('$', 'return'), [Atom(u'nil')], None)
             )
         elif self.consume('{'):
             e = self.expr0()
@@ -130,8 +132,7 @@ class Parser(EventProducer):
             return While(e)
         elif self.peek()[0] == '"':
             s = unicode(self.consume_any()[1:-1])
-            literal = Term(s)
-            return Call(Prodref('$', 'expect'), [literal], None)
+            return Call(Prodref('$', 'expect'), [Atom(s)], None)
         elif self.consume(u'«') or self.consume('<<'):
             t = self.term()
             if self.consume(u'»') or self.consume('>>'):
@@ -220,6 +221,8 @@ class Parser(EventProducer):
                 while self.consume(','):
                     subs.append(self.term())
                 self.expect(')')
-            return Term(unicode(atom), subs)
+                return Constructor(unicode(atom), subs)
+            else:
+                return Atom(unicode(atom))
         else:
             self.error('term')

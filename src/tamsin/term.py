@@ -3,51 +3,78 @@
 # Copyright (c)2014 Chris Pressey, Cat's Eye Technologies.
 # Distributed under a BSD-style license; see LICENSE for more information.
 
-class Term(object):
-    def __init__(self, name, contents=None):
-        assert isinstance(name, unicode)
-        self.name = name
-        if contents is None:
-            contents = []
-        self.contents = contents
 
+class Term(object):
     def expand(self, context):
         """Expands this term, returning a new term where, for all x, all
         occurrences of (VAR x) are replaced with the value of x in the
         given context.
 
         """
-        return Term(self.name, [x.expand(context) for x in self.contents])
+        return self
+
+    def collect_variables(self, variables):
+        pass
+
+    #def __unicode__(self):
+    #    raise NotImplementedError
+
+    def __str__(self):
+        return unicode(self)
+
+    def __repr__(self):
+        raise NotImplementedError
+
+
+class EOF(Term):
+    def __str__(self):
+        return "EOF"
+
+    def __repr__(self):
+        return "EOF"
+
+EOF = EOF()  # unique
+
+
+class Atom(Term):
+    def __init__(self, text):
+        assert isinstance(text, unicode)
+        self.text = text
+
+    def __unicode__(self):
+        return self.text
+
+    def __repr__(self):
+        return "Atom(%r)" % (self.text)
+
+
+class Constructor(Term):
+    def __init__(self, tag, contents):
+        assert isinstance(tag, unicode)
+        self.tag = tag
+        self.contents = contents
+
+    def expand(self, context):
+        return Constructor(self.tag, [x.expand(context) for x in self.contents])
 
     def collect_variables(self, variables):
         for x in self.contents:
             x.collect_variables(variables)
 
     def __unicode__(self):
-        if not self.contents:
-            return self.name
         return "%s(%s)" % (
-            self.name, ', '.join([unicode(x) for x in self.contents])
+            self.tag, ', '.join([unicode(x) for x in self.contents])
         )
 
     def __repr__(self):
-        return "Term(%r, %r)" % (self.name, self.contents)
-
-
-# TODO: this should be a kind of term!
-class EOF(Term):
-    def __str__(self):
-        return "EOF"
-    def __repr__(self):
-        return "EOF"
-EOF = EOF(u'EOF', [])  # unique
+        return "Constructor(%r, %r)" % (self.tag, self.contents)
 
 
 class Variable(Term):
     def __init__(self, name):
+        assert isinstance(name, unicode)
         assert name[0].isupper()
         self.name = name
-        self.contents = []
 
     def expand(self, context):
         return context.fetch(self.name)
@@ -72,7 +99,7 @@ class Concat(Term):
     def expand(self, context):
         lhs = self.lhs.expand(context)
         rhs = self.rhs.expand(context)
-        return Term(unicode(lhs) + unicode(rhs))
+        return Atom(unicode(lhs) + unicode(rhs))
 
     def collect_variables(self, variables):
         self.lhs.collect_variables(variables)
