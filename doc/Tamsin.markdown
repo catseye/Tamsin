@@ -973,37 +973,103 @@ As you have seen, the default scanner returns single characters.
     + abc
     ? expected 'abc' found 'a'
 
-You can select a different scanner for a rule with `using`.  A scanner
-is just a production designed to return tokens.  There are a number of
-different built-in scanners in the built-in `$` module.  The default
-character scanner is available as `$.char`.
+You can select a different scanner for a rule with `using`.  There is
+at least one built-in scanner in the built-in `$` module: the default
+character scanner.  It is available as `$.char`.
 
     | main = ("a" & "b" & "c") using $.char.
     + abc
     = c
 
-TODO: should be a rewritten copy of Advanced Scanning from Advanced
-Features document.
+    | main = "abc" using $.char.
+    + abc
+    ? expected 'abc' found 'a'
 
-    | main = ("cat" & "dog") using word.
-    | word = wwww using $.char.
-    | wwww = "c" & "a" & "t" & return 'cat'
-    |      | "d" & "o" & "g" & return 'dog'.
-    + catdog
+You can also define your own scanner by defining a production designed
+to return tokens.  Each time it is called, it should return an atom, which
+the user of your scanner will see as a scanned token.
+
+When you name a production in the program with `using`, that production
+should return a token each time it is called.  We call this scanner a
+"production-defined scanner" or just "production scanner".  In the
+following, we use a production scanner based on the `scanner` production.
+
+We'll use the following scanner in the next few examples.
+
+  It distinguishes
+only `(`, `)`, and strings of alphanumeric characters, while ignoring
+spaces.  (Kind of like a S-expression scanner.)
+
+Note that we are not `using` it yet in this example; this example just
+demonstrates that the `token` production returns tokens.
+
+    | main = {token → A & print A} & 'ok'.
+    | token = ("c" & "a" & "t" & 'cat' | "d" & "o" & "g" & 'dog') using $.char.
+    + catdogdogcatcatdog
+    = cat
     = dog
-
-We can also implement a production scanner with the char scanner.  This is
-more useful.
-
-    | main = program using scanner.
-    | scanner = scan using $.char.
-    | scan = "a" | "b" | "@".
-    | program = "a" & "@" & "b" & return ok.
-    + a@b
+    = dog
+    = cat
+    = cat
+    = dog
     = ok
 
-If the production scanner fails to match the input text, it will return an EOF.
-This is a little weird, but.  Well.  Watch this space.
+(works OK from the command line but DOESN'T work ok from Falderal?  weird.)
+
+      | main = {token → A & print A} & 'ok'.
+      | token = ({" "} & ("(" | ")" | word)) using $.char.
+      | word = $.alnum → L & {$.alnum → M & set L = L + M} & L.
+      + cabbage( bag     gaffe fad ) ()) bag(bagbag bag)
+      = cabbage
+      = (
+      = bag
+      = gaffe
+      = fad
+      = )
+      = (
+      = )
+      = )
+      = bag
+      = (
+      = bagbag
+      = bag
+      = )
+      = ok
+
+There is one guideline to follow: your production which implements a scanner
+should itself say what scanner it is `using`.  For example, the `token` scanner
+above is implemented using the character scanner.  If this is missing, the
+scanner will try to use *itself* as a scanner, with hilarious and generally
+unproductive results.
+
+Here is how you would use the above scanner, as a scanner, in a program:
+
+    | main = ("(" & "cons" & ")" & 'ok') using token.
+    | 
+    | token = ({" "} & ("(" | ")" | word)) using $.char.
+    | word = $.alnum → L & {$.alnum → M & set L = L + M} & L.
+    + ( cons )
+    = ok
+
+    | main = ("(" & "cons" & ")" & 'ok') using token.
+    | 
+    | token = ({" "} & ("(" | ")" | word)) using $.char.
+    | word = $.alnum → L & {$.alnum → M & set L = L + M} & L.
+    + ( quote )
+    ? expected 'cons' found 'quote'
+
+Note that while it's conventional for a production scanner to return terms
+similar to the strings it scanned, this is just a convention, and may be
+subverted:
+
+    | main = ("meow" & "woof") using token.
+    | token = ("c" & "a" & "t" & 'meow' | "d" & "o" & "g" & 'woof') using $.char.
+    + catdog
+    = woof
+
+If a production scanner fails to match the input text, it will return an EOF.
+The justification for this is that it's the end of the input, as far as
+the scanner can understand it.
 
     | main = program using scanner.
     | scanner = scan using $.char.
@@ -1011,6 +1077,15 @@ This is a little weird, but.  Well.  Watch this space.
     | program = "a" & "@" & "b" & return ok.
     + x
     ? expected 'a' found 'EOF'
+
+If you don't like that, you can write your scanner to fail the way you want.
+
+    | main = program using scanner.
+    | scanner = scan using $.char.
+    | scan = "a" | "b" | "@" | return bleah.
+    | program = "a" & "@" & "b" & return ok.
+    + x
+    ? expected 'a' found 'bleah'
 
 On the other hand, if the scanner understands all the tokens, but the parser
 doesn't see the tokens it expects, you get the usual error.
@@ -1021,16 +1096,6 @@ doesn't see the tokens it expects, you get the usual error.
     | program = "a" & "@" & "b" & return ok.
     + b@a
     ? expected 'a' found 'b'
-
-We can write a slightly more realistic scanner, too.
-
-    | main = program using scanner.
-    | scanner = scan using $.char.
-    | scan = "c" & "a" & "t" & return cat
-    |      | "d" & "o" & "g" & return dog.
-    | program = "cat" & "dog".
-    + catdog
-    = dog
 
 Parsing using a production scanner ignores any extra text given to it,
 just like the built-in parser.
@@ -1044,8 +1109,7 @@ just like the built-in parser.
     + catdogfoobar
     = dog
 
-Herein lie an excessive number of tests that I wrote while I was debugging.
-Some of them will be cleaned up at a future point.
+The production scanner properly handles backtracking on a per-token basis.
 
     | main = program using scanner.
     | scanner = scan using $.char.
@@ -1074,6 +1138,69 @@ Some of them will be cleaned up at a future point.
     = 3
     = 4
     = ok
+
+You can mix two scanners in one production.
+
+    | main = "dog" using token & ("!" & "!" & "!") using $.char & return ok.
+    | 
+    | token = ({" "} & ("(" | ")" | word)) using $.char.
+    | word = $.alnum → L & {$.alnum → M & set L = L + M} & L.
+    + dog!!!
+    = ok
+
+Note that the `token` scanner we've defined doesn't consume spaces after a
+token, and that the char scanner doesn't skip spaces.
+
+    | main = "dog" using token & ("c" & "a" & "t") using $.char & return ok.
+    | 
+    | token = ({" "} & ("(" | ")" | word)) using $.char.
+    | word = $.alnum → L & {$.alnum → M & set L = L + M} & L.
+    + dog cat
+    ? expected 'c' found ' '
+
+But we can convince it to skip those spaces...
+
+    | main = "dog" using token
+    |      & ({" "} & "c" & "a" & "t") using $.char
+    |      & return ok.
+    | 
+    | token = ({" "} & ("(" | ")" | word)) using $.char.
+    | word = $.alnum → L & {$.alnum → M & set L = L + M} & L.
+    + dog        cat
+    = ok
+
+Note that the scanner in force is lexically contained in the `using`.  Outside
+of the `using`, scanning returns to whatever scanner was in force before the
+`using`.
+
+    | main = "dog" using token
+    |      & ({"."} & "c" & "a" & "t")
+    |      & return ok.
+    | 
+    | token = ({" "} & ("(" | ")" | word)) using $.char.
+    | word = $.alnum → L & {$.alnum → M & set L = L + M} & L.
+    + dog...........cat
+    = ok
+
+On the other hand, variables set when one scanner is in effect can be accessed
+by rules with another scanner in effect, as long as they're in the same
+production.
+
+(another one that doesn't work under Falderal?)
+
+        | main = ("c" & "a" & "t" → G) using $.char
+        |      & ("dog" & return G) using token.
+        | 
+        | token = ({" "} & ("(" | ")" | word)) using $.char.
+        | word = $.alnum → L & {$.alnum → M & set L = L + M} & L.
+        + cat dog
+        = t
+
+**Note**: you need to be careful when using `using`!  Beware putting
+`using` inside a rule that can fail, i.e. the LHS of `|` or inside a `{}`.
+Because if it does fail and the interpreter reverts the scanner to its
+previous state, its previous state may have been with a different scanning
+logic.  The result may well be eurr.
 
 Three good ways to shoot yourself in the foot
 ---------------------------------------------
@@ -1158,6 +1285,28 @@ Next, in Tamsin.  Approximate.
 
 Appendix B. Tamsin Scanner
 --------------------------
+
+The Tamsin scanner is designed to be relatively simple and predictable.
+One property in particular is that the token returned by this scanner is
+identical to the token that is scanned.  (For example, `&` and `&&`
+represent the same operator; thus the Tamsin scanner could return `&`
+for both of them, or even something more abstract like `OP_SEQUENCE`.
+But it doesn't; it returns `&&` for `&&` and `&` for `&`.
+
+        | main = ("&&" → S & "&" → T & 'pair'(S,T)) using $.tamsin.
+        + &&&
+        = pair(&&, &)
+
+TODO: update this.
+
+An implementation of Tamsin may or may not expose the Tamsin scanner as
+`$.tamsin`; since a Tamsin interpreter will itself implement the Tamsin
+scanner, it should be no great burden to expose it to the running program.
+However, for a compiler, this may be a different matter.  (However however,
+the Tamsin scanner should be simple enough to implement without major
+difficulties.  In fact, there is a partial implementation in Tamsin; which
+means that `$.tamsin` need not be a system production, but could be 
+provided as a library.)
 
 Written in Tamsin.  Should be very close to true.
 

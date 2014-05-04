@@ -32,7 +32,11 @@ struct term *scan(struct scanner *s) {
     } else {
         //fprintf(stderr, "calling s->engines here\n");
         struct term *save_result = result;
+        int save_reset_position = s->reset_position;
+
         s->engines->production();
+        s->reset_position = save_reset_position;
+
         if (!ok) {
             result = save_result;
             return &tamsin_EOF;
