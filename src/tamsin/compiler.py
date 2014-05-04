@@ -197,11 +197,15 @@ class Compiler(object):
             self.emit("}")
             self.outdent()
             self.emit("}")
-        elif ast[0] == 'CALL':
-            prodref = ast[1]
+        elif isinstance(ast, Send):
+            self.compile_r(ast.rule)
+            # TODO: if ok?
+            self.emit("%s = result;" % ast.variable.name)
+        elif isinstance(ast, Call):
+            prodref = ast.prodref
             prodmod = prodref.module
             name = prodref.name
-            args = ast[2]
+            args = ast.args
     
             if prodmod == '$':
                 if name == 'expect':
@@ -240,10 +244,6 @@ class Compiler(object):
                 
                 args = ', '.join(["temp_arg%s" % p for p in xrange(0, i)])
                 self.emit("%s_%s0(%s);" % (prodmod, name, args))
-        elif ast[0] == 'SEND':
-            self.compile_r(ast[1])
-            # TODO: if ok?
-            self.emit("%s = result;" % ast[2].name)
         elif ast[0] == 'SET':
             self.emit_term(ast[2], "temp")
             self.emit("result = temp;")

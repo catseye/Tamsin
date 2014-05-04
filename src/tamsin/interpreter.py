@@ -199,31 +199,12 @@ class Interpreter(EventProducer):
                 self.context = saved_context
                 self.scanner.install_state(saved_scanner_state)
                 return self.interpret(ast.rhs)
-        elif isinstance(ast, Using):
-            sub = ast.lhs
+        elif isinstance(ast, Call):
             prodref = ast.prodref
-            scanner_name = prodref.name
-            if scanner_name == u'tamsin':
-                new_engine = TamsinScannerEngine()
-            elif scanner_name == u'char':
-                new_engine = CharScannerEngine()
-            else:
-                prods = self.program.find_productions(prodref)
-                if len(prods) != 1:
-                    raise ValueError("No such scanner '%s'" % scanner_name)
-                new_engine = ProductionScannerEngine(self, prods[0])
-            self.scanner.push_engine(new_engine)
-            self.event('enter_with')
-            (succeeded, result) = self.interpret(sub)
-            self.event('leave_with', succeeded, result)
-            self.scanner.pop_engine()
-            return (succeeded, result)
-        elif ast[0] == 'CALL':
-            prodref = ast[1]
             #prodmod = prodref[1]
             name = prodref.name
-            args = ast[2]
-            ibuf = ast[3]
+            args = ast.args
+            ibuf = ast.ibuf
             prods = self.program.find_productions(prodref)
             self.event('call_candidates', prods)
             args = [x.expand(self.context) for x in args]
@@ -261,11 +242,29 @@ class Interpreter(EventProducer):
             raise ValueError("No '%s' production matched arguments %r" %
                 (name, args)
             )
-        elif ast[0] == 'SEND':
-            (success, result) = self.interpret(ast[1])
-            assert isinstance(ast[2], Variable), ast
-            self.context.store(ast[2].name, result)
+        elif isinstance(ast, Send):
+            (success, result) = self.interpret(ast.rule)
+            self.context.store(ast.variable.name, result)
             return (success, result)
+        elif isinstance(ast, Using):
+            sub = ast.lhs
+            prodref = ast.prodref
+            scanner_name = prodref.name
+            if scanner_name == u'tamsin':
+                new_engine = TamsinScannerEngine()
+            elif scanner_name == u'char':
+                new_engine = CharScannerEngine()
+            else:
+                prods = self.program.find_productions(prodref)
+                if len(prods) != 1:
+                    raise ValueError("No such scanner '%s'" % scanner_name)
+                new_engine = ProductionScannerEngine(self, prods[0])
+            self.scanner.push_engine(new_engine)
+            self.event('enter_with')
+            (succeeded, result) = self.interpret(sub)
+            self.event('leave_with', succeeded, result)
+            self.scanner.pop_engine()
+            return (succeeded, result)
         elif ast[0] == 'SET':
             assert isinstance(ast[1], Variable), ast
             assert isinstance(ast[2], Term), ast

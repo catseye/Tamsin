@@ -84,6 +84,30 @@ class And(AST):
             self.rhs
         )
 
+class Call(AST):
+    def __init__(self, prodref, args, ibuf):
+        self.prodref = prodref
+        self.args = args
+        self.ibuf = ibuf
+
+    def __repr__(self):
+        return u"Call(%r, %r, %r)" % (
+            self.prodref,
+            self.args,
+            self.ibuf
+        )
+
+class Send(AST):
+    def __init__(self, rule, variable):
+        self.rule = rule
+        self.variable = variable
+
+    def __repr__(self):
+        return u"Send(%r, %r)" % (
+            self.rule,
+            self.variable
+        )
+
 class Using(AST):
     def __init__(self, lhs, prodref):
         self.lhs = lhs

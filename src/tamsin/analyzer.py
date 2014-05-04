@@ -41,15 +41,15 @@ class Analyzer(EventProducer):
             return And(self.analyze(ast.lhs), self.analyze(ast.rhs))
         elif isinstance(ast, Using):
             return Using(self.analyze(ast.lhs), ast.prodref)
-        elif ast[0] == 'CALL':
-            # ('CALL', prodref, args, ibuf)
-            prodref = ast[1]
+        elif isinstance(ast, Call):
+            prodref = ast.prodref
             if prodref.module == '' and prodref.name not in self.prodnames:
                raise ValueError("no '%s' production defined" % prodref.name)
                # TODO: also check builtins?
-            return ('CALL', prodref, ast[2], ast[3])
-        elif ast[0] == 'SEND':
-            return ('SEND', self.analyze(ast[1]), ast[2])
+            return ast
+        elif isinstance(ast, Send):
+            assert isinstance(ast.variable, Variable), ast
+            return Send(self.analyze(ast.rule), ast.variable)
         elif ast[0] == 'SET':
             return ast
         elif ast[0] == 'NOT':
@@ -69,8 +69,10 @@ class Analyzer(EventProducer):
             self.collect_locals(ast.rhs, locals_)
         elif isinstance(ast, Using):
             self.collect_locals(ast.lhs, locals_)
-        elif ast[0] == 'SEND':
-            locals_.add(ast[2].name)
+        elif isinstance(ast, Call):
+            pass
+        elif isinstance(ast, Send):
+            locals_.add(ast.variable.name)
         elif ast[0] == 'SET':
             locals_.add(ast[1].name)
         elif ast[0] == 'WHILE':

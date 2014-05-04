@@ -108,7 +108,7 @@ class Parser(EventProducer):
         lhs = self.expr4()
         if self.consume(u'→') or self.consume('->'):
             v = self.variable()
-            lhs = ('SEND', lhs, v)
+            lhs = Send(lhs, v)
         return lhs
 
     def expr4(self):
@@ -120,7 +120,7 @@ class Parser(EventProducer):
             e = self.expr0()
             self.expect(']')
             return Or(e,
-                ('CALL', Prodref('$', 'return'), [Term(u'nil')], None)
+                Call(Prodref('$', 'return'), [Term(u'nil')], None)
             )
         elif self.consume('{'):
             e = self.expr0()
@@ -129,11 +129,11 @@ class Parser(EventProducer):
         elif self.peek()[0] == '"':
             s = unicode(self.consume_any()[1:-1])
             literal = Term(s)
-            return ('CALL', Prodref('$', 'expect'), [literal], None)
+            return Call(Prodref('$', 'expect'), [literal], None)
         elif self.consume(u'«') or self.consume('<<'):
             t = self.term()
             if self.consume(u'»') or self.consume('>>'):
-                return ('CALL', Prodref('$', 'expect'), [t], None)
+                return Call(Prodref('$', 'expect'), [t], None)
             else:
                 self.error("'>>'")
         elif self.consume('!'):
@@ -150,13 +150,13 @@ class Parser(EventProducer):
             if self.consume(u'←') or self.consume('<-'):
                 t = self.term()
             else:
-                return ('CALL', Prodref('$', 'return'), [v], None)
+                return Call(Prodref('$', 'return'), [v], None)
             return ('SET', v, t)
         else:
             # implied return of term
             if self.peek()[0].isupper() or self.peek()[0] == "'":
                 t = self.term()
-                return ('CALL', Prodref('$', 'return'), [t], None)
+                return Call(Prodref('$', 'return'), [t], None)
             prodref = self.prodref()
             args = []
             name = prodref.name
@@ -178,7 +178,7 @@ class Parser(EventProducer):
             ibuf = None
             if self.consume('@'):
                 ibuf = self.term()
-            return ('CALL', prodref, args, ibuf)
+            return Call(prodref, args, ibuf)
 
     def prodref(self):
         if self.consume('$'):
