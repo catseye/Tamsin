@@ -164,7 +164,7 @@ class Interpreter(EventProducer):
                     return (False, Term(u"expected '%s, found '%s'" %
                                         (bindings['X'], self.scanner.peek())))
             elif name == '$.unquote':  # TODO this is definitely a bodge
-                if (bindings['X'].startswith(u'"')):
+                if (bindings['X'].startswith((u'"', u"'"))):
                     return (True, bindings['X'][1:-1])
                 else:
                     return (True, bindings['X'])

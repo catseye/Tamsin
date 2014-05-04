@@ -70,7 +70,7 @@ class Concat(Term):
         self.rhs.collect_variables(variables)
 
     def __unicode__(self):
-        return "%s%s" % (self.lhs, self.rhs)
+        return u"%s%s" % (self.lhs, self.rhs)
 
     def __repr__(self):
-        return "%r%r" % (self.lhs, self.rhs)
+        return "Concat(%r, %r)" % (self.lhs, self.rhs)

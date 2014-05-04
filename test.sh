@@ -42,6 +42,7 @@ elif [ x$1 = xast ]; then   # check that tamsin-ast output looks like bin/tamsin
         echo $EG
         bin/tamsin parse $EG > 1.txt
         bin/tamsin eg/tamsin-ast.tamsin <$EG > 2.txt || exit 1
+        diff -ru 1.txt 2.txt > ast.diff
         diff -ru 1.txt 2.txt || exit 1
     done
 elif [ x$1 = xinterpreter ]; then

@@ -33,14 +33,19 @@ expr3      = expr4 → L & [("→" | "->") & variable → V & L ← send(L, V)] 
 expr4      = "(" & expr0 → E & ")" & E
            | "[" & expr0 → E & "]" & return opt(E)
            | "{" & expr0 → E & "}" & return while(E)
-           | "!" & expr0 → E & return not(E)
+           | "!" & expr4 → E & return not(E)
            | "set" & variable → V & "=" & term → T & return set(V, T)
            | "return" & term → T & return call(prodref('$', return), list(T, nil))
            | "fail" & term → T & return call(prodref('$', fail), list(T, nil))
            | "print" & term → T & return call(prodref('$', print), list(T, nil))
+           | "any" & return call(prodref('$', any), nil)
            | terminal
-           | variable & ["←" & term]
-           | sq_string
+           | variable → V & 
+             ("←" & term → T & return set(V, T)
+             | return call(prodref('$', return), list(V, nil)))
+           | sq_string → T &
+             $.unquote(T) → T &
+             return call(prodref('$', return), list(T, nil))
            | prodref → P &
              L ← nil &
              ["(" &
@@ -55,7 +60,7 @@ expr4      = "(" & expr0 → E & ")" & E
 # we only handle atoms and variables correctly for now.
 
 term       = term0.
-term0      = term1 → T & S ← '' & {"+" & term1 → S} & return T+S.
+term0      = term1 → T & {"+" & term1 → S & T ← T + S} & T.
 term1      = atom → A & L ← nil & ["(" &
                                     term → T & L ← list(T, L) &
                                       {"," & term → T & L ← list(T, L)} &
@@ -64,7 +69,8 @@ term1      = atom → A & L ← nil & ["(" &
                                     $.mkterm(A, L)
            | variable.
 atom       = word
-           | sq_string.
+           | sq_string → T &
+             $.unquote(T).
 
 terminal   = terminal0 → T & return call(prodref('$', expect), list(T, nil)).
 terminal0  = dq_string → T & $.unquote(T) → T & T
