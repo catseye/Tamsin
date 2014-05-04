@@ -43,6 +43,7 @@ class Program(AST):
                 'return': [Variable('X')],
                 'startswith': [Variable('X')],
                 'unquote': [Variable('X')],
+                'mkterm': [Variable('T'), Variable('L')],
             }.get(name, [])
             return [Production('$.%s' % name, 0, formals, [], None)]
     

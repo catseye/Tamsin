@@ -168,6 +168,13 @@ class Interpreter(EventProducer):
                     return (True, bindings['X'][1:-1])
                 else:
                     return (True, bindings['X'])
+            elif name == '$.mkterm':  # TODO another categorical bodge
+                t = Term(bindings['T'])
+                l = bindings['L']
+                while l.name == 'list':
+                    t.contents.append(l.contents[0])
+                    l = l.contents[1]
+                return (True, t)
             elif name == '$.print':
                 val = bindings['X']
                 print unicode(val).encode('UTF-8')

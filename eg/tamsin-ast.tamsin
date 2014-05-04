@@ -46,11 +46,16 @@ expr4      = "(" & expr0 → E & ")" & E
              ["@" & term] &
              return call(P, nil).
 
-# we only handle atoms and variables for now.
+# we only handle atoms and variables correctly for now.
 
 term       = term0.
 term0      = term1 → T & S ← '' & {"+" & term1 → S} & return T+S.
-term1      = atom → A & ["(" & [term & {"," & term}] & ")"] & A
+term1      = atom → A & L ← nil & ["(" &
+                                    term → T & L ← list(T, L) &
+                                      {"," & term → T & L ← list(T, L)} &
+                                    ")"] &
+                                    reverse(L, nil) → L &
+                                    $.mkterm(A, L)
            | variable.
 atom       = word
            | sq_string.
