@@ -24,14 +24,16 @@ formals    = L ← nil &
              "(" &
              term → T & L ← list(T, L) &
              {"," & term → T & L ← list(T, L)} &
-             ")" & return L
+             ")" &
+             reverse(L, nil) → L &
+             return L
              | "[" & expr0 & "]".
 expr0      = expr1 → L & {("|" | "||") & expr1 → R & L ← or(L, R)} & L.
 expr1      = expr2 → L & {("&" | "&&") & expr2 → R & L ← and(L, R)} & L.
 expr2      = expr3 → L & ["using" & prodref → P & L ← using(L, P)] & L.
 expr3      = expr4 → L & [("→" | "->") & variable → V & L ← send(L, V)] & L.
 expr4      = "(" & expr0 → E & ")" & E
-           | "[" & expr0 → E & "]" & return opt(E)
+           | "[" & expr0 → E & "]" & return or(E, call(prodref('$', return), list(nil, nil)))
            | "{" & expr0 → E & "}" & return while(E)
            | "!" & expr4 → E & return not(E)
            | "set" & variable → V & "=" & term → T & return set(V, T)
@@ -39,6 +41,7 @@ expr4      = "(" & expr0 → E & ")" & E
            | "fail" & term → T & return call(prodref('$', fail), list(T, nil))
            | "print" & term → T & return call(prodref('$', print), list(T, nil))
            | "any" & return call(prodref('$', any), nil)
+           | "eof" & return call(prodref('$', 'eof'), nil)
            | terminal
            | variable → V & 
              ("←" & term → T & return set(V, T)

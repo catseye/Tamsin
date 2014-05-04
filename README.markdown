@@ -191,16 +191,14 @@ Related work
 TODO
 ----
 
-*   meta-circular implementation of parser
 *   meta-circular implementation of interpreter!
 *   system library in its own Python module
-*   `bin/tamsin runast astfile.txt` -- for testing the meta-circular parser
 *   8-bit clean strings, in both Python and C.  tests for these as string
     literals, ability to scan them on input, and ability to produce them
     on output.
 *   decode UTF-8 in compiled C code
 *   better command-line argument parsing
-*   tests for startswith
+*   tests for startswith, unquote, mkterm
 *   document/fix: how EOF can either be because past end of input, or a
     subsidiary production scanner returned EOF
 *   more tests for UTF-8

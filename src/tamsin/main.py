@@ -39,7 +39,7 @@ def run(ast, listeners=None):
     if not succeeded:
         sys.stderr.write(unicode(result).encode('UTF-8') + "\n")
         sys.exit(1)
-    print unicode(result)
+    print unicode(result).encode('UTF-8')
 
 
 def main(args):

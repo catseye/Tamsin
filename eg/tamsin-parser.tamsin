@@ -24,7 +24,7 @@ expr3      = expr4 & [("→" | "->") & variable].
 expr4      = "(" & expr0 & ")"
            | "[" & expr0 & "]"
            | "{" & expr0 & "}"
-           | "!" & expr0
+           | "!" & expr4
            | "set" & variable & "=" & term
            | "return" & term
            | "fail" & term
