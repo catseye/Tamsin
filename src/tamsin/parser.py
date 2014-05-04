@@ -3,6 +3,7 @@
 # Copyright (c)2014 Chris Pressey, Cat's Eye Technologies.
 # Distributed under a BSD-style license; see LICENSE for more information.
 
+from tamsin.ast import *
 from tamsin.term import Term, Variable, Concat
 from tamsin.event import EventProducer
 from tamsin.scanner import (
@@ -16,13 +17,12 @@ class Parser(EventProducer):
         self.scanner = Scanner(buffer, listeners=self.listeners)
         self.scanner.push_engine(scanner_engine or TamsinScannerEngine())
         self.aliases = {
-            'eof': (0, ('PRODREF', '$', 'eof')),
-            'any': (0, ('PRODREF', '$', 'any')),
-            'print': (1, ('PRODREF', '$', 'print')),
-            'fail': (1, ('PRODREF', '$', 'fail')),
-            'return': (1, ('PRODREF', '$', 'return')),
+            'eof': (0, Prodref('$', 'eof')),
+            'any': (0, Prodref('$', 'any')),
+            'print': (1, Prodref('$', 'print')),
+            'fail': (1, Prodref('$', 'fail')),
+            'return': (1, Prodref('$', 'return')),
         }
-        self.autoterm_accum = []
 
     def eof(self):
         return self.scanner.eof()
@@ -50,7 +50,7 @@ class Parser(EventProducer):
         prods = [self.production()]
         while self.peek() is not EOF:
             prods.append(self.production())
-        return ('PROGRAM', [], prods)
+        return Program({}, prods)
 
     def pragma(self):
         if self.consume('alias'):
@@ -64,7 +64,7 @@ class Parser(EventProducer):
             del self.aliases[alias]
         else:
             self.error('pragma')
-            
+
     def production(self):
         name = self.consume_any()
         formals = []
@@ -77,20 +77,10 @@ class Parser(EventProducer):
         elif self.consume('['):
             formals = self.expr0()
             self.expect(']')
-        autoterm = False
-        if self.consume('!'):
-            autoterm = True
-            self.autoterm_accum = []
         self.expect('=')
         body = self.expr0()
         self.expect('.')
-        ast = ('PROD', name, formals, (), body)
-        if autoterm:
-            return_this_ish = Term(name, self.autoterm_accum)
-            print return_this_ish
-            import sys
-            sys.exit(0)
-            #ast = self.autoterm_accum
+        ast = Production(name, 0, formals, (), body)
         return ast
 
     def expr0(self):
@@ -130,7 +120,7 @@ class Parser(EventProducer):
             e = self.expr0()
             self.expect(']')
             return ('OR', e,
-                ('CALL', ('PRODREF', '$', 'return'), [Term(u'nil')], None)
+                ('CALL', Prodref('$', 'return'), [Term(u'nil')], None)
             )
         elif self.consume('{'):
             e = self.expr0()
@@ -139,13 +129,11 @@ class Parser(EventProducer):
         elif self.peek()[0] == '"':
             s = unicode(self.consume_any()[1:-1])
             literal = Term(s)
-            #self.autoterm_accum.append(literal)
-            return ('CALL', ('PRODREF', '$', 'expect'), [literal], None)
+            return ('CALL', Prodref('$', 'expect'), [literal], None)
         elif self.consume(u'«') or self.consume('<<'):
             t = self.term()
             if self.consume(u'»') or self.consume('>>'):
-                #self.autoterm_accum.append(t)
-                return ('CALL', ('PRODREF', '$', 'expect'), [t], None)
+                return ('CALL', Prodref('$', 'expect'), [t], None)
             else:
                 self.error("'>>'")
         elif self.consume('!'):
@@ -162,17 +150,17 @@ class Parser(EventProducer):
             if self.consume(u'←') or self.consume('<-'):
                 t = self.term()
             else:
-                return ('CALL', ('PRODREF', '$', 'return'), [v], None)
+                return ('CALL', Prodref('$', 'return'), [v], None)
             return ('SET', v, t)
         else:
             # implied return of term
             if self.peek()[0].isupper() or self.peek()[0] == "'":
                 t = self.term()
-                return ('CALL', ('PRODREF', '$', 'return'), [t], None)
+                return ('CALL', Prodref('$', 'return'), [t], None)
             prodref = self.prodref()
             args = []
-            name = prodref[2]
-            if prodref[1] == '' and name in self.aliases:
+            name = prodref.name
+            if prodref.module == '' and name in self.aliases:
                 arity = self.aliases[name][0]
                 prodref = self.aliases[name][1]
                 i = 0
@@ -188,7 +176,6 @@ class Parser(EventProducer):
                             args.append(self.term())
                     self.expect(')')
             ibuf = None
-            #self.autoterm_accum.append(Term(prodref[2]))
             if self.consume('@'):
                 ibuf = self.term()
             return ('CALL', prodref, args, ibuf)
@@ -197,10 +184,10 @@ class Parser(EventProducer):
         if self.consume('$'):
             self.expect('.')
             name = self.consume_any()
-            return ('PRODREF', '$', name)
+            return Prodref('$', name)
         else:
             name = self.consume_any()
-            return ('PRODREF', '', name)
+            return Prodref('', name)
 
     def variable(self):
         if self.peek()[0].isupper():

@@ -3,7 +3,7 @@
 # Copyright (c)2014 Chris Pressey, Cat's Eye Technologies.
 # Distributed under a BSD-style license; see LICENSE for more information.
 
-from tamsin.ast import Production
+from tamsin.ast import *
 from tamsin.term import Term, Variable
 from tamsin.event import EventProducer
 from tamsin.scanner import (
@@ -103,7 +103,7 @@ class Interpreter(EventProducer):
     ### interpreter proper ---------------------------------- ###
 
     def interpret_program(self, program):
-        prods = program.find_productions(('PRODREF', '', 'main'))
+        prods = program.find_productions(Prodref('', 'main'))
         return self.interpret(prods[0])
 
     def interpret(self, ast, bindings=None):
@@ -183,7 +183,7 @@ class Interpreter(EventProducer):
         elif ast[0] == 'CALL':
             prodref = ast[1]
             #prodmod = prodref[1]
-            name = prodref[2]
+            name = prodref.name
             args = ast[2]
             ibuf = ast[3]
             prods = self.program.find_productions(prodref)
@@ -275,7 +275,7 @@ class Interpreter(EventProducer):
         elif ast[0] == 'USING':
             sub = ast[1]
             prodref = ast[2]
-            scanner_name = prodref[2]
+            scanner_name = prodref.name
             if scanner_name == u'tamsin':
                 new_engine = TamsinScannerEngine()
             elif scanner_name == u'char':

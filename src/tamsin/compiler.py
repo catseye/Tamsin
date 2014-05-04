@@ -7,7 +7,7 @@
 # the same (we hope) behaviour as interpreting the input Tamsin program.
 # Does not support `using` or `@` at the moment.
 
-from tamsin.ast import Production
+from tamsin.ast import *
 from tamsin.term import Term, Variable, Concat
 
 PRELUDE = r'''
@@ -178,8 +178,8 @@ class Compiler(object):
             self.emit("")
         elif ast[0] == 'CALL':
             prodref = ast[1]
-            prodmod = prodref[1]
-            name = prodref[2]
+            prodmod = prodref.module
+            name = prodref.name
             args = ast[2]
     
             if prodmod == '$':

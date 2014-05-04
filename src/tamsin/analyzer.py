@@ -3,7 +3,7 @@
 # Copyright (c)2014 Chris Pressey, Cat's Eye Technologies.
 # Distributed under a BSD-style license; see LICENSE for more information.
 
-from tamsin.ast import Program, Production
+from tamsin.ast import *
 from tamsin.event import EventProducer
 
 
@@ -20,30 +20,26 @@ class Analyzer(EventProducer):
         self.prodmap = {}
 
     def analyze(self, ast):
-        if ast[0] == 'PROGRAM':
-            # ('PROGRAM', prodmap, prodlist)
-            for prod in ast[2]:
-                self.prodnames.add(prod[1])
-            for prod in ast[2]:
+        if isinstance(ast, Program):
+            for prod in ast.prodlist:
+                self.prodnames.add(prod.name)
+            for prod in ast.prodlist:
                 prod = self.analyze(prod)
                 prod.rank = len(self.prodmap.setdefault(prod.name, []))
                 self.prodmap[prod.name].append(prod)
             if 'main' not in self.prodmap:
                 raise ValueError("no 'main' production defined")
-            return Program(self.prodmap)
-        elif ast[0] == 'PROD':
-            # ('PROD', name, formals, locals, body)
+            return Program(self.prodmap, None)
+        elif isinstance(ast, Production):
             locals_ = set()
             self.collect_locals(ast, locals_)
-            body = self.analyze(ast[4])
-            return Production(ast[1], 0, ast[2], locals_, body)
+            body = self.analyze(ast.body)
+            return Production(ast.name, 0, ast.formals, locals_, body)
         elif ast[0] == 'CALL':
             # ('CALL', prodref, args, ibuf)
             prodref = ast[1]
-            mod = prodref[1]
-            name = prodref[2]
-            if mod == '' and name not in self.prodnames:
-               raise ValueError("no '%s' production defined" % name)
+            if prodref.module == '' and prodref.name not in self.prodnames:
+               raise ValueError("no '%s' production defined" % prodref.name)
                # TODO: also check builtins?
             return ('CALL', prodref, ast[2], ast[3])
         elif ast[0] == 'SEND':
@@ -67,9 +63,9 @@ class Analyzer(EventProducer):
     def collect_locals(self, ast, locals_):
         """locals_ should be a set."""
 
-        if ast[0] == 'PROD':
-            self.collect_locals(ast[4], locals_)
-        if ast[0] == 'SEND':
+        if isinstance(ast, Production):
+            self.collect_locals(ast.body, locals_)
+        elif ast[0] == 'SEND':
             locals_.add(ast[2].name)
         elif ast[0] == 'SET':
             locals_.add(ast[1].name)
@@ -80,4 +76,6 @@ class Analyzer(EventProducer):
             self.collect_locals(ast[1], locals_)
             self.collect_locals(ast[2], locals_)
         elif ast[0] == 'WHILE':
+            self.collect_locals(ast[1], locals_)
+        elif ast[0] == 'NOT':
             self.collect_locals(ast[1], locals_)

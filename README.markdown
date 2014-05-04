@@ -202,6 +202,7 @@ TODO
 *   tests for startswith
 *   document/fix: how EOF can either be because past end of input, or a
     subsidiary production scanner returned EOF
+*   more tests for UTF-8
 
 ### lower-priority/experimental ###
 

@@ -14,7 +14,7 @@ main = grammar using $.tamsin.
 
 grammar    = {"@" & pragma & "."} &
              production & "." &
-             {production & "."} & eof.
+             {production & "."} & eof & 'ok'.
 production = word & ["(" & term & {"," & term} & ")"
                     | "[" & expr0 & "]"] & "=" & expr0.
 expr0      = expr1 & {("|" | "||") & expr1}.
