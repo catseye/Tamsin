@@ -22,6 +22,13 @@ elif [ x$1 = xscanner ]; then
         bin/tamsin eg/tamsin-scanner.tamsin <$EG > 2.txt
         diff -ru 1.txt 2.txt || exit 1
     done
+elif [ x$1 = xparser ]; then
+    for EG in eg/*.tamsin; do
+        #bin/tamsin scan <$EG > 1.txt
+        echo $EG
+        bin/tamsin eg/tamsin-parser.tamsin <$EG || exit 1
+        #diff -ru 1.txt 2.txt || exit 1
+    done
 else
     falderal --substring-error fixture/tamsin.py.markdown $FILES
 fi

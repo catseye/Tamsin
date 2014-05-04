@@ -37,7 +37,7 @@ def run(ast, listeners=None):
     interpreter = mk_interpreter(ast, listeners=listeners)
     (succeeded, result) = interpreter.interpret_program(ast)
     if not succeeded:
-        sys.stderr.write(str(result) + "\n")
+        sys.stderr.write(unicode(result).encode('UTF-8') + "\n")
         sys.exit(1)
     print str(result)
 

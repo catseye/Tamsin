@@ -131,6 +131,8 @@ class Interpreter(EventProducer):
             elif name == '$.eof':
                 if self.scanner.eof():
                     return (True, EOF)
+                elif self.scanner.peek() is EOF:
+                    return (True, EOF)
                 else:
                     return (False, Term(u"expected EOF found '%s'" %
                             self.scanner.peek()))
@@ -141,17 +143,26 @@ class Interpreter(EventProducer):
                     token = self.scanner.consume_any()
                     return (True, token)
             elif name == '$.alnum':
-                if self.scanner.peek() is not EOF and self.scanner.peek()[0].isalnum():
+                if (self.scanner.peek() is not EOF and
+                    self.scanner.peek()[0].isalnum()):
                     return (True, self.scanner.consume_any())
                 else:
                     return (False, Term(u"expected alphanumeric, found '%s'" %
                                         self.scanner.peek()))
             elif name == '$.upper':
-                if self.scanner.peek() is not EOF and self.scanner.peek()[0].isupper():
+                if (self.scanner.peek() is not EOF and
+                    self.scanner.peek()[0].isupper()):
                     return (True, self.scanner.consume_any())
                 else:
                     return (False, Term(u"expected uppercase alphabetic, found '%s'" %
                                         self.scanner.peek()))
+            elif name == '$.startswith':
+                if (self.scanner.peek() is not EOF and
+                    self.scanner.peek()[0].startswith(unicode(bindings['X']))):
+                    return (True, self.scanner.consume_any())
+                else:
+                    return (False, Term(u"expected '%s, found '%s'" %
+                                        (bindings['X'], self.scanner.peek())))
             elif name == '$.print':
                 val = bindings['X']
                 print unicode(val).encode('UTF-8')

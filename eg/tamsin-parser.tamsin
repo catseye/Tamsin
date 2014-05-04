@@ -6,14 +6,15 @@ main = grammar using $.tamsin.
 
 # problem: we can't use `word`, `variable` etc in here, because those
 # scan using the char scanner.  we have already scanned them using
-# tamsin_scanner.
+# tamsin_scanner.  so we use alnum, upper, startswith.
 
 
-# problem #2: does the production scanner we're using to scan
-# "pass through" eof correctly, so that we see an eof too?
+# big problem: aliases!
 
 
-grammar    = {"@" & pragma & "."} & production & "." & {production & "."} & eof.
+grammar    = {"@" & pragma & "."} &
+             production & "." &
+             {production & "."} & eof.
 production = word & ["(" & term & {"," & term} & ")"
                     | "[" & expr0 & "]"] & "=" & expr0.
 expr0      = expr1 & {("|" | "||") & expr1}.
@@ -27,16 +28,25 @@ expr4      = "(" & expr0 & ")"
            | "set" & variable & "=" & term
            | "return" & term
            | "fail" & term
+           | "print" & term
            | terminal
+           | variable & ["←" & term]
+           | sq_string
            | prodref & ["(" & [term & {"," & term}] & ")"] & ["@" & term].
 term       = term0.
 term0      = term1 & {"+" & term1}.
 term1      = atom & ["(" & [term & {"," & term}] & ")"]
            | variable.
-atom       = word | str('\'').
-terminal   = str('"')
+atom       = word | sq_string.
+terminal   = dq_string
            | ("«" | "<<") & term & ("»" | ">>").
 prodref    = [modref & "."] & word.
 modref     = "$".
 pragma     = "alias" & word & word & "=" & prodref
            | "unalias" & word.
+
+
+word = $.alnum.
+variable = $.upper.
+sq_string = $.startswith('\'').
+dq_string = $.startswith('"').

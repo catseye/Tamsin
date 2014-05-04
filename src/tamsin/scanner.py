@@ -260,6 +260,8 @@ class ProductionScannerEngine(ScannerEngine):
 
         if success:
             self.interpreter.event('production_scan', self.production, tok)
-            return str(tok)
+            if tok is EOF:
+                return tok
+            return unicode(tok)
         else:
             return EOF

@@ -199,6 +199,9 @@ TODO
     on output.
 *   decode UTF-8 in compiled C code
 *   better command-line argument parsing
+*   tests for startswith
+*   document/fix: how EOF can either be because past end of input, or a
+    subsidiary production scanner returned EOF
 
 ### lower-priority/experimental ###
 

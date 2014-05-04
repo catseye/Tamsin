@@ -25,7 +25,8 @@ class Program(object):
                 'expect': [Variable('X')],
                 'fail': [Variable('X')],
                 'print': [Variable('X')],
-                'return': [Variable('X')]
+                'return': [Variable('X')],
+                'startswith': [Variable('X')],
             }.get(name, [])
             return [Production('$.%s' % name, 0, formals, [], None)]
     
