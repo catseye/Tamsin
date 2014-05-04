@@ -244,12 +244,12 @@ class Compiler(object):
                 
                 args = ', '.join(["temp_arg%s" % p for p in xrange(0, i)])
                 self.emit("%s_%s0(%s);" % (prodmod, name, args))
-        elif ast[0] == 'SET':
-            self.emit_term(ast[2], "temp")
+        elif isinstance(ast, Set):
+            self.emit_term(ast.term, "temp")
             self.emit("result = temp;")
-            self.emit("%s = result;" % ast[1].name)
+            self.emit("%s = result;" % ast.variable.name)
             self.emit("ok = 1;")
-        elif ast[0] == 'WHILE':
+        elif isinstance(ast, While):
             self.emit("{")
             self.indent()
             self.emit_decl_state()
@@ -258,7 +258,7 @@ class Compiler(object):
             self.emit("while (ok) {")
             self.indent()
             self.emit_save_state()
-            self.compile_r(ast[1])
+            self.compile_r(ast.rule)
             self.emit("if (ok) {")
             self.indent()
             self.emit("successful_result = result;")
@@ -271,12 +271,12 @@ class Compiler(object):
             self.emit("ok = 1;")
             self.outdent()
             self.emit("}")
-        elif ast[0] == 'NOT':
+        elif isinstance(ast, Not):
             self.emit("{")
             self.indent()
             self.emit_decl_state()
             self.emit_save_state()
-            self.compile_r(ast[1])
+            self.compile_r(ast.rule)
             self.emit_restore_state()
             self.emit("if (ok) {")
             self.indent()

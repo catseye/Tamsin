@@ -62,6 +62,17 @@ class Prodref(AST):
             self.name
         )
 
+class And(AST):
+    def __init__(self, lhs, rhs):
+        self.lhs = lhs
+        self.rhs = rhs
+
+    def __repr__(self):
+        return u"And(%r, %r)" % (
+            self.lhs,
+            self.rhs
+        )
+
 class Or(AST):
     def __init__(self, lhs, rhs):
         self.lhs = lhs
@@ -73,15 +84,22 @@ class Or(AST):
             self.rhs
         )
 
-class And(AST):
-    def __init__(self, lhs, rhs):
-        self.lhs = lhs
-        self.rhs = rhs
+class Not(AST):
+    def __init__(self, rule):
+        self.rule = rule
 
     def __repr__(self):
-        return u"And(%r, %r)" % (
-            self.lhs,
-            self.rhs
+        return u"Not(%r)" % (
+            self.rule
+        )
+
+class While(AST):
+    def __init__(self, rule):
+        self.rule = rule
+
+    def __repr__(self):
+        return u"While(%r)" % (
+            self.rule
         )
 
 class Call(AST):
@@ -106,6 +124,17 @@ class Send(AST):
         return u"Send(%r, %r)" % (
             self.rule,
             self.variable
+        )
+
+class Set(AST):
+    def __init__(self, variable, term):
+        self.variable = variable
+        self.term = term
+
+    def __repr__(self):
+        return u"Set(%r, %r)" % (
+            self.variable,
+            self.term
         )
 
 class Using(AST):

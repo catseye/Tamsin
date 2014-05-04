@@ -4,6 +4,7 @@
 # Distributed under a BSD-style license; see LICENSE for more information.
 
 from tamsin.ast import *
+from tamsin.term import Term
 from tamsin.event import EventProducer
 
 
@@ -50,12 +51,14 @@ class Analyzer(EventProducer):
         elif isinstance(ast, Send):
             assert isinstance(ast.variable, Variable), ast
             return Send(self.analyze(ast.rule), ast.variable)
-        elif ast[0] == 'SET':
+        elif isinstance(ast, Set):
+            assert isinstance(ast.variable, Variable), ast
+            assert isinstance(ast.term, Term), ast
             return ast
-        elif ast[0] == 'NOT':
-            return ('NOT', self.analyze(ast[1]))
-        elif ast[0] == 'WHILE':
-            return ('WHILE', self.analyze(ast[1]))
+        elif isinstance(ast, Not):
+            return Not(self.analyze(ast.rule))
+        elif isinstance(ast, While):
+            return While(self.analyze(ast.rule))
         else:
             raise NotImplementedError(repr(ast))
 
@@ -71,11 +74,7 @@ class Analyzer(EventProducer):
             self.collect_locals(ast.lhs, locals_)
         elif isinstance(ast, Call):
             pass
-        elif isinstance(ast, Send):
+        elif isinstance(ast, Send) or isinstance(ast, Set):
             locals_.add(ast.variable.name)
-        elif ast[0] == 'SET':
-            locals_.add(ast[1].name)
-        elif ast[0] == 'WHILE':
-            self.collect_locals(ast[1], locals_)
-        elif ast[0] == 'NOT':
-            self.collect_locals(ast[1], locals_)
+        elif isinstance(ast, Not) or isinstance(ast, While):
+            self.collect_locals(ast.rule, locals_)

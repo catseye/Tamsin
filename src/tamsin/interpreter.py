@@ -265,14 +265,12 @@ class Interpreter(EventProducer):
             self.event('leave_with', succeeded, result)
             self.scanner.pop_engine()
             return (succeeded, result)
-        elif ast[0] == 'SET':
-            assert isinstance(ast[1], Variable), ast
-            assert isinstance(ast[2], Term), ast
-            result = ast[2].expand(self.context)
-            self.context.store(ast[1].name, result)
+        elif isinstance(ast, Set):
+            result = ast.term.expand(self.context)
+            self.context.store(ast.variable.name, result)
             return (True, result)
-        elif ast[0] == 'NOT':
-            expr = ast[1]
+        elif isinstance(ast, Not):
+            expr = ast.rule
             saved_context = self.context.clone()
             saved_scanner_state = self.scanner.get_state()
             self.event('begin_not', expr, saved_context, saved_scanner_state)
@@ -286,7 +284,7 @@ class Interpreter(EventProducer):
                 )
             else:
                 return (True, Term(u'nil'))
-        elif ast[0] == 'WHILE':
+        elif isinstance(ast, While):
             result = Term(u'nil')
             self.event('begin_while')
             succeeded = True
@@ -294,7 +292,7 @@ class Interpreter(EventProducer):
             while succeeded:
                 saved_context = self.context.clone()
                 saved_scanner_state = self.scanner.get_state()
-                (succeeded, result) = self.interpret(ast[1])
+                (succeeded, result) = self.interpret(ast.rule)
                 if succeeded:
                     successful_result = result
                     self.event('repeating_while', result)
