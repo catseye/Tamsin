@@ -191,16 +191,21 @@ Related work
 TODO
 ----
 
+*   meta-circular implementation of analyzer!
 *   meta-circular implementation of interpreter!
 *   system library in its own Python module
+*   better command-line argument parsing
+*   document/fix: how EOF can either be because past end of input, or a
+    subsidiary production scanner returned EOF
+*   implement unquote, mkterm, startswith in the compiler
+
+### 8-bit clean/UTF-8 ###
+
 *   8-bit clean strings, in both Python and C.  tests for these as string
     literals, ability to scan them on input, and ability to produce them
     on output.
+*   arbitrary non-printable characters in terms and such
 *   decode UTF-8 in compiled C code
-*   better command-line argument parsing
-*   tests for startswith, unquote, mkterm
-*   document/fix: how EOF can either be because past end of input, or a
-    subsidiary production scanner returned EOF
 *   more tests for UTF-8
 
 ### lower-priority/experimental ###
@@ -237,7 +242,6 @@ TODO
 *   have analyzer, interpreter, compiler all inherit from ASTWalker or smth?
 *   `$.alpha`
 *   `$.digit`
-*   arbitrary non-printable characters in terms and such
 *   don't consume stdin until asked to scan.
 *   numeric values... somehow.  number('65') = #65.  decode(ascii, 'A') = #65.
 *   token classes... somehow.  (then numeric is just a special token class?)

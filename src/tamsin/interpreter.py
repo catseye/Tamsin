@@ -164,8 +164,9 @@ class Interpreter(EventProducer):
                     return (False, Term(u"expected '%s, found '%s'" %
                                         (bindings['X'], self.scanner.peek())))
             elif name == '$.unquote':  # TODO this is definitely a bodge
-                if (bindings['X'].startswith((u'"', u"'"))):
-                    return (True, bindings['X'][1:-1])
+                x = unicode(bindings['X'])
+                if (x.startswith((u'"', u"'"))):
+                    return (True, Term(x[1:-1]))
                 else:
                     return (True, bindings['X'])
             elif name == '$.mkterm':  # TODO another categorical bodge

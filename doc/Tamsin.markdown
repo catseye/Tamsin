@@ -491,7 +491,7 @@ We can also use concatenation to construct the resulting term as an atom.
 Implicit `set` and `return`
 ---------------------------
 
-Unquotes atoms and constructors ("barewords") can have the same names as
+Unquoted atoms and constructors ("barewords") can have the same names as
 productions.  If they are used in rule context, they are assumed to refer
 to productions.  If they are used in term context, they are assumed to
 refer to terms.
@@ -863,6 +863,30 @@ Here's `$.upper`, which only consumes uppercase alphabetic tokens.
     | main = "(" & {$.upper → A} & ")" & A.
     + (ABCDEFGHIJKLMNoPQRSTUVWXYZ)
     ? expected ')' found 'o'
+
+Here's `$.startswith`, which only consumes tokens which start with
+the given term.  (For a single-character scanner this isn't very
+impressive.)
+
+    | main = "(" & {$.startswith('A') → A} & ")" & A.
+    + (AAAA)
+    = A
+
+    | main = "(" & {$.startswith('A') → A} & ")" & A.
+    + (AAAABAAA)
+    ? expected ')' found 'B'
+
+Here's `$.mkterm`, which takes an atom and a list and creates a term.
+
+    | main = $.mkterm(atom, list(a, list(b, list(c, nil)))).
+    = atom(a, b, c)
+
+Here's `$.unquote`, which takes a term which begins and ends with a
+quote symbol (TODO: should be the given quote symbol) and returns
+the contents.
+
+    | main = $.unquote('"hello"').
+    = hello
 
 Evaluation
 ----------
