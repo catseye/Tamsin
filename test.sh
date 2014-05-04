@@ -4,8 +4,8 @@ FILES="
     README.markdown
     doc/Tamsin.markdown
     doc/Advanced_Features.markdown
-    doc/Case_Study.markdown
 "
+#    doc/Case_Study.markdown
 if [ x$1 = x ]; then
    $0 interpreter &&
    $0 compiler &&

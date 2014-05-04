@@ -87,7 +87,7 @@ Reverse a list.
 
 Parse and evaluate a Boolean expression.
 
-    | main = expr0 → E using $.tamsin & eval(E).
+    | main = expr0 → E using scanner & eval(E).
     | expr0 = expr1 → E1 & {"or" & expr1 → E2 & E1 ← or(E1,E2)} & E1.
     | expr1 = term → E1 & {"and" & term → E2 & E1 ← and(E1,E2)} & E1.
     | term = "true" | "false" | "(" & expr0 → E & ")" & E.
@@ -98,7 +98,13 @@ Parse and evaluate a Boolean expression.
     | and(A, B) = 'false'.
     | or(false, false) = 'false'.
     | or(A, B) = 'true'.
-    + (false or true) and true
+    | scanner = scan using $.char.
+    | scan = {" "} & ("(" | ")" | token).
+    | token = "f" & "a" & "l" & "s" & "e" & 'false'
+    |       | "t" & "r" & "u" & "e" & 'true'
+    |       | "o" & "r" & 'or'
+    |       | "a" & "n" & "d" & 'and'.
+    + (falseortrue)andtrue
     = true
 
 Parse a CSV file and write out the 2nd-last field of each record.  Handles
@@ -192,13 +198,15 @@ TODO
 ----
 
 *   meta-circular implementation of analyzer!
+*   meta-circular implementation of compiler!
 *   meta-circular implementation of interpreter!
+*   `test compiledast`
 *   system library in its own Python module
 *   better command-line argument parsing
 *   document/fix: how EOF can either be because past end of input, or a
     subsidiary production scanner returned EOF
-*   implement `using` in the compiler (but not necessarily `$.tamsin`,
-    as we can now do that in Tamsin)
+*   `@include` -- for the scanner, especially
+*   `$.unquote` should take left and right quotes to expect
 
 ### 8-bit clean/UTF-8 ###
 

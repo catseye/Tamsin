@@ -263,9 +263,7 @@ class Interpreter(EventProducer):
             sub = ast.lhs
             prodref = ast.prodref
             scanner_name = prodref.name
-            if scanner_name == u'tamsin':
-                new_engine = TamsinScannerEngine()
-            elif scanner_name == u'char':
+            if prodref.module == '$' and scanner_name == u'char':
                 new_engine = CharScannerEngine()
             else:
                 prods = self.program.find_productions(prodref)

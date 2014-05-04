@@ -1,7 +1,7 @@
 # Parser for Tamsin AST, written in Tamsin.
 # Distributed under a BSD-style license; see LICENSE.
 
-main = grammar using $.tamsin.
+main = grammar using scanner.
 
 
 # problem: we can't use `word`, `variable` etc in here, because those
@@ -50,3 +50,28 @@ word = $.alnum.
 variable = $.upper.
 sq_string = $.startswith('\'').
 dq_string = $.startswith('"').
+
+
+
+scanner = scan using $.char.
+scan = skippable & (symbol | str('\'') | str('"') | sc_word).
+symbol = "&" & "&" & '&&'
+       | "|" & "|" & '||'
+       | "-" & ">" & '->'
+       | "<" & "-" & '<-'
+       | "<" & "<" & '<<'
+       | ">" & ">" & '>>'
+       | "=" | "(" | ")" | "[" | "]" | "{" | "}" | "!" | "|" | "&"
+       | "," | "." | "@" | "+" | "$" | "→" | "←" | "«" | "»".
+str(Q) = «Q» → T & {(escape | !«Q» & any) → S & T ← T + S} & «Q» &
+         return T + Q.
+escape = "\\" & "n" & '\n'
+       | "\\" & "r" & '\r'
+       | "\\" & "t" & '\t'
+       | "\\" & "\\" & '\\'
+       | "\\" & "'" & '\''
+       | "\\" & "\"" & '"'.
+sc_word = $.alnum → T & { ($.alnum | "_") → S & T ← T + S } & T.
+skippable = {whitespace | comment}.
+whitespace = " " | "\t" | "\r" | "\n".
+comment = "#" & {!"\n" & any} & "\n".

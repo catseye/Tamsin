@@ -1,7 +1,7 @@
-# Parser for Tamsin AST, written in Tamsin.
+# Parser and scanner for Tamsin AST, written in Tamsin.
 # Distributed under a BSD-style license; see LICENSE.
 
-main = grammar using $.tamsin.
+main = grammar using scanner.
 
 grammar    = {"@" & pragma & "."} &
              L ← nil &
@@ -93,3 +93,27 @@ dq_string = $.startswith('"').
 
 reverse(list(H, T), A) = reverse(T, list(H, A)).
 reverse(nil, A) = A.
+
+
+scanner = scan using $.char.
+scan = skippable & (symbol | str('\'') | str('"') | sc_word).
+symbol = "&" & "&" & '&&'
+       | "|" & "|" & '||'
+       | "-" & ">" & '->'
+       | "<" & "-" & '<-'
+       | "<" & "<" & '<<'
+       | ">" & ">" & '>>'
+       | "=" | "(" | ")" | "[" | "]" | "{" | "}" | "!" | "|" | "&"
+       | "," | "." | "@" | "+" | "$" | "→" | "←" | "«" | "»".
+str(Q) = «Q» → T & {(escape | !«Q» & any) → S & T ← T + S} & «Q» &
+         return T + Q.
+escape = "\\" & "n" & '\n'
+       | "\\" & "r" & '\r'
+       | "\\" & "t" & '\t'
+       | "\\" & "\\" & '\\'
+       | "\\" & "'" & '\''
+       | "\\" & "\"" & '"'.
+sc_word = $.alnum → T & { ($.alnum | "_") → S & T ← T + S } & T.
+skippable = {whitespace | comment}.
+whitespace = " " | "\t" | "\r" | "\n".
+comment = "#" & {!"\n" & any} & "\n".

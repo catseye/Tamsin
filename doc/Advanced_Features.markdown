@@ -242,7 +242,8 @@ the production's rule.
     = hello(w)
 
     | main = donkey(world).
-    | donkey[any → E using $.tamsin] = return hello(E).
+    | donkey[any → E using word] = return hello(E).
+    | word = (T ← '' & {$.alnum → S & T ← T + S} & T) using $.char.
     = hello(world)
 
 No variables from the caller leak into the called production.
@@ -266,11 +267,13 @@ Thus, in this sense at least, terms are sugar for strings.
 The rule formals may call on other rules in the program.
 
     | main = donkey('pair(pair(0,1),1)').
-    | donkey[pair → T using $.tamsin] = return its_a_pair(T).
-    | donkey[bit → T using $.tamsin] = return its_a_bit(T).
+    | donkey[pair → T using mini] = return its_a_pair(T).
+    | donkey[bit → T using mini] = return its_a_bit(T).
     | thing = pair | bit.
     | pair = "pair" & "(" & thing → A & "," & thing → B & ")" & return pair(A,B).
     | bit = "0" | "1".
+    | mini = (bit | "(" | ")" | "," | word) using $.char.
+    | word = (T ← '' & {$.alnum → S & T ← T + S} & T).
     = its_a_pair(pair(pair(0, 1), 1))
 
 ### Auto-term creation from productions ###
