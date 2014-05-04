@@ -72,7 +72,7 @@ class Production(AST):
     def __unicode__(self):
         return u"production(%s, %s, %s)" % (
             self.name,
-            self.formals,
+            format_list(self.formals),
             self.body
         )
 

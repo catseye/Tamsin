@@ -18,16 +18,22 @@ if [ x$1 = xcompiler ]; then
     falderal --substring-error fixture/compiler.py.markdown $FILES
 elif [ x$1 = xscanner ]; then
     for EG in eg/*.tamsin; do
+        echo $EG
         bin/tamsin scan <$EG > 1.txt
         bin/tamsin eg/tamsin-scanner.tamsin <$EG > 2.txt
         diff -ru 1.txt 2.txt || exit 1
     done
-elif [ x$1 = xparser ]; then
+elif [ x$1 = xparser ]; then   # just check that tamsin-parser accepts it
     for EG in eg/*.tamsin; do
-        #bin/tamsin scan <$EG > 1.txt
         echo $EG
         bin/tamsin eg/tamsin-parser.tamsin <$EG || exit 1
-        #diff -ru 1.txt 2.txt || exit 1
+    done
+elif [ x$1 = xast ]; then   # check that tamsin-ast output looks like bin/tamsin parse
+    for EG in eg/*.tamsin; do
+        echo $EG
+        bin/tamsin parse $EG > 1.txt
+        bin/tamsin eg/tamsin-ast.tamsin <$EG > 2.txt || exit 1
+        diff -ru 1.txt 2.txt || exit 1
     done
 else
     falderal --substring-error fixture/tamsin.py.markdown $FILES

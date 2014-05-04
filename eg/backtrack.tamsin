@@ -2,5 +2,5 @@
 # hereby placed in the public domain.  It comes with NO WARRANTY.
 
 main = set E = original &&
-         (set E = changed && "0" && "1" | "0" && "2") &
+         (set E = changed && «0» && «1» | «0» && «2») &
        return E.

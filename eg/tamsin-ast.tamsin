@@ -1,0 +1,61 @@
+# Parser for Tamsin AST, written in Tamsin.
+# Distributed under a BSD-style license; see LICENSE.
+
+main = grammar using $.tamsin.
+
+grammar    = {"@" & pragma & "."} &
+             L ← nil &
+             production → P & "." &
+             L ← list(P, L) &
+             {
+                 production → P & "." &
+                 L ← list(P, L)
+             } &
+             eof &
+             return program(L).
+production = word → N &
+             F ← nil &
+             [formals → F] &
+             "=" &
+             expr0 → E &
+             return production(N, F, E).
+formals    = "(" & term & {"," & term} & ")" | "[" & expr0 & "]".
+expr0      = expr1 → L & {("|" | "||") & expr1 → R & L ← or(L, R)} & L.
+expr1      = expr2 → L & {("&" | "&&") & expr2 → R & L ← and(L, R)} & L.
+expr2      = expr3 → L & ["using" & prodref → P & L ← using(L, P)] & L.
+expr3      = expr4 → L & [("→" | "->") & variable → V & L ← send(L, V)] & L.
+expr4      = "(" & expr0 → E & ")" & E
+           | "[" & expr0 → E & "]" & return opt(E)
+           | "{" & expr0 → E & "}" & return while(E)
+           | "!" & expr0 & return not(E)
+           | "set" & variable → V & "=" & term → T & return set(V, T)
+           | "return" & term → T & return call(prodref('$', return), list(T, nil))
+           | "fail" & term → T & return call(prodref('$', fail), list(T, nil))
+           | "print" & term → T & return call(prodref('$', print), list(T, nil))
+           | terminal
+           | variable & ["←" & term]
+           | sq_string
+           | prodref & ["(" & [term & {"," & term}] & ")"] & ["@" & term].
+
+# we only handle atoms and variables for now.
+
+term       = term0.
+term0      = term1 → T & S ← '' & {"+" & term1 → S} & return T+S.
+term1      = atom   #  ["(" & [term & {"," & term}] & ")"]
+           | variable.
+atom       = word
+           | sq_string.
+
+terminal   = terminal0 → T & return call(prodref('$', expect), list(T, nil)).
+terminal0  = dq_string
+           | ("«" | "<<") & term → T & ("»" | ">>") & T.
+prodref    = [modref & "."] & word.
+modref     = "$".
+pragma     = "alias" & word & word & "=" & prodref
+           | "unalias" & word.
+
+
+word = $.alnum.
+variable = $.upper.
+sq_string = $.startswith('\'').
+dq_string = $.startswith('"').
