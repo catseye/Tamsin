@@ -197,7 +197,8 @@ TODO
 *   better command-line argument parsing
 *   document/fix: how EOF can either be because past end of input, or a
     subsidiary production scanner returned EOF
-*   implement unquote, mkterm, startswith in the compiler
+*   implement `using` in the compiler (but not necessarily `$.tamsin`,
+    as we can now do that in Tamsin)
 
 ### 8-bit clean/UTF-8 ###
 

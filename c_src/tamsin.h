@@ -92,9 +92,13 @@ void commit(struct scanner *);
 
 void tamsin_eof(struct scanner *);
 void tamsin_any(struct scanner *);
-void tamsin_expect(struct scanner *, char *);
+void tamsin_expect(struct scanner *, const char *);
 void tamsin_alnum(struct scanner *);
 void tamsin_upper(struct scanner *);
+void tamsin_startswith(struct scanner *, const char *);
+struct term *tamsin_unquote(const struct term *);
+struct term *tamsin_mkterm(const struct term *, const struct term *);
+
 
 /* --------------------------------------------------------------- */
 /* global state: result of last action */

@@ -228,6 +228,18 @@ class Compiler(object):
                     self.emit('tamsin_alnum(scanner);')
                 elif name == 'upper':
                     self.emit('tamsin_upper(scanner);')
+                elif name == 'startswith':
+                    self.emit_term(args[0], "temp")
+                    self.emit('tamsin_startswith(scanner, term_flatten(temp)->atom);')
+                elif name == 'unquote':
+                    self.emit_term(args[0], "temp")
+                    self.emit('result = tamsin_unquote(temp);')
+                    self.emit('ok = 1;')
+                elif name == 'mkterm':
+                    self.emit_term(args[0], "temp_atom")
+                    self.emit_term(args[1], "temp_list")
+                    self.emit('result = tamsin_mkterm(temp_atom, temp_list);')
+                    self.emit('ok = 1;')
                 elif name == 'fail':
                     self.emit_term(args[0], "temp")
                     self.emit("result = temp;")
