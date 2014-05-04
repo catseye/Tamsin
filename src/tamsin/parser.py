@@ -3,7 +3,9 @@
 # Copyright (c)2014 Chris Pressey, Cat's Eye Technologies.
 # Distributed under a BSD-style license; see LICENSE for more information.
 
-from tamsin.ast import *
+from tamsin.ast import (
+    Program, Production, And, Or, Not, While, Call, Send, Set, Using, Prodref
+)
 from tamsin.term import Term, Variable, Concat
 from tamsin.event import EventProducer
 from tamsin.scanner import (

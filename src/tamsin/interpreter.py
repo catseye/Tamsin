@@ -3,7 +3,9 @@
 # Copyright (c)2014 Chris Pressey, Cat's Eye Technologies.
 # Distributed under a BSD-style license; see LICENSE for more information.
 
-from tamsin.ast import *
+from tamsin.ast import (
+    Production, And, Or, Not, While, Call, Send, Set, Using, Prodref
+)
 from tamsin.term import Term, Variable
 from tamsin.event import EventProducer
 from tamsin.scanner import (
@@ -43,6 +45,7 @@ class Context(EventProducer):
         return self.scopes[-1][name]
 
     def store(self, name, value):
+        assert(isinstance(value, Term)), "not a Term: %r" % value
         self.event('store', name,
             self.scopes[-1].get(name, 'undefined'), value
         )
@@ -138,26 +141,25 @@ class Interpreter(EventProducer):
                 if self.scanner.peek() is EOF:
                     return (False, Term(u"expected any token, found EOF"))
                 else:
-                    token = self.scanner.consume_any()
-                    return (True, token)
+                    return (True, Term(self.scanner.consume_any()))
             elif name == '$.alnum':
                 if (self.scanner.peek() is not EOF and
                     self.scanner.peek()[0].isalnum()):
-                    return (True, self.scanner.consume_any())
+                    return (True, Term(self.scanner.consume_any()))
                 else:
                     return (False, Term(u"expected alphanumeric, found '%s'" %
                                         self.scanner.peek()))
             elif name == '$.upper':
                 if (self.scanner.peek() is not EOF and
                     self.scanner.peek()[0].isupper()):
-                    return (True, self.scanner.consume_any())
+                    return (True, Term(self.scanner.consume_any()))
                 else:
                     return (False, Term(u"expected uppercase alphabetic, found '%s'" %
                                         self.scanner.peek()))
             elif name == '$.startswith':
                 if (self.scanner.peek() is not EOF and
                     self.scanner.peek()[0].startswith(unicode(bindings['X']))):
-                    return (True, self.scanner.consume_any())
+                    return (True, Term(self.scanner.consume_any()))
                 else:
                     return (False, Term(u"expected '%s, found '%s'" %
                                         (bindings['X'], self.scanner.peek())))
@@ -168,7 +170,7 @@ class Interpreter(EventProducer):
                 else:
                     return (True, bindings['X'])
             elif name == '$.mkterm':  # TODO another categorical bodge
-                t = Term(unicode(bindings['T']))
+                t = bindings['T']
                 l = bindings['L']
                 while l.name == 'list':
                     t.contents.append(l.contents[0])
@@ -187,16 +189,16 @@ class Interpreter(EventProducer):
                 for name in bindings.keys():
                     self.context.store(name, bindings[name])
             self.event('begin_interpret_rule', ast.body)
-            (succeeded, x) = self.interpret(ast.body)
+            (success, result) = self.interpret(ast.body)
             self.event('end_interpret_rule', ast.body)
             self.context.pop_scope(ast.name)
-            return (succeeded, x)
+            return (success, result)
         elif isinstance(ast, And):
-            (succeeded, value_lhs) = self.interpret(ast.lhs)
-            if not succeeded:
+            (success, value_lhs) = self.interpret(ast.lhs)
+            if not success:
                 return (False, value_lhs)
-            (succeeded, value_rhs) = self.interpret(ast.rhs)
-            return (succeeded, value_rhs)
+            (success, value_rhs) = self.interpret(ast.rhs)
+            return (success, value_rhs)
         elif isinstance(ast, Or):
             saved_context = self.context.clone()
             saved_scanner_state = self.scanner.get_state()

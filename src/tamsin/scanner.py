@@ -4,15 +4,7 @@
 # Distributed under a BSD-style license; see LICENSE for more information.
 
 from tamsin.event import EventProducer
-
-
-# TODO: this should be a kind of term!
-class EOF(object):
-    def __str__(self):
-        return "EOF"
-    def __repr__(self):
-        return "EOF"
-EOF = EOF()  # unique
+from tamsin.term import EOF
 
 
 class Scanner(EventProducer):

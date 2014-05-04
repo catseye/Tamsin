@@ -34,6 +34,15 @@ class Term(object):
         return "Term(%r, %r)" % (self.name, self.contents)
 
 
+# TODO: this should be a kind of term!
+class EOF(Term):
+    def __str__(self):
+        return "EOF"
+    def __repr__(self):
+        return "EOF"
+EOF = EOF(u'EOF', [])  # unique
+
+
 class Variable(Term):
     def __init__(self, name):
         assert name[0].isupper()

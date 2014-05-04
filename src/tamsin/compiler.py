@@ -7,7 +7,9 @@
 # the same (we hope) behaviour as interpreting the input Tamsin program.
 # Does not support `using` or `@` at the moment.
 
-from tamsin.ast import *
+from tamsin.ast import (
+    Production, And, Or, Not, While, Call, Send, Set, Using
+)
 from tamsin.term import Term, Variable, Concat
 
 PRELUDE = r'''
