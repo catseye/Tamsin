@@ -197,18 +197,11 @@ Related work
 TODO
 ----
 
-*   meta-circular implementation of analyzer!
-*   meta-circular implementation of compiler!
-*   meta-circular implementation of interpreter!
-*   `test compiledast`
-*   system library in its own Python module
+*   turn system library back into built-in keywords (esp. if ¶ can be used)
 *   better command-line argument parsing
-*   document/fix: how EOF can either be because past end of input, or a
-    subsidiary production scanner returned EOF
 *   `@include` -- for the scanner, especially
 *   `$.unquote` should take left and right quotes to expect
 *   define a stringify-repr operation on terms
-*   get rid of `enc`
 
 ### 8-bit clean/UTF-8 ###
 
@@ -216,8 +209,15 @@ TODO
     literals, ability to scan them on input, and ability to produce them
     on output.
 *   arbitrary non-printable characters in terms and such
-*   decode UTF-8 in compiled C code
+*   decode UTF-8 in compiled C code : character scanner yields one Unicode char
 *   more tests for UTF-8
+
+### meta-circularity/bootstrapping ###
+
+*   meta-circular implementation of analyzer!
+*   meta-circular implementation of compiler!
+*   meta-circular implementation of interpreter!  (not so useful?)
+*   figure out why compiled verstion of tamsin-ast hangs...
 
 ### lower-priority/experimental ###
 

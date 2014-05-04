@@ -8,7 +8,7 @@ from tamsin.term import Term, Variable
 from tamsin.event import EventProducer
 from tamsin.scanner import (
     EOF,
-    TamsinScannerEngine, CharScannerEngine, ProductionScannerEngine
+    CharScannerEngine, ProductionScannerEngine
 )
 
 
@@ -129,15 +129,13 @@ class Interpreter(EventProducer):
             elif name == '$.return':
                 return (True, bindings['X'])
             elif name == '$.eof':
-                if self.scanner.eof():
-                    return (True, EOF)
-                elif self.scanner.peek() is EOF:
+                if self.scanner.peek() is EOF:
                     return (True, EOF)
                 else:
                     return (False, Term(u"expected EOF found '%s'" %
                             self.scanner.peek()))
             elif name == '$.any':
-                if self.scanner.eof():
+                if self.scanner.peek() is EOF:
                     return (False, Term(u"expected any token, found EOF"))
                 else:
                     token = self.scanner.consume_any()

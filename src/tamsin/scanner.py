@@ -6,21 +6,13 @@
 from tamsin.event import EventProducer
 
 
+# TODO: this should be a kind of term!
 class EOF(object):
     def __str__(self):
         return "EOF"
     def __repr__(self):
         return "EOF"
 EOF = EOF()  # unique
-
-
-def enc(x):
-    if isinstance(x, str):
-        x = x.decode('UTF-8')
-        assert isinstance(x, unicode)
-    else:
-        x = unicode(x)
-    return x.encode('ascii', 'xmlcharrefreplace')
 
 
 class Scanner(EventProducer):
@@ -59,12 +51,13 @@ class Scanner(EventProducer):
     def pop_engine(self):
         self.engines.pop()
     
-    def eof(self):
+    def is_at_eof(self):
+        """Should only be used by ScannerEngines."""
         return self.position >= len(self.buffer)
 
     def chop(self, amount):
-        if self.eof():
-            return None
+        if self.position > len(self.buffer) - amount:
+            raise ValueError("internal: tried to chop past end of buffer")
         result = self.buffer[self.position:self.position+amount]
         self.event('chopped', result)
         self.position += amount
@@ -87,11 +80,11 @@ class Scanner(EventProducer):
         report = self.buffer[position:position+length]
         if len(report) == length:
             report += '...'
-        return enc(report)
+        return report
 
     def error(self, expected):
         raise ValueError(u"Expected %s at '%s' (position %s)" %
-                         (enc(expected),
+                         (expected,
                           self.report_buffer(self.position, 20),
                           self.position))
 
@@ -148,7 +141,7 @@ class Scanner(EventProducer):
     def dump(self, indent=1):
         print "==" * indent + "%r" % self
         print "--" * indent + "engines: %r" % repr(self.engines)
-        print "--" * indent + "buffer: '%s'" % enc(self.buffer)
+        print "--" * indent + "buffer: '%s'" % self.buffer
         print "--" * indent + "position: %s" % self.position
         print "--" * indent + "buffer at position: '%s'" % self.report_buffer(self.position, 40)
         print "--" * indent + "reset_position: %s" % self.reset_position
@@ -175,15 +168,16 @@ ESCAPE_SEQUENCE = {
 
 class TamsinScannerEngine(ScannerEngine):
     def scan_impl(self, scanner):
-        while not scanner.eof() and scanner.startswith(('#', ' ', '\t', '\r', '\n')):
-            while not scanner.eof() and scanner.startswith((' ', '\t', '\r', '\n')):
+        while not scanner.is_at_eof() and scanner.startswith(('#', ' ', '\t', '\r', '\n')):
+            while not scanner.is_at_eof() and scanner.startswith((' ', '\t', '\r', '\n')):
                 scanner.chop(1)
-            while not scanner.eof() and scanner.startswith(('#',)):
-                while not scanner.eof() and not scanner.startswith(('\n',)):
+            while not scanner.is_at_eof() and scanner.startswith(('#',)):
+                while not scanner.is_at_eof() and not scanner.startswith(('\n',)):
                     scanner.chop(1)
-                scanner.chop(1)
+                if not scanner.is_at_eof():
+                    scanner.chop(1)
 
-        if scanner.eof():
+        if scanner.is_at_eof():
             return EOF
 
         if scanner.startswith(('&&', '||', '->', '<-', '<<', '>>')):
@@ -198,7 +192,7 @@ class TamsinScannerEngine(ScannerEngine):
             if scanner.startswith((quote,)):
                 tok = quote
                 scanner.chop(1)
-                while (not scanner.eof() and
+                while (not scanner.is_at_eof() and
                        not scanner.startswith((CLOSE_QUOTE[quote],))):
                     char = scanner.chop(1)
                     if char == '\\':
@@ -214,8 +208,8 @@ class TamsinScannerEngine(ScannerEngine):
 
         if scanner.isalnum():
             tok = ''
-            while not scanner.eof() and (scanner.isalnum() or
-                                         scanner.startswith(('_',))):
+            while not scanner.is_at_eof() and (scanner.isalnum() or
+                                               scanner.startswith(('_',))):
                 tok += scanner.chop(1)
             return tok
 
@@ -224,7 +218,7 @@ class TamsinScannerEngine(ScannerEngine):
 
 class CharScannerEngine(ScannerEngine):
     def scan_impl(self, scanner):
-        if scanner.eof():
+        if scanner.is_at_eof():
             return EOF
         return scanner.chop(1)
 
@@ -240,7 +234,7 @@ class ProductionScannerEngine(ScannerEngine):
         self.production = production
 
     def scan_impl(self, scanner):
-        if scanner.eof():
+        if scanner.is_at_eof():
             return EOF
         # if we ever go back to exceptions, we would have a try/catch here
         
