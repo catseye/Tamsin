@@ -82,7 +82,8 @@ class Compiler(object):
         self.indent_ -= 1
 
     def emit(self, *args):
-        self.outfile.write("    " * self.indent_ + ''.join(args) + "\n")
+        s = "    " * self.indent_ + ''.join(args) + "\n"
+        self.outfile.write(s.encode('UTF-8'))
 
     def compile(self):
         self.emit(PRELUDE)
@@ -126,18 +127,18 @@ class Compiler(object):
             all_pattern_variables = set()
             
             # emit matching code
-            i = 0
+            fml_num = 0
             for f in formals:
-                self.emit_term(f, "pattern%s" % i, pattern=True)
-                self.emit("if (!term_match(pattern%s, i%s)) {" % (i, i))
+                self.emit_term(f, "pattern%s" % fml_num, pattern=True)
+                self.emit("if (!term_match(pattern%s, i%s)) {" %
+                    (fml_num, fml_num)
+                )
                 self.indent()
                 
-                # ...
                 next = None
-                for prod in self.program.prodmap[self.current_prod_name]:
-                    if prod.rank == ast.rank + 1:
-                        next = prod
-                        break
+                myprods = self.program.prodmap[self.current_prod_name]
+                if ast.rank + 1 < len(myprods):
+                    next = myprods[ast.rank + 1]
                 
                 if next:
                     args = ', '.join(["i%s" % i for i in xrange(0, len(formals))])
@@ -158,11 +159,12 @@ class Compiler(object):
                 for variable in variables:
                     self.emit('struct term *%s = '
                               'term_find_variable(pattern%s, "%s");' %
-                        (variable.name, i, variable.name)
+                        (variable.name, fml_num, variable.name)
                     )
                     all_pattern_variables.add(variable.name)
 
-                i += 1
+                self.emit("")
+                fml_num += 1
 
             for local in locals_:
                 if local not in all_pattern_variables:
@@ -343,7 +345,7 @@ class Compiler(object):
         elif isinstance(term, Variable):
             if pattern:
                 self.emit('struct term *%s = term_new_variable("%s", %s);' %
-                    (name, term.name, 'term_new("nil_%s")'))
+                    (name, term.name, 'term_new("nil_%s")' % term.name))
             else:
                 self.emit('struct term *%s = %s;' % (name, term.name))
         else:
@@ -362,6 +364,7 @@ def escaped(s):
     escaped_name = s
     escaped_name = escaped_name.replace("\\", r"\\")
     escaped_name = escaped_name.replace("\n", r"\n")
+    escaped_name = escaped_name.replace("\r", r"\r")
     escaped_name = escaped_name.replace("\t", r"\t")
     escaped_name = escaped_name.replace('"', r'\"')
     return escaped_name

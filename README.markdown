@@ -207,6 +207,8 @@ TODO
     subsidiary production scanner returned EOF
 *   `@include` -- for the scanner, especially
 *   `$.unquote` should take left and right quotes to expect
+*   define a stringify-repr operation on terms
+*   get rid of `enc`
 
 ### 8-bit clean/UTF-8 ###
 

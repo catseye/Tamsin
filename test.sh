@@ -45,6 +45,17 @@ elif [ x$1 = xast ]; then   # check that tamsin-ast output looks like bin/tamsin
         diff -ru 1.txt 2.txt > ast.diff
         diff -ru 1.txt 2.txt || exit 1
     done
+elif [ x$1 = xcompiledast ]; then   # check that tamsin-ast output looks like bin/tamsin parse
+    echo "Compiling parser (for AST) in Tamsin and testing it..."
+    bin/tamsin compile eg/tamsin-ast.tamsin > foo.c && \
+       gcc -g -Ic_src -Lc_src foo.c -o tamsin-ast -ltamsin || exit 1
+    for EG in eg/*.tamsin; do
+        echo $EG
+        bin/tamsin parse $EG > 1.txt
+        ./tamsin-ast <$EG > 2.txt || exit 1
+        diff -ru 1.txt 2.txt > ast.diff
+        diff -ru 1.txt 2.txt || exit 1
+    done
 elif [ x$1 = xinterpreter ]; then
     echo "Testing Python interpreter..."
     falderal --substring-error fixture/tamsin.py.markdown $FILES
