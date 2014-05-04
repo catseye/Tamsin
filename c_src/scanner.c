@@ -31,9 +31,14 @@ struct term *scan(struct scanner *s) {
         }
     } else {
         //fprintf(stderr, "calling s->engines here\n");
+        struct term *save_result = result;
         s->engines->production();
-        // XXX this can't be right.  surely we need to save this?
-        return result;
+        if (!ok) {
+            result = save_result;
+            return &tamsin_EOF;
+        } else {
+            return result;
+        }
     }
 };
 
