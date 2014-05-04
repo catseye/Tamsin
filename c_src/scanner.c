@@ -17,13 +17,23 @@ struct scanner *scanner_new(const char *buffer) {
     return scanner;
 }
 
+void scanner_char_engine(void) {
+}
+
 struct term *scan(struct scanner *s) {
-    char c = s->buffer[s->position];
-    if (c == '\0') {
-        return &tamsin_EOF;
+    if (s->engines == NULL || s->engines->production == &scanner_char_engine) {
+        char c = s->buffer[s->position];
+        if (c == '\0') {
+            return &tamsin_EOF;
+        } else {
+            s->position++;
+            return term_new_from_char(c);
+        }
     } else {
-        s->position++;
-        return term_new_from_char(c);
+        //fprintf(stderr, "calling s->engines here\n");
+        s->engines->production();
+        // XXX this can't be right.  surely we need to save this?
+        return result;
     }
 };
 
@@ -54,7 +64,4 @@ void scanner_pop_engine(struct scanner *s) {
 
     s->engines = s->engines->next;
     /* engine_free(e); */
-}
-
-void scanner_char_engine(void) {
 }

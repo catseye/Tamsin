@@ -220,7 +220,7 @@ subverted:
     + cat dog
     = woof
 
-We can also implement a production scanner with the ☆char scanner.  This is
+We can also implement a production scanner with the char scanner.  This is
 more useful.
 
     | main = program using scanner.

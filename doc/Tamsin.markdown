@@ -992,6 +992,89 @@ Features document.
     + catdog
     = dog
 
+We can also implement a production scanner with the char scanner.  This is
+more useful.
+
+    | main = program using scanner.
+    | scanner = scan using $.char.
+    | scan = "a" | "b" | "@".
+    | program = "a" & "@" & "b" & return ok.
+    + a@b
+    = ok
+
+If the production scanner fails to match the input text, it will return an EOF.
+This is a little weird, but.  Well.  Watch this space.
+
+    | main = program using scanner.
+    | scanner = scan using $.char.
+    | scan = "a" | "b" | "@".
+    | program = "a" & "@" & "b" & return ok.
+    + x
+    ? expected 'a' found 'EOF'
+
+On the other hand, if the scanner understands all the tokens, but the parser
+doesn't see the tokens it expects, you get the usual error.
+
+    | main = program using scanner.
+    | scanner = scan using $.char.
+    | scan = "a" | "b" | "@".
+    | program = "a" & "@" & "b" & return ok.
+    + b@a
+    ? expected 'a' found 'b'
+
+We can write a slightly more realistic scanner, too.
+
+    | main = program using scanner.
+    | scanner = scan using $.char.
+    | scan = "c" & "a" & "t" & return cat
+    |      | "d" & "o" & "g" & return dog.
+    | program = "cat" & "dog".
+    + catdog
+    = dog
+
+Parsing using a production scanner ignores any extra text given to it,
+just like the built-in parser.
+
+    | main = program using scanner.
+    | scanner = scan using $.char.
+    | scan = (
+    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    |        ).
+    | program = "cat" & "dog".
+    + catdogfoobar
+    = dog
+
+Herein lie an excessive number of tests that I wrote while I was debugging.
+Some of them will be cleaned up at a future point.
+
+    | main = program using scanner.
+    | scanner = scan using $.char.
+    | scan = (
+    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    |        ).
+    | program = "cat" & print 1 &
+    |           ("cat" & print 2 | "dog" & print 3) &
+    |           "dog" & print 4 & return ok.
+    + catcatdog
+    = 1
+    = 2
+    = 4
+    = ok
+
+    | main = program using scanner.
+    | scanner = scan using $.char.
+    | scan = (
+    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    |        ).
+    | program = "cat" & print 1 &
+    |           ("cat" & print 2 | "dog" & print 3) &
+    |           "dog" & print 4 & return ok.
+    + catdogdog
+    = 1
+    = 3
+    = 4
+    = ok
+
 Three good ways to shoot yourself in the foot
 ---------------------------------------------
     

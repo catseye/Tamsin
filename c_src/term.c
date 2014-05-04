@@ -20,7 +20,7 @@ struct term *term_new(const char *atom) {
     t->subterms = NULL;
 }
 
-struct term tamsin_EOF = {"\0", NULL, NULL};
+struct term tamsin_EOF = {"EOF", NULL, NULL};
 
 struct term *term_new_from_char(char c) {
     char s[2];
