@@ -61,7 +61,7 @@ def main(args):
             contents = f.read()
             parser = Parser(contents)
             ast = parser.grammar()
-        print unicode(repr(ast)).encode('UTF-8')
+        print unicode(ast).encode('UTF-8')
     elif args[0] == 'compile':
         ast = parse_and_check(args[1])
         #print >>sys.stderr, repr(ast)

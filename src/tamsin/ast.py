@@ -6,10 +6,16 @@
 # Most of the AST is just tuples; the exceptions are the two top-level
 # classes.   (for now, eventally they will all be like this)
 
+# Note that __unicode__ and __repr__ perform very different tasks:
+# __unicode__ : make a string that looks like a Tamsin term
+# __repr__ : make a string that is valid Python code for constructing the AST
+
 from tamsin.term import Variable
 
 class AST(object):
-    pass
+    def __unicode__(self):
+        raise NotImplementedError(repr(self))
+
 
 class Program(AST):
     def __init__(self, prodmap, prodlist):
@@ -34,6 +40,10 @@ class Program(AST):
     def __repr__(self):
         return u"Program(%r, %r)" % (self.prodmap, self.prodlist)
 
+    def __unicode__(self):
+        return u"program(%s)" % (', '.join([unicode(p) for p in self.prodlist]))
+
+
 class Production(AST):
     def __init__(self, name, rank, formals, locals_, body):
         self.name = name
@@ -48,8 +58,16 @@ class Production(AST):
             self.rank,
             self.formals,
             self.locals_,
-            '...' # self.body
+            self.body
         )
+
+    def __unicode__(self):
+        return u"production(%s, %s, %s)" % (
+            self.name,
+            self.formals,
+            self.body
+        )
+
 
 class Prodref(AST):
     def __init__(self, module, name):
@@ -62,6 +80,13 @@ class Prodref(AST):
             self.name
         )
 
+    def __unicode__(self):
+        return u"prodref(%s, %s)" % (
+            self.module,
+            self.name
+        )
+
+
 class And(AST):
     def __init__(self, lhs, rhs):
         self.lhs = lhs
@@ -69,6 +94,12 @@ class And(AST):
 
     def __repr__(self):
         return u"And(%r, %r)" % (
+            self.lhs,
+            self.rhs
+        )
+
+    def __unicode__(self):
+        return u"and(%s, %s)" % (
             self.lhs,
             self.rhs
         )
@@ -84,6 +115,13 @@ class Or(AST):
             self.rhs
         )
 
+    def __unicode__(self):
+        return u"or(%s, %s)" % (
+            self.lhs,
+            self.rhs
+        )
+
+
 class Not(AST):
     def __init__(self, rule):
         self.rule = rule
@@ -93,6 +131,12 @@ class Not(AST):
             self.rule
         )
 
+    def __unicode__(self):
+        return u"not(%s)" % (
+            self.rule
+        )
+
+
 class While(AST):
     def __init__(self, rule):
         self.rule = rule
@@ -101,6 +145,12 @@ class While(AST):
         return u"While(%r)" % (
             self.rule
         )
+
+    def __unicode__(self):
+        return u"while(%s)" % (
+            self.rule
+        )
+
 
 class Call(AST):
     def __init__(self, prodref, args, ibuf):
@@ -115,6 +165,13 @@ class Call(AST):
             self.ibuf
         )
 
+    def __unicode__(self):
+        return u"call(%s, %s)" % (
+            self.prodref,
+            self.args
+        )
+
+
 class Send(AST):
     def __init__(self, rule, variable):
         self.rule = rule
@@ -125,6 +182,13 @@ class Send(AST):
             self.rule,
             self.variable
         )
+
+    def __unicode__(self):
+        return u"send(%s, %s)" % (
+            self.rule,
+            self.variable
+        )
+
 
 class Set(AST):
     def __init__(self, variable, term):
@@ -137,6 +201,13 @@ class Set(AST):
             self.term
         )
 
+    def __unicode__(self):
+        return u"set(%s, %s)" % (
+            self.variable,
+            self.term
+        )
+
+
 class Using(AST):
     def __init__(self, lhs, prodref):
         self.lhs = lhs
@@ -145,6 +216,12 @@ class Using(AST):
 
     def __repr__(self):
         return u"Using(%r, %r)" % (
+            self.lhs,
+            self.prodref
+        )
+
+    def __unicode__(self):
+        return u"using(%s, %s)" % (
             self.lhs,
             self.prodref
         )
