@@ -77,16 +77,25 @@ int term_match(struct term *, struct term *);
 
 /* -------------------------------------------------------- scanner */
 
+struct engine {
+    void (*production)(void);
+    struct engine *next;
+};
+
 struct scanner {
     const char *buffer;
     int position;
     int reset_position;
+    struct engine *engines;
 };
 
 struct scanner *scanner_new(const char *);
 char scan(struct scanner *);
 void unscan(struct scanner *);
 void commit(struct scanner *);
+void scanner_push_engine(struct scanner *, void (*)(void));
+void scanner_pop_engine(struct scanner *);
+void scanner_char_engine(void);
 
 /* -------------------------------------------------------- tamsin */
 

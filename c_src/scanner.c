@@ -12,6 +12,7 @@ struct scanner *scanner_new(const char *buffer) {
     scanner->buffer = buffer;
     scanner->position = 0;
     scanner->reset_position = 0;
+    scanner->engines = NULL;
 
     return scanner;
 }
@@ -32,4 +33,28 @@ void unscan(struct scanner *s) {
 
 void commit(struct scanner *s) {
     s->reset_position = s->position;
+}
+
+struct engine *engine_new(void (*production)(void)) {
+    struct engine *e = malloc(sizeof(struct engine));
+
+    e->production = production;
+    return e;
+}
+
+void scanner_push_engine(struct scanner *s, void (*production)(void)) {
+    struct engine *e = engine_new(production);
+
+    e->next = s->engines;
+    s->engines = e;
+}
+
+void scanner_pop_engine(struct scanner *s) {
+    struct engine *e = s->engines;
+
+    s->engines = s->engines->next;
+    /* engine_free(e); */
+}
+
+void scanner_char_engine(void) {
 }
