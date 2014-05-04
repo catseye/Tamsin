@@ -17,13 +17,13 @@ struct scanner *scanner_new(const char *buffer) {
     return scanner;
 }
 
-char scan(struct scanner *s) {
+struct term *scan(struct scanner *s) {
     char c = s->buffer[s->position];
     if (c == '\0') {
-        return '\0';
+        return &tamsin_EOF;
     } else {
         s->position++;
-        return c;
+        return term_new_from_char(c);
     }
 };
 

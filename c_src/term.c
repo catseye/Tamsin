@@ -20,6 +20,8 @@ struct term *term_new(const char *atom) {
     t->subterms = NULL;
 }
 
+struct term tamsin_EOF = {"\0", NULL, NULL};
+
 struct term *term_new_from_char(char c) {
     char s[2];
 
@@ -89,9 +91,9 @@ struct term *term_concat(const struct term *lhs, const struct term *rhs) {
     return t;
 }
 
-const struct term BRA = { "(", NULL };
-const struct term KET = { ")", NULL };
-const struct term COMMA = { ", ", NULL };
+const struct term BRA = { "(", NULL, NULL };
+const struct term KET = { ")", NULL, NULL };
+const struct term COMMA = { ", ", NULL, NULL };
 
 struct term *term_flatten(struct term *t) {
     struct term_list *tl;

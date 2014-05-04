@@ -75,6 +75,8 @@ struct term *term_flatten(struct term *);
 
 int term_match(struct term *, struct term *);
 
+extern struct term tamsin_EOF;
+
 /* -------------------------------------------------------- scanner */
 
 struct engine {
@@ -90,7 +92,7 @@ struct scanner {
 };
 
 struct scanner *scanner_new(const char *);
-char scan(struct scanner *);
+struct term *scan(struct scanner *);
 void unscan(struct scanner *);
 void commit(struct scanner *);
 void scanner_push_engine(struct scanner *, void (*)(void));
