@@ -12,6 +12,14 @@
 
 from tamsin.term import Variable
 
+
+def format_list(l):
+    if len(l) == 0:
+        return u'nil'
+    else:
+        return u'list(%s, %s)' % (l[0], format_list(l[1:]))
+
+
 class AST(object):
     def __unicode__(self):
         raise NotImplementedError(repr(self))
@@ -41,7 +49,7 @@ class Program(AST):
         return u"Program(%r, %r)" % (self.prodmap, self.prodlist)
 
     def __unicode__(self):
-        return u"program(%s)" % (', '.join([unicode(p) for p in self.prodlist]))
+        return u"program(%s)" % format_list(self.prodlist)
 
 
 class Production(AST):
@@ -165,10 +173,10 @@ class Call(AST):
             self.ibuf
         )
 
-    def __unicode__(self):
+    def __unicode__(self):        
         return u"call(%s, %s)" % (
             self.prodref,
-            self.args
+            format_list(self.args)
         )
 
 

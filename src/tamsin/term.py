@@ -23,7 +23,7 @@ class Term(object):
         for x in self.contents:
             x.collect_variables(variables)
 
-    def __str__(self):
+    def __unicode__(self):
         if not self.contents:
             return self.name
         return "%s(%s)" % (
@@ -31,11 +31,7 @@ class Term(object):
         )
 
     def __repr__(self):
-        if not self.contents:
-            return repr(self.name)
-        return "%s(%s)" % (
-            self.name, ', '.join([repr(x) for x in self.contents])
-        )
+        return "Term(%r, %r)" % (self.name, self.contents)
 
 
 class Variable(Term):
