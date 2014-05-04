@@ -169,7 +169,7 @@ class Interpreter(EventProducer):
                 else:
                     return (True, bindings['X'])
             elif name == '$.mkterm':  # TODO another categorical bodge
-                t = Term(bindings['T'])
+                t = Term(unicode(bindings['T']))
                 l = bindings['L']
                 while l.name == 'list':
                     t.contents.append(l.contents[0])

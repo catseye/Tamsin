@@ -33,7 +33,7 @@ expr3      = expr4 → L & [("→" | "->") & variable → V & L ← send(L, V)] 
 expr4      = "(" & expr0 → E & ")" & E
            | "[" & expr0 → E & "]" & return opt(E)
            | "{" & expr0 → E & "}" & return while(E)
-           | "!" & expr0 & return not(E)
+           | "!" & expr0 → E & return not(E)
            | "set" & variable → V & "=" & term → T & return set(V, T)
            | "return" & term → T & return call(prodref('$', return), list(T, nil))
            | "fail" & term → T & return call(prodref('$', fail), list(T, nil))
@@ -42,9 +42,15 @@ expr4      = "(" & expr0 → E & ")" & E
            | variable & ["←" & term]
            | sq_string
            | prodref → P &
-             ["(" & [term & {"," & term}] & ")"] &
-             ["@" & term] &
-             return call(P, nil).
+             L ← nil &
+             ["(" &
+              term → T & L ← list(T, L) &
+              {"," & term → T & L ← list(T, L)} &
+              ")"] &
+             reverse(L, nil) → L &
+             return call(P, L).
+
+#            ["@" & term] &
 
 # we only handle atoms and variables correctly for now.
 

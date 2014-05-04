@@ -46,6 +46,12 @@ class Variable(Term):
     def collect_variables(self, variables):
         variables.append(self)
 
+    def __unicode__(self):
+        return unicode(self.name)
+
+    def __repr__(self):
+        return "Variable(%r)" % (self.name)
+
 
 class Concat(Term):
     def __init__(self, lhs, rhs):
@@ -63,7 +69,7 @@ class Concat(Term):
         self.lhs.collect_variables(variables)
         self.rhs.collect_variables(variables)
 
-    def __str__(self):
+    def __unicode__(self):
         return "%s%s" % (self.lhs, self.rhs)
 
     def __repr__(self):
