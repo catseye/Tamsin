@@ -957,69 +957,40 @@ return the rightmost bottommost leaf.
     + tree(tree(0,1),tree(0,tree(1,2)))
     = 2
 
-See Case Study here.
+Advanced Scanning
+-----------------
 
-Advanced Programming
---------------------
+### Changing the scanner in use ###
 
-Before the first production in a program, any number of _pragmas_ may be
-given.  Pragmas may affect how the program following them is parsed.
-Each pragma begins with a `@` followed by a bareword indicating the
-kind of pragma, followed by a number of arguments specific to that kind
-of pragma, followed by a `.`.
+There is an implicit scanner in effect at any given point in the program.
+As you have seen, the default scanner returns single characters.
 
-    | @alias zrrk 2 = jersey.
-    | @unalias zrrk.
-    | main = foo.
-    | foo = "b".
-    + b
-    = b
+    | main = "a" & "b" & "c".
+    + abc
+    = c
 
-### `@alias` ###
+    | main = "abc".
+    + abc
+    ? expected 'abc' found 'a'
 
-The pragma `@alias` introduces an alias.  Its syntax consists of the
-name of the alias (a bareword), followed by an integer which indicates
-the _arity_, followed by `=`, followed by the contents of the alias
-(i.e., what is being aliased; presently, this must be a non-terminal.)
+You can select a different scanner for a rule with `using`.  A scanner
+is just a production designed to return tokens.  There are a number of
+different built-in scanners in the built-in `$` module.  The default
+character scanner is available as `$.char`.
 
-This sets up a syntax rule, in the rule context, that, when the alias
-name is encountered, parses as a call to the aliased non-terminal; in
-addition, this syntax rule is special in that it looks for exactly
-_arity_ number of terms following the alias name.  Parentheses are not
-required to delimit these terms.
+    | main = ("a" & "b" & "c") using $.char.
+    + abc
+    = c
 
-    | @alias foo 2 = jersey.
-    | main = jersey(a,b) & foo c d.
-    | jersey(A,B) = «A» & «B».
-    + abcd
-    = d
+TODO: should be a rewritten copy of Advanced Scanning from Advanced
+Features document.
 
-The pragma `@unalias` removes a previously-introduced alias.
-
-    | @alias foo 2 = jersey.
-    | @unalias foo.
-    | main = jersey(a,b) & foo c d.
-    | jersey(A,B) = «A» & «B».
-    + abcd
-    ? Expected '.' at ' c d
-
-It is an error to attempt to unalias an alias that hasn't been established.
-
-    | @alias foo 2 = jersey.
-    | @unalias bar.
-    | main = return ok.
-    ? KeyError
-
-Note that various of Tamin's "keywords" are actually built-in aliases for
-productions in the `$` module, and they may be unaliased.
-
-    | @unalias return.
-    | main = return ok.
-    ? Expected '.' at ' ok.'
-
-    | @unalias return.
-    | main = $.return(ok).
-    = ok
+    | main = ("cat" & "dog") using word.
+    | word = wwww using $.char.
+    | wwww = "c" & "a" & "t" & return 'cat'
+    |      | "d" & "o" & "g" & return 'dog'.
+    + catdog
+    = dog
 
 Three good ways to shoot yourself in the foot
 ---------------------------------------------

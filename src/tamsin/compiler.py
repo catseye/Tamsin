@@ -303,6 +303,15 @@ class Compiler(object):
             self.emit("}")
             self.outdent()
             self.emit("}")
+        elif isinstance(ast, Using):
+            prodref = ast.prodref
+            scanner_name = prodref.name
+            if scanner_name == u'char':
+                self.emit("scanner_push_engine(scanner_char_engine());")
+            else:
+                self.emit("scanner_push_engine(&program_%s0);" % scanner_name)
+            self.compile_r(ast.lhs)
+            self.emit("scanner_pop_engine();")
         else:
             raise NotImplementedError(repr(ast))
 

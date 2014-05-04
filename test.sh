@@ -48,4 +48,7 @@ elif [ x$1 = xast ]; then   # check that tamsin-ast output looks like bin/tamsin
 elif [ x$1 = xinterpreter ]; then
     echo "Testing Python interpreter..."
     falderal --substring-error fixture/tamsin.py.markdown $FILES
+elif [ -e $1 ]; then
+    echo "Testing file with interpreter..."
+    falderal --substring-error fixture/tamsin.py.markdown $1
 fi

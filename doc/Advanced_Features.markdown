@@ -5,6 +5,68 @@ This document is a **work in progress**.
 
     -> Tests for functionality "Intepret Tamsin program"
 
+Advanced Programming
+--------------------
+
+Before the first production in a program, any number of _pragmas_ may be
+given.  Pragmas may affect how the program following them is parsed.
+Each pragma begins with a `@` followed by a bareword indicating the
+kind of pragma, followed by a number of arguments specific to that kind
+of pragma, followed by a `.`.
+
+    | @alias zrrk 2 = jersey.
+    | @unalias zrrk.
+    | main = foo.
+    | foo = "b".
+    + b
+    = b
+
+### `@alias` ###
+
+The pragma `@alias` introduces an alias.  Its syntax consists of the
+name of the alias (a bareword), followed by an integer which indicates
+the _arity_, followed by `=`, followed by the contents of the alias
+(i.e., what is being aliased; presently, this must be a non-terminal.)
+
+This sets up a syntax rule, in the rule context, that, when the alias
+name is encountered, parses as a call to the aliased non-terminal; in
+addition, this syntax rule is special in that it looks for exactly
+_arity_ number of terms following the alias name.  Parentheses are not
+required to delimit these terms.
+
+    | @alias foo 2 = jersey.
+    | main = jersey(a,b) & foo c d.
+    | jersey(A,B) = «A» & «B».
+    + abcd
+    = d
+
+The pragma `@unalias` removes a previously-introduced alias.
+
+    | @alias foo 2 = jersey.
+    | @unalias foo.
+    | main = jersey(a,b) & foo c d.
+    | jersey(A,B) = «A» & «B».
+    + abcd
+    ? Expected '.' at ' c d
+
+It is an error to attempt to unalias an alias that hasn't been established.
+
+    | @alias foo 2 = jersey.
+    | @unalias bar.
+    | main = return ok.
+    ? KeyError
+
+Note that various of Tamin's "keywords" are actually built-in aliases for
+productions in the `$` module, and they may be unaliased.
+
+    | @unalias return.
+    | main = return ok.
+    ? Expected '.' at ' ok.'
+
+    | @unalias return.
+    | main = $.return(ok).
+    = ok
+
 Advanced Scanning
 -----------------
 
@@ -480,3 +542,4 @@ Therefore test disabled.
         + x+y*(z+x+y)
         = expr0(expr1, +, expr1)
         
+    
