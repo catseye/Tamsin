@@ -12,6 +12,7 @@ grammar    = {"@" & pragma & "."} &
                  L ← list(P, L)
              } &
              eof &
+             reverse(L, nil) → L &
              return program(L).
 production = word → N &
              F ← nil &
@@ -19,7 +20,12 @@ production = word → N &
              "=" &
              expr0 → E &
              return production(N, F, E).
-formals    = "(" & term & {"," & term} & ")" | "[" & expr0 & "]".
+formals    = L ← nil &
+             "(" &
+             term → T & L ← list(T, L) &
+             {"," & term → T & L ← list(T, L)} &
+             ")" & return L
+             | "[" & expr0 & "]".
 expr0      = expr1 → L & {("|" | "||") & expr1 → R & L ← or(L, R)} & L.
 expr1      = expr2 → L & {("&" | "&&") & expr2 → R & L ← and(L, R)} & L.
 expr2      = expr3 → L & ["using" & prodref → P & L ← using(L, P)] & L.
@@ -35,21 +41,25 @@ expr4      = "(" & expr0 → E & ")" & E
            | terminal
            | variable & ["←" & term]
            | sq_string
-           | prodref & ["(" & [term & {"," & term}] & ")"] & ["@" & term].
+           | prodref → P &
+             ["(" & [term & {"," & term}] & ")"] &
+             ["@" & term] &
+             return call(P, nil).
 
 # we only handle atoms and variables for now.
 
 term       = term0.
 term0      = term1 → T & S ← '' & {"+" & term1 → S} & return T+S.
-term1      = atom   #  ["(" & [term & {"," & term}] & ")"]
+term1      = atom → A & ["(" & [term & {"," & term}] & ")"] & A
            | variable.
 atom       = word
            | sq_string.
 
 terminal   = terminal0 → T & return call(prodref('$', expect), list(T, nil)).
-terminal0  = dq_string
+terminal0  = dq_string → T & $.unquote(T) → T & T
            | ("«" | "<<") & term → T & ("»" | ">>") & T.
-prodref    = [modref & "."] & word.
+
+prodref    = M ← '' & [modref → M & "."] & word → P & return prodref(M, P).
 modref     = "$".
 pragma     = "alias" & word & word & "=" & prodref
            | "unalias" & word.
@@ -59,3 +69,7 @@ word = $.alnum.
 variable = $.upper.
 sq_string = $.startswith('\'').
 dq_string = $.startswith('"').
+
+
+reverse(list(H, T), A) = reverse(T, list(H, A)).
+reverse(nil, A) = A.

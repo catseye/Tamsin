@@ -163,6 +163,11 @@ class Interpreter(EventProducer):
                 else:
                     return (False, Term(u"expected '%s, found '%s'" %
                                         (bindings['X'], self.scanner.peek())))
+            elif name == '$.unquote':  # TODO this is definitely a bodge
+                if (bindings['X'].startswith(u'"')):
+                    return (True, bindings['X'][1:-1])
+                else:
+                    return (True, bindings['X'])
             elif name == '$.print':
                 val = bindings['X']
                 print unicode(val).encode('UTF-8')
