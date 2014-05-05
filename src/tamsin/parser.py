@@ -190,6 +190,8 @@ class Parser(EventProducer):
             module = '$'
             self.expect(':')
             name = self.consume_any()
+        elif self.consume(':'):
+            name = self.consume_any()
         else:
             name = self.consume_any()
             if self.consume(':'):

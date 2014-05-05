@@ -30,8 +30,6 @@ TODO
             prod = expr.
         }
 
-*   `:foo` means production `foo` in the current module.  `$.char` becomes
-    `$:char`.
 *   turn system library back into built-in keywords (esp. if : can be used)
 *   should be able to import ("open") other modules into your own namespace.
 *   including files, library files should be **handled by the implementation**
@@ -71,7 +69,6 @@ TODO
 *   auto-generate terms from productions, like Rooibos does
 *   `;` = `&`?
 *   pretty-print AST for error messages
-*   have analyzer, interpreter, compiler all inherit from ASTWalker or smth?
 *   `$.alpha`
 *   `$.digit`
 *   don't consume stdin until asked to scan.

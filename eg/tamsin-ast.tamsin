@@ -49,7 +49,7 @@ expr4      = "(" & expr0 → E & ")" & E
              ("←" & term → T & return set(V, T)
              | return call(prodref('$', return), list(V, nil)))
            | sq_string → T &
-             $.unquote(T) → T &
+             $:unquote(T) → T &
              return call(prodref('$', return), list(T, nil))
            | prodref → P &
              L ← nil &
@@ -67,14 +67,14 @@ term1      = atom → A & L ← nil & ["(" &
                                       {"," & term → T & L ← list(T, L)} &
                                     ")"] &
                                     reverse(L, nil) → L &
-                                    $.mkterm(A, L)
+                                    $:mkterm(A, L)
            | variable.
 atom       = word
            | sq_string → T &
-             $.unquote(T).
+             $:unquote(T).
 
 terminal   = terminal0 → T & return call(prodref('$', expect), list(T, nil)).
-terminal0  = dq_string → T & $.unquote(T) → T & T
+terminal0  = dq_string → T & $:unquote(T) → T & T
            | ("«" | "<<") & term → T & ("»" | ">>") & T.
 
 prodref    = M ← '' & [modref → M & "."] & word → P & return prodref(M, P).
@@ -82,15 +82,15 @@ modref     = "$".
 pragma     = "alias" & word & word & "=" & prodref
            | "unalias" & word.
 
-word = $.alnum.
-variable = $.upper.
-sq_string = $.startswith('\'').
-dq_string = $.startswith('"').
+word = $:alnum.
+variable = $:upper.
+sq_string = $:startswith('\'').
+dq_string = $:startswith('"').
 
 reverse(list(H, T), A) = reverse(T, list(H, A)).
 reverse(nil, A) = A.
 
-scanner = scan using $.char.
+scanner = scan using $:char.
 scan = skippable & (symbol | str('\'') | str('"') | sc_word).
 symbol = "&" & "&" & '&&'
        | "|" & "|" & '||'
@@ -98,7 +98,7 @@ symbol = "&" & "&" & '&&'
        | "<" & "-" & '<-'
        | "<" & "<" & '<<'
        | ">" & ">" & '>>'
-       | "=" | "(" | ")" | "[" | "]" | "{" | "}" | "!" | "|" | "&"
+       | "=" | "(" | ")" | "[" | "]" | "{" | "}" | "!" | "|" | "&" | ":"
        | "," | "." | "@" | "+" | "$" | "→" | "←" | "«" | "»".
 str(Q) = «Q» → T & {(escape | !«Q» & any) → S & T ← T + S} & «Q» &
          return T + Q.
@@ -108,7 +108,7 @@ escape = "\\" & "n" & '\n'
        | "\\" & "\\" & '\\'
        | "\\" & "'" & '\''
        | "\\" & "\"" & '"'.
-sc_word = $.alnum → T & { ($.alnum | "_") → S & T ← T + S } & T.
+sc_word = $:alnum → T & { ($:alnum | "_") → S & T ← T + S } & T.
 skippable = {whitespace | comment}.
 whitespace = " " | "\t" | "\r" | "\n".
 comment = "#" & {!"\n" & any} & "\n".

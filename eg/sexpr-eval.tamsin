@@ -2,9 +2,9 @@
 # hereby placed in the public domain.  It comes with NO WARRANTY.
 
 main = sexp → S using scanner & reverse(S, nil) → SR & eval(SR).
-scanner = scan using $.char.
-scan = {" "} & ("(" | ")" | (T ← '' & {$.alnum → S & T ← T + S} & return T)).
-sexp = $.alnum | list.
+scanner = scan using $:char.
+scan = {" "} & ("(" | ")" | (T ← '' & {$:alnum → S & T ← T + S} & return T)).
+sexp = $:alnum | list.
 list = "(" & listtail(nil).
 listtail(L) = sexp → S & listtail(pair(S, L)) | ")" & L.
 head(pair(A, B)) = return A.

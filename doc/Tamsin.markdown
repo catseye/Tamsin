@@ -837,8 +837,7 @@ The module `$` contains a number of built-in productions which would not
 be possible or practical to implement in Tamsin.  See Appendix C for a list.
 
 In fact, we have been using the `$` module already!  But our usage of it
-has been hidden under syntactic sugar (which you'll learn more about in
-the "Aliases" section below.)
+has been hidden under some syntactic sugar.
 
     | main = $:expect(k).     # same as "k"
     + k
@@ -895,6 +894,27 @@ the contents.
 
     | main = $:unquote('"hello"').
     = hello
+
+`:foo` always means production `foo` in the current module.
+
+    | main = :blah.
+    | blah = "b" & print 'hello'.
+    + b
+    = hello
+    = hello
+
+So, you can name your own productions the same as built-in keywords, as
+long as you call them with `:foo`.
+
+     | main = :set.
+     | set = :return.
+     | return = :fail.
+     | fail = :print.
+     | print = :any.
+     | any = :eof.
+     | eof = "x".
+     + x
+     = x
 
 Evaluation
 ----------
