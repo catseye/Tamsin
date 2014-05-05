@@ -9,7 +9,7 @@ Tamsin is an oddball little language that can't decide if it's a
 Its primary goal is to allow the rapid development of **parsers**,
 **static analyzers**, **interpreters**, and **compilers**, and to allow them
 to be expressed *compactly*.  Golf your grammar!  (Or write it like a decent
-human being would.)
+human being, if you must.)
 
 The current released version of Tamsin is 0.1; the development version is
 0.2-PRE.  As indicated by the 0.x version number, it is a **work in progress**,
@@ -19,11 +19,11 @@ look completely different.)
 Code Examples
 -------------
 
-Make a story more exciting in **1 line of code**.
+Make a story more exciting in **1 line of code**:
 
     main = S ← '' & {("." & '!' | "?" & '?!' | any) → C & S ← S + C} & S.
 
-Parse an algebraic expression in **4 lines of code**.
+Parse an algebraic expression in **4 lines of code**:
 
     main = (expr0 & eof & 'ok').
     expr0 = expr1 & {"+" & expr1}.
@@ -31,7 +31,7 @@ Parse an algebraic expression in **4 lines of code**.
     term = "x" | "y" | "z" | "(" & expr0 & ")".
 
 Translate an algebraic expression to RPN (Reverse Polish Notation) in
-**7 lines of code**.
+**7 lines of code**:
 
     main = expr0 → E & walk(E).
     expr0 = expr1 → E1 & {"+" & expr1 → E2 & E1 ← add(E1,E2)} & E1.
@@ -42,7 +42,7 @@ Translate an algebraic expression to RPN (Reverse Polish Notation) in
     walk(X) = return ' '+X.
 
 Parse a CSV file (handling quoted commas and quotes correctly) and write
-out the 2nd-last field of each record — in **11 lines of code**.
+out the 2nd-last field of each record — in **11 lines of code**:
 
     main = line → L & L ← lines(nil, L) &
            {"\n" & line → M & L ← lines(L, M)} & extract(L) & ''.
@@ -57,7 +57,25 @@ out the 2nd-last field of each record — in **11 lines of code**.
     extract_field(X) = return X.
 
 Evaluate an (admittedly trivial) S-expression based language in
-**[17 lines of code](https://github.com/catseye/Tamsin/blob/master/eg/sexpr-eval.tamsin)**.
+**17 lines of code**:
+
+    main = sexp → S using scanner & reverse(S, nil) → SR & eval(SR).
+    scanner = scan using $.char.
+    scan = {" "} & ("(" | ")" | (T ← '' & {$.alnum → S & T ← T + S} & return T)).
+    sexp = $.alnum | list.
+    list = "(" & listtail(nil).
+    listtail(L) = sexp → S & listtail(pair(S, L)) | ")" & L.
+    head(pair(A, B)) = return A.
+    tail(pair(A, B)) = return B.
+    cons(A, B) = return pair(A, B).
+    eval(pair(head, pair(X, nil))) = eval(X) → R & head(R).
+    eval(pair(tail, pair(X, nil))) = eval(X) → R & tail(R).
+    eval(pair(cons, pair(A, pair(B, nil)))) =
+       eval(A) → AE & eval(B) → BE & return pair(AE, BE).
+    eval(X) = X.
+    reverse(pair(H, T), A) = reverse(H, nil) → HR & reverse(T, pair(HR, A)).
+    reverse(nil, A) = A.
+    reverse(X, A) = X.
 
 For more information
 --------------------
@@ -66,18 +84,19 @@ If the above has piqued your curiosity, you may want to read the specification,
 which contains many more small examples written to demonstrate (and test) the
 syntax and behavior of Tamsin:
 
-*   [The Tamsin Language Specification, version 0.1](https://github.com/catseye/Tamsin/blob/0.1/doc/Tamsin.markdown)
+*   [The Tamsin Language Specification](https://github.com/catseye/Tamsin/blob/master/doc/Tamsin.markdown)
 
-For the current development version of the specification, see the Tamsin project
-on Github.
+Note that this is the current development version of the specification, and
+it may differ from the examples in this document.
 
 Quick Start
 -----------
 
-The Tamsin reference repository is [hosted on Github](https://github.com/catseye/tamsin).
+The Tamsin reference repository is [hosted on Github](https://github.com/catseye/Tamsin)
+with a [Mercurial mirror on Bitbucket](https://bitbucket.org/catseye/tamsin).
 
 This repository contains the reference implementation of Tamsin, called
-`tamsin`, written in Python.  It can both interpret a Tamsin program and
+`tamsin`, written in Python 2.7.  It can both interpret a Tamsin program and
 compile a program written in Tamsin to C.  The distribution also contains an
 [implementation of the Tamsin scanner and parser written in Tamsin itself](https://github.com/catseye/Tamsin/blob/master/eg/tamsin-parser.tamsin)
 (although we're still a ways from a fully bootrapped implementation.)
