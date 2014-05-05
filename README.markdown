@@ -17,9 +17,9 @@ might look completely different.)
 Code Examples
 -------------
 
-Hello, world:
+Make a story more exciting in **1 line of code**.
 
-    main = 'Hello, world!'.
+    main = S ← '' & {("." & '!' | "?" & '?!' | any) → C & S ← S + C} & S.
 
 Parse an algebraic expression in **4 lines of code**.
 
@@ -39,10 +39,6 @@ Translate an algebraic expression to RPN (Reverse Polish Notation) in
     walk(mul(L,R)) = walk(L) → LS & walk(R) → RS & return LS+RS+' *'.
     walk(X) = return ' '+X.
 
-Make a story more exciting in **1 line of code**.
-
-    main = S ← '' & {("." & '!' | "?" & '?!' | any) → C & S ← S + C} & S.
-
 Parse a CSV file (handling quoted commas and quotes correctly) and write
 out the 2nd-last field of each record — in **11 lines of code**.
 
@@ -58,7 +54,7 @@ out the 2nd-last field of each record — in **11 lines of code**.
     extract_field(fields(Last, fields(This, X))) = print This.
     extract_field(X) = return X.
 
-Evaluator for a(n admittedly trivial) S-expression based language in
+Evaluate an (admittedly trivial) S-expression based language in
 **[17 lines of code](https://github.com/catseye/Tamsin/blob/master/eg/sexpr-eval.tamsin)**.
 
 For more information
