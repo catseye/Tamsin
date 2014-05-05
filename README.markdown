@@ -11,9 +11,10 @@ Its primary goal is to allow the rapid development of **parsers**,
 to be expressed *compactly*.  Golf your grammar!  (Or write it like a decent
 human being would.)
 
-The current released version of Tamsin is 0.1.  As indicated by the
-0.x version number, it is a **work in progress**, with the usual caveat that
-things may change rapidly (and version 0.2 might look completely different.)
+The current released version of Tamsin is 0.1; the development version is
+0.2-PRE.  As indicated by the 0.x version number, it is a **work in progress**,
+with the usual caveat that things may change rapidly (and that version 0.2 might
+look completely different.)
 
 Code Examples
 -------------
@@ -65,7 +66,10 @@ If the above has piqued your curiosity, you may want to read the specification,
 which contains many more small examples written to demonstrate (and test) the
 syntax and behavior of Tamsin:
 
-*   [The Tamsin Language Specification](https://github.com/catseye/Tamsin/blob/master/doc/Tamsin.markdown)
+*   [The Tamsin Language Specification, version 0.1](https://github.com/catseye/Tamsin/blob/0.1/doc/Tamsin.markdown)
+
+For the current development version of the specification, see the Tamsin project
+on Github.
 
 Quick Start
 -----------

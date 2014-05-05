@@ -16,6 +16,8 @@ TODO
 
 ### lower-priority/experimental ###
 
+*   tell/rewind the implicit buffer -- for VM's etc
+*   `using` production x: x's scanner defaults to byte or utf_8, not x
 *   figure out good way to do aliases with the Tamsin-parser-in-Tamsin
     (dynamic grammar is really more of a Zz thing...)
 *   productions with names with arbitrary characters in them.
