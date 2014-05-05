@@ -1,16 +1,9 @@
 # Parser for Tamsin AST, written in Tamsin.
 # Distributed under a BSD-style license; see LICENSE.
 
+# Note that this contains support for some features which are not in 0.1.
+
 main = grammar using scanner.
-
-
-# problem: we can't use `word`, `variable` etc in here, because those
-# scan using the char scanner.  we have already scanned them using
-# tamsin_scanner.  so we use alnum, upper, startswith.
-
-
-# big problem: aliases!
-
 
 grammar    = {"@" & pragma & "."} &
              production & "." &
@@ -45,13 +38,10 @@ modref     = "$".
 pragma     = "alias" & word & word & "=" & prodref
            | "unalias" & word.
 
-
 word = $.alnum.
 variable = $.upper.
 sq_string = $.startswith('\'').
 dq_string = $.startswith('"').
-
-
 
 scanner = scan using $.char.
 scan = skippable & (symbol | str('\'') | str('"') | sc_word).

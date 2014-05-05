@@ -73,8 +73,8 @@ Quick Start
 The Tamsin reference repository is [hosted on Github](https://github.com/catseye/tamsin).
 
 This repository contains the reference implementation of Tamsin, called
-`tamsin`, written in Python.  It can interpret a Tamsin program, and compile
-a program written in (core) Tamsin to C.  The distribution also contains an
+`tamsin`, written in Python.  It can both interpret a Tamsin program and
+compile a program written in Tamsin to C.  The distribution also contains an
 [implementation of the Tamsin scanner and parser written in Tamsin itself](https://github.com/catseye/Tamsin/blob/master/eg/tamsin-parser.tamsin)
 (although we're still a ways from a fully bootrapped implementation.)
 
@@ -133,7 +133,7 @@ Related work
 *   [Parsec](http://www.haskell.org/haskellwiki/Parsec) (parser combination)
 *   [Perl](http://perl.com/) (rubbish listing)
 *   [Erlang](http://erlang.org/) (pattern-matching)
-    [K](https://github.com/kevinlawler/kona) (similar feel; Tamsin
+*   [K](https://github.com/kevinlawler/kona) (similar feel; Tamsin
     is a _vertical language_)
 *   [Cat's Eye Technologies](http://catseye.tc)' esoteric and experimental
     languages:

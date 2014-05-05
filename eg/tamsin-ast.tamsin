@@ -1,6 +1,8 @@
 # Parser and scanner for Tamsin AST, written in Tamsin.
 # Distributed under a BSD-style license; see LICENSE.
 
+# Note that this contains support for some features which are not in 0.1.
+
 main = grammar using scanner.
 
 grammar    = {"@" & pragma & "."} &
@@ -58,10 +60,6 @@ expr4      = "(" & expr0 → E & ")" & E
              reverse(L, nil) → L &
              return call(P, L).
 
-#            ["@" & term] &
-
-# we only handle atoms and variables correctly for now.
-
 term       = term0.
 term0      = term1 → T & {"+" & term1 → S & T ← T + S} & T.
 term1      = atom → A & L ← nil & ["(" &
@@ -84,16 +82,13 @@ modref     = "$".
 pragma     = "alias" & word & word & "=" & prodref
            | "unalias" & word.
 
-
 word = $.alnum.
 variable = $.upper.
 sq_string = $.startswith('\'').
 dq_string = $.startswith('"').
 
-
 reverse(list(H, T), A) = reverse(T, list(H, A)).
 reverse(nil, A) = A.
-
 
 scanner = scan using $.char.
 scan = skippable & (symbol | str('\'') | str('"') | sc_word).

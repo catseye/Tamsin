@@ -16,6 +16,8 @@ TODO
 
 ### lower-priority/experimental ###
 
+*   figure out good way to do aliases with the Tamsin-parser-in-Tamsin
+    (dynamic grammar is really more of a Zz thing...)
 *   productions with names with arbitrary characters in them.
 *   something like «foo» but foo is the name of a *non*terminal — symbolic
     production references (like Perl's horrible globs as a cheap substitute
