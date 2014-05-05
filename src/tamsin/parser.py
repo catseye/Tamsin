@@ -123,6 +123,10 @@ class Parser(EventProducer):
             sett = Set(Variable(u'_1'), t)
             sendd = Send(lhs, Variable(u'_2'))
             accc = Set(Variable(u'_1'), Concat(Variable(u'_1'), Variable(u'_2')))
+            if self.consume('/'):
+                atom = self.term()
+                assert isinstance(atom, Atom)
+                accc = Set(Variable(u'_1'), Constructor(atom.text, [Variable(u'_2'), Variable(u'_1')]))
             returnn = Call(Prodref('$', 'return'), [Variable(u'_1')], None)
             lhs = And(And(sett, While(And(sendd, accc))), returnn)
         return lhs

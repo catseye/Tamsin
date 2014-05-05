@@ -227,7 +227,7 @@ class Concat(AST):
         )
 
     def __unicode__(self):
-        return u"%s+%s" % (
+        return u"%s%s" % (
             self.lhs,
             self.rhs
         )

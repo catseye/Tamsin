@@ -41,28 +41,12 @@ TODO
 *   `$.unquote` should take left and right quotes to expect
 *   define a stringify-repr operation on terms
 *   Tamsin scanner: more liberal (every non-alphanum+_ symbol scans as itself,
-    incl. ones that have no meaning currently like `/` and `?`)
+    incl. ones that have no meaning currently like `*` and `?`)
 *   use `←` instead of `@`, why not?
 *   pattern match in send:
     *   `fields → F@fields(H,T) & H`
 *   maps, implemented as hash tables.
     *   `Table ← {} & fields → F@fields(H,T) & Table[H] ← T`
-*   these idioms are so common there ought to be a form for them:
-    *   `set A = '' & {rule → B & A ← A + B} & A`
-    *   `set A = nil & {rule → B & A ← cons(A, B)} & A`
-    indeed, this is a fold!  something like...
-    *   `fold rule '' +`
-    *   `fold rule nil cons`
-    *   maybe `rule/nil/cons`
-    i.e.
-    *   `"fold" & expr0 & term & ("+" | term)`
-    that certainly implies that `+` is a constructor though.  hmmm...
-    well, we could start with the term version, like:
-    
-        expr0 = expr1 → E & fold ("+" & expr1) E add.
-        expr1 = term → E & fold ("*" & term) E mul.
-        term = "x" | "y" | "z" | "(" & expr0 → E & ")" & E.
-
 *   on that topic — production values and/or lambda productions...
 *   auto-generate terms from productions, like Rooibos does
 *   `;` = `&`?

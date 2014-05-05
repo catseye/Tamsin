@@ -829,31 +829,34 @@ Oh, and since we were speaking of sentinels earlier...
 
 The following idiom is essentially a *fold* from functional programming.
 
-    | main = word → W & "." & W.
-    | word = T ← '' & {$:alnum → S & T ← T + S} & return T.
-    + dogwood.
+    | main = T ← '' & {$:alnum → S & T ← T + S} & return T.
+    + dogwood
     = dogwood
 
 It is so common, that Tamsin supports a special form for it.  The infix
 operator `/` takes a rule on the left-hand side, and a term (used as the
 initial value) on the right-hand side, and expands to the above.
 
-    | main = word → W & "." & W.
-    | word = $:alnum/''.
-    + dogwood.
+    | main = $:alnum/''.
+    + dogwood
     = dogwood
 
-    | main = word → W & "." & W.
-    | word = $:alnum/'prefix'.
+    | main = $:alnum/'prefix'.
     + dogwood.
     = prefixdogwood
 
 You can use any rule you desire, not just a non-terminal, on the LHS of `/`.
 
-    | main = binary → W & "." & W.
-    | binary = ("0" | "1")/'%'.
+    | main = ("0" | "1")/'%'.
     + 0110110110.
     = %0110110110
+
+If there is an additional `/`, it must be followed by an atom.  This atom
+will be used as a constructor, instead of the concat operation.
+
+    | main = $:alnum/nil/cons.
+    + dog.
+    = cons(g, cons(o, cons(d, nil)))
 
 Modules
 -------
@@ -1068,27 +1071,28 @@ demonstrates that the `token` production returns tokens.
     = dog
     = ok
 
-(works OK from the command line but DOESN'T work ok from Falderal?  weird.)
+Here's a slightly more practical scanner that we'll also use in the next
+few examples.
 
-      | main = {token → A & print A} & 'ok'.
-      | token = ({" "} & ("(" | ")" | word)) using $:char.
-      | word = $:alnum → L & {$:alnum → M & set L = L + M} & L.
-      + cabbage( bag     gaffe fad ) ()) bag(bagbag bag)
-      = cabbage
-      = (
-      = bag
-      = gaffe
-      = fad
-      = )
-      = (
-      = )
-      = )
-      = bag
-      = (
-      = bagbag
-      = bag
-      = )
-      = ok
+    | main = {token → A & print A} & 'ok'.
+    | token = ({" "} & ("(" | ")" | word)) using $:char.
+    | word = $:alnum → L & {$:alnum → M & set L = L + M} & L.
+    + cabbage( bag     gaffe fad ) ()) bag(bagbag bag)
+    = cabbage
+    = (
+    = bag
+    = gaffe
+    = fad
+    = )
+    = (
+    = )
+    = )
+    = bag
+    = (
+    = bagbag
+    = bag
+    = )
+    = ok
 
 There is one guideline to follow: your production which implements a scanner
 should itself say what scanner it is `using`.  For example, the `token` scanner
@@ -1240,16 +1244,13 @@ On the other hand, variables set when one scanner is in effect can be accessed
 by rules with another scanner in effect, as long as they're in the same
 production.
 
-(another one that doesn't work under Falderal?  am I using the `subprocess`
-module subtly incorrectly, I wonder?)
-
-        | main = ("c" & "a" & "t" → G) using $:char
-        |      & ("dog" & return G) using token.
-        | 
-        | token = ({" "} & ("(" | ")" | word)) using $:char.
-        | word = $:alnum → L & {$:alnum → M & set L = L + M} & L.
-        + cat dog
-        = t
+    | main = ("c" & "a" & "t" → G) using $:char
+    |      & ("dog" & return G) using token.
+    | 
+    | token = ({" "} & ("(" | ")" | word)) using $:char.
+    | word = $:alnum → L & {$:alnum → M & set L = L + M} & L.
+    + cat dog
+    = t
 
 **Note**: you need to be careful when using `using`!  Beware putting
 `using` inside a rule that can fail, i.e. the LHS of `|` or inside a `{}`.

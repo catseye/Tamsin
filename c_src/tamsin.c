@@ -36,7 +36,7 @@ void tamsin_any(struct scanner *s) {
 
 void tamsin_expect(struct scanner *s, const char *token) {
     struct term *t = scan(s);
-    if (!strcmp(t->atom, token)) {
+    if (t != &tamsin_EOF && !strcmp(t->atom, token)) {
         commit(s);
         result = t;
         ok = 1;
@@ -53,7 +53,7 @@ void tamsin_expect(struct scanner *s, const char *token) {
 
 void tamsin_alnum(struct scanner *s) {
     struct term *t = scan(s);
-    if (isalnum(t->atom[0])) {
+    if (t != &tamsin_EOF && isalnum(t->atom[0])) {
         commit(s);
         result = t;
         ok = 1;
@@ -68,7 +68,7 @@ void tamsin_alnum(struct scanner *s) {
 
 void tamsin_upper(struct scanner *s) {
     struct term *t = scan(s);
-    if (isupper(t->atom[0])) {
+    if (t != &tamsin_EOF && isupper(t->atom[0])) {
         commit(s);
         result = t;
         ok = 1;
@@ -83,7 +83,7 @@ void tamsin_upper(struct scanner *s) {
 
 void tamsin_startswith(struct scanner *s, const char *str) {
     struct term *t = scan(s);
-    if (t->atom[0] == str[0]) {
+    if (t != &tamsin_EOF && t->atom[0] == str[0]) {
         commit(s);
         result = t;
         ok = 1;
