@@ -1048,13 +1048,13 @@ consumes raw bytes.
     + abc
     ? expected 'abc' found 'a'
 
-        | main = ("«" | "♡")/''.
-        + «♡««♡←
-        = «♡««♡
-        
-        | main = {"«" | "♡"} & eof.
-        + «♡«→«♡
-        ? expected EOF found '→'
+    | main = ("«" | "♡")/''.
+    + «♡««♡←
+    = «♡««♡
+
+    | main = {"«" | "♡"} & eof.
+    + «♡«→«♡
+    ? expected EOF found '→'
 
 Here we test the `$:byte` scanner...
 
@@ -1066,23 +1066,25 @@ Here we test the `$:byte` scanner...
     + abc
     ? expected 'abc' found 'a'
 
-    TODO: we should post-process the output of `tamsin` here.
+    -> Tests for functionality "Intepret Tamsin program (pre- & post-processed)"
     
-        | main = "«" using $:byte
-        + «
-        = \xc2
+The byte scanner is 8-bit clean.  (The `0a` added to the output is the newline.)
+
+    | main = (any & any & any) using $:byte.
+    + 010003
+    = 030a
+
+This includes bytes that would be special in UTF-8.
+
+    | main = (any & any → R & any & R) using $:byte.
+    + 00ff00
+    = ff0a
     
-    The byte scanner is 8-bit clean.
-    
-    TODO: we should pre-process the input to `tamsin` here.
-    
-        | main = "\x00" using $:byte
-        + \x00
-        = \x00
-    
-        | main = "\x00" → N using $:byte & return '\x01' + N + '\x01'.
-        + \x00
-        = \x01\x00\x01
+        | main = "\x00" → N using $:byte & return '\x01' + N + '\xff'.
+        + 00
+        = 0100ff
+
+    -> Tests for functionality "Intepret Tamsin program"
 
 You can also define your own scanner by defining a production designed
 to return tokens.  Each time it is called, it should return an atom, which

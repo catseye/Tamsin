@@ -1,0 +1,11 @@
+#!/usr/bin/env python
+
+# converts hex couples on input to raw bytes on output.
+
+import sys
+
+while True:
+    hex = sys.stdin.read(2)
+    if len(hex) < 2:
+        sys.exit(0)
+    sys.stdout.write(chr(int(hex, 16)))
