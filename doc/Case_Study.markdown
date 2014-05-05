@@ -6,6 +6,10 @@ Case Study: Parsing and Evaluating S-Expressions in Tamsin
 We now have enough tools at our disposal to parse and evaluate simple
 S-expressions (from Lisp or Scheme).
 
+Note that we no longer have `$.tamsin`, so these examples don't work.
+They're left here to demonstrate the development process.  For now, see
+`eg/sexpr-eval.tamsin`.
+
 We can write such a parser with `{}`, but the result is a bit messy.
 
     | main = sexp using $.tamsin.

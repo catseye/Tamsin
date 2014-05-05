@@ -21,15 +21,15 @@ Hello, world:
 
     main = 'Hello, world!'.
 
-Parse an algebraic expression — 4 lines of code.
+Parse an algebraic expression in **4 lines of code**.
 
     main = (expr0 & eof & 'ok').
     expr0 = expr1 & {"+" & expr1}.
     expr1 = term & {"*" & term}.
     term = "x" | "y" | "z" | "(" & expr0 & ")".
 
-Translate an algebraic expression to RPN (Reverse Polish Notation) — 7
-lines of code.
+Translate an algebraic expression to RPN (Reverse Polish Notation) in
+**7 lines of code**.
 
     main = expr0 → E & walk(E).
     expr0 = expr1 → E1 & {"+" & expr1 → E2 & E1 ← add(E1,E2)} & E1.
@@ -39,12 +39,12 @@ lines of code.
     walk(mul(L,R)) = walk(L) → LS & walk(R) → RS & return LS+RS+' *'.
     walk(X) = return ' '+X.
 
-Make a story more exciting — 1 line of code.
+Make a story more exciting in **1 line of code**.
 
     main = S ← '' & {("." & '!' | "?" & '?!' | any) → C & S ← S + C} & S.
 
 Parse a CSV file (handling quoted commas and quotes correctly) and write
-out the 2nd-last field of each record — 11 lines of code.
+out the 2nd-last field of each record — in **11 lines of code**.
 
     main = line → L & L ← lines(nil, L) &
            {"\n" & line → M & L ← lines(L, M)} & extract(L) & ''.
@@ -58,6 +58,9 @@ out the 2nd-last field of each record — 11 lines of code.
     extract_field(fields(Last, fields(This, X))) = print This.
     extract_field(X) = return X.
 
+Evaluator for a(n admittedly trivial) S-expression based language in
+**[17 lines of code](https://github.com/catseye/Tamsin/blob/master/eg/sexpr-eval.tamsin)**.
+
 For more information
 --------------------
 
@@ -65,7 +68,7 @@ If the above has piqued your curiosity, you may want to read the specification,
 which contains many more small examples written to demonstrate (and test) the
 syntax and behavior of Tamsin:
 
-*   [The Tamsin v0.1 Language Specification](https://github.com/catseye/Tamsin/blob/master/doc/Tamsin.markdown)
+*   [The Tamsin v0.1-PRE Language Specification](https://github.com/catseye/Tamsin/blob/master/doc/Tamsin.markdown)
 
 Quick Start
 -----------

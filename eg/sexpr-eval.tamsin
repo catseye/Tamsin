@@ -1,0 +1,17 @@
+main = sexp → S using scanner & reverse(S, nil) → SR & eval(SR).
+scanner = scan using $.char.
+scan = {" "} & ("(" | ")" | (T ← '' & {$.alnum → S & T ← T + S} & return T)).
+sexp = $.alnum | list.
+list = "(" & listtail(nil).
+listtail(L) = sexp → S & listtail(pair(S, L)) | ")" & L.
+head(pair(A, B)) = return A.
+tail(pair(A, B)) = return B.
+cons(A, B) = return pair(A, B).
+eval(pair(head, pair(X, nil))) = eval(X) → R & head(R).
+eval(pair(tail, pair(X, nil))) = eval(X) → R & tail(R).
+eval(pair(cons, pair(A, pair(B, nil)))) =
+   eval(A) → AE & eval(B) → BE & return pair(AE, BE).
+eval(X) = X.
+reverse(pair(H, T), A) = reverse(H, nil) → HR & reverse(T, pair(HR, A)).
+reverse(nil, A) = A.
+reverse(X, A) = X.

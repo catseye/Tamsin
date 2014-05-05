@@ -17,6 +17,8 @@ TODO
 
 ### lower-priority/experimental ###
 
+*   EOF and nil are the same?  it would make sense...
+*   regex-like shortcuts: `\w` for "word", `\s` for "whitespace", etc.
 *   meta-circular implementation of compiler!
 *   `$.unquote` should take left and right quotes to expect
 *   define a stringify-repr operation on terms

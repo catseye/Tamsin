@@ -1,17 +1,18 @@
-The Tamsin Language Specification
-=================================
+The Tamsin v0.1-PRE Language Specification
+==========================================
 
 This document is a **work in progress**.
 
-*Note* that this document only specifies the behaviour of the core language
-(which you could also call "Tamsin Level 0" or "Mini-Tamsin" if you like.)
-The advanced features, which are also part of the full Tamsin language, are
-documented in the [Advanced Features document](Advanced_Features.markdown)
-in this directory.
+*Note* that this document only specifies the behaviour of Tamsin version
+0.1-PRE.  The reference interpreter in fact supports a few more features
+than are listed here.  Those features are listed in the
+[Advanced Features document](Advanced_Features.markdown), and may appear
+in a future version of Tamsin (like 0.2) but they are *not* slated for
+inclusion in version 0.1.
 
-These documents, plus the reference implementation `tamsin.py`, is as close
+This document, plus the reference implementation `tamsin.py`, is as close
 to normative as we're going to come for the time being.  But they are still
-far from definitive.
+a ways from being definitive.
 
     -> Tests for functionality "Intepret Tamsin program"
 
@@ -338,21 +339,25 @@ _term_.
 A term T is defined inductively as follows:
 
 *   An _atom_, written as a character string, is a term;
+*   A special, unique symbol called _EOF_ is a term;
 *   A _constructor_, written S(T1, T2, ... Tn) where S is a character
     string and T1 through Tn are terms (called the _subterms_ of T), is a term;
 *   A _variable_, written as a character string where the first character
     is a capital Latin letter, is a term;
 *   Nothing else is a term.
 
-In fact, an atom is just a constructor with zero subterms.  When written,
-the parentheses are left out.
+In fact, there is little theoretical difference between an atom and a
+constructor with zero subterms, but they are considered different things
+for conceptual clarity.
+
+Note that EOF is not at atom.
 
 A term is called _ground_ if it does not contain any variables.
 
 Terms support an operation called _expansion_, which also requires a
 context C (a map from variable names to ground terms.)
 
-*   expand(T, C) when T is an atom evaluates to the atom T;
+*   expand(T, C) when T is an atom or EOF evaluates to T;
 *   expand(T, C) when T is a constructor S(T1,...,Tn) evaluates to a new
     term S(expand(T1, C), ... expand(Tn, C));
 *   expand(T, C) when T is a variable looks up T in C and, if there is
@@ -369,16 +374,17 @@ stringification).
     
         S · "(" · flatten(T1) · "," · ... · "," · flatten(Tn) · ")"
     
-    where `·` is string concatenation.
+    where `·` is string concatenation;
+*   flatten(EOF) is not defined.
 
 The result of flattening is always an atom.
 
 The input to a Tamsin production is, in fact, an atom (although it's hardly
-atomic.)
+atomic; "atom" is sort of a quaint moniker for the role these objects play.)
 
-The contexts in Tamsin which expect a term expression are `return`, and
-`set`.  (and arguments to productions, but you haven't seen those yet.)
-In these contexts, a bareword evaluates to an atom (rather than a non-terminal.)
+The contexts in Tamsin which expect a term expression are `return`, `set`, and
+arguments to productions (but you haven't seen those yet.)  In these contexts,
+a bareword evaluates to an atom (rather than a non-terminal.)
 
     | main = return hello.
     = hello
@@ -994,12 +1000,8 @@ should return a token each time it is called.  We call this scanner a
 "production-defined scanner" or just "production scanner".  In the
 following, we use a production scanner based on the `scanner` production.
 
-We'll use the following scanner in the next few examples.
-
-  It distinguishes
-only `(`, `)`, and strings of alphanumeric characters, while ignoring
-spaces.  (Kind of like a S-expression scanner.)
-
+We'll use the following scanner in the next few examples.  It accepts
+only the tokens `cat` and `dog`, and no other symbols.
 Note that we are not `using` it yet in this example; this example just
 demonstrates that the `token` production returns tokens.
 
@@ -1186,7 +1188,8 @@ On the other hand, variables set when one scanner is in effect can be accessed
 by rules with another scanner in effect, as long as they're in the same
 production.
 
-(another one that doesn't work under Falderal?)
+(another one that doesn't work under Falderal?  am I using the `subprocess`
+module subtly incorrectly, I wonder?)
 
         | main = ("c" & "a" & "t" → G) using $.char
         |      & ("dog" & return G) using token.
@@ -1320,7 +1323,9 @@ its own scanner.  It switches back to the production scanner when done.
 Appendix A. Grammar
 -------------------
 
-First, in EBNF:
+Here we give an approximation of Tamsin's grammar, in EBNF.  Note however
+that this is non-normative; the canonical grammar definition for Tamsin is
+written in Tamsin and can be found in `eg/tamsin-parser.tamsin`.
 
     Grammar    ::= {"@" Pragma "."} Production {Production "."}.
     Production ::= ProdName ["(" [Term {"," Term} ")" | "[" Expr0 "]"] "=" Expr0.
@@ -1349,40 +1354,11 @@ First, in EBNF:
     Variable   ::= ("A".."Z" { "a".."z" | "0".."9" }) using $.char.
     ProdName   ::= { "a".."z" | "0".."9" } using $.char.
 
-
-Next, in Tamsin.  Approximate.
-
-    grammar    = {"@" & pragma & "."} & production & {production & "."} & eof.
-    production = word & ["(" & term & {"," & term} & ")"
-                        | "[" & expr0 & "]"] & "=" & expr0.
-    expr0      = expr1 & {("|" | "||") & expr1}.
-    expr1      = expr2 & {("&" | "&&") & expr2}.
-    expr2      = expr3 & ["using" & prodref].
-    expr3      = expr4 & [("→" | "->") & variable].
-    expr4      = "(" & expr0 & ")"
-               | "[" & expr0 & "]"
-               | "{" & expr0 & "}"
-               | "!" & expr0
-               | "set" & variable & "=" & term
-               | "return" & term
-               | "fail" & term
-               | terminal
-               | prodref & ["(" & [term & {"," & term}] & ")"] & ["@" & term].
-    term       = term0.
-    term0      = term1 & {"+" & term1}.
-    term1      = atom & ["(" & [term & {"," & term}] & ")"]
-               | variable.
-    atom       = word | str('\'').
-    terminal   = str('"')
-               | ("«" | "<<") & term & ("»" | ">>").
-    prodref    = [modref & "."] & word.
-    modref     = "$".
-    pragma     = "alias" & word & word & "=" & prodref
-               | "unalias" & word.
-
-
 Appendix B. Tamsin Scanner
 --------------------------
+
+This section is non-normative.  The canonical definition of Tamsin's scanner
+is written in Tamsin and can be found in `eg/tamsin-scanner.tamsin`.
 
 The Tamsin scanner is designed to be relatively simple and predictable.
 One property in particular is that the token returned by this scanner is
@@ -1395,53 +1371,24 @@ But it doesn't; it returns `&&` for `&&` and `&` for `&`.
         + &&&
         = pair(&&, &)
 
-TODO: update this.
-
-An implementation of Tamsin may or may not expose the Tamsin scanner as
-`$.tamsin`; since a Tamsin interpreter will itself implement the Tamsin
-scanner, it should be no great burden to expose it to the running program.
-However, for a compiler, this may be a different matter.  (However however,
-the Tamsin scanner should be simple enough to implement without major
-difficulties.  In fact, there is a partial implementation in Tamsin; which
-means that `$.tamsin` need not be a system production, but could be 
-provided as a library.)
-
-Written in Tamsin.  Should be very close to true.
-
-    tamsin = skippable & (symbol | str('\'') | str('"') | word).
-    symbol = "&" & "&" & '&&'
-           | "|" & "|" & '||'
-           | "-" & ">" & '->'
-           | "<" & "-" & '<-'
-           | "<" & "<" & '<<'
-           | ">" & ">" & '>>'
-           | "=" | "(" | ")" | "[" | "]" | "{" | "}" | "!" | "|" | "&"
-           | "," | "." | "@" | "+" | "$" | "→" | "←" | "«" | "»".
-    str(Q) = «Q» → T & {(escape | !«Q» & any) → S & T ← T + S} & «Q» &
-             return T + Q.
-    escape = "\\" & "n" & '\n'
-           | "\\" & "r" & '\r'
-           | "\\" & "t" & '\t'
-           | "\\" & "\\" & '\\'
-           | "\\" & "'" & '\''
-           | "\\" & "\"" & '"'.
-    word = $.alnum → T & { ($.alnum | "_") → S & T ← T + S } & T.
-    variable = $.upper → T & { ($.alnum | "_") → S & T ← T + S } & T.
-    skippable = {whitespace | comment}.
-    whitespace = " " | "\t" | "\r" | "\n".
-    comment = "#" & {!"\n" & any} & "\n".
-
+The original design of Tamsin had it expose the Tamsin scanner (for use
+with `using`) as `$.tamsin`.  However, this may not be desirable for all
+implementations (e.g the compiler-to-C), and the Tamsin scanner has since
+been implemented in Tamsin itself (see `eg/tamsin-scanner.tamsin`.)
+Therefore `$.tamsin` no longer exists.
 
 Appendix C. System Module
 -------------------------
 
-*   `$.alnum` -- succeeds only on token which begins with alphanumeric
-*   `$.any` -- fails on eof, succeeds and returns token on any other token
-*   `$.char` -- character scanner production
-*   `$.eof` -- succeeds on eof and returns eof, otherwise fails
-*   `$.expect(X)` -- succeeds if token is X and returns it, otherwise fails
-*   `$.fail(X)` -- always fails, giving X as the error message
-*   `$.not(X)` -- succeeds only if token is not X or EOF, and returns token
-*   `$.return(X)` -- always succeeds, returning X
-*   `$.print(X)` -- prints X to output as a side-effect, returns X
-*   `$.tamsin` -- Tamsin language scanner production
+*   `$.alnum` — succeeds only on token which begins with alphanumeric
+*   `$.any` — fails on eof, succeeds and returns token on any other token
+*   `$.char` — character scanner production
+*   `$.eof` — succeeds on eof and returns eof, otherwise fails
+*   `$.expect(X)` — succeeds if token is X and returns it, otherwise fails
+*   `$.fail(X)` — always fails, giving X as the error message
+*   `$.mkterm(A,L)` — given an atom and a list, return a single constructor
+*   `$.not(X)` — succeeds only if token is not X or EOF, and returns token
+*   `$.return(X)` — always succeeds, returning X
+*   `$.print(X)` — prints X to output as a side-effect, returns X
+*   `$.startswith(X)` — consumes token if it starts with first character of X
+*   `$.unquote(X)` — consumes nothing; returns X without quotes if X is quoted
