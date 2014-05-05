@@ -18,7 +18,7 @@ Meta-Language
 (Also known, in their more practical incarnations, as "compiler-compilers"
 or "parser generators".)
 
-It is, because:
+Tamsin is one, because:
     
 *   The basic operations all map directly to combinators in BNF (or rather,
     Wirth's EBNF):
@@ -31,18 +31,18 @@ It is, because:
 *   Using only these operations produces a sensible program — one which
     parses its input by the grammar so given.
 
-It isn't, because:
+Tamsin isn't one, because:
 
 *   There is no requirement that any input be processed at all.
 
 Programming Language
 --------------------
 
-It is, because:
-    
+Tamsin is one, because:
+
 *   Productions can have local variables.
-*   Productions can call other productions (or themselves,
-    recursively) with arguments, and they return a value:
+*   Productions can call other productions (or themselves, recursively) with
+    arguments, and they return a value:
 
         reverse(pair(H, T), A) = reverse(T, pair(H, A)).
         reverse(nil, A) = A.
@@ -50,10 +50,10 @@ It is, because:
 *   It's Turing-complete.
 *   It can be bootrapped.
 
-It isn't, because:
+Tamsin isn't one, because:
 
-*   The syntax is really geared to consuming input rather than calling
-    functions.
+*   The syntax is really geared to consuming input rather than general
+    programming.
 
 Rubbish Lister
 --------------
@@ -62,16 +62,19 @@ What does this even mean?  Well, there is that
 [one famous rubbish lister](http://perl.com/) that we can use as an example
 for now, until I come up with a better definition here.
 
-It is, because:
+Tamsin is one, because:
     
 *   There's more than one way to say it.
 *   The same symbol means different things in different contexts
     (for example, `foo` might be either the name of a production, or an
     atomic term.)
+*   Implicit this, implicit that.
 *   Optomized (a bit) for problem-solving throwaway one-liners rather than
     large, engineered systems.
 *   Anyone up for a game of golf?
 
-It isn't, because:
+Tamsin isn't one, because:
 
-*   Its syntax is possible to express in a form humans can understand.
+*   It's possible to express its syntax in a form that humans can understand.
+*   In fact, it's possible to express its syntax in Tamsin.  It may therefore
+    (one day) be bootstrapped.

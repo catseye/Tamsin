@@ -5,6 +5,23 @@ This document is a **work in progress**.
 
     -> Tests for functionality "Intepret Tamsin program"
 
+Three good ways to shoot yourself in the foot
+---------------------------------------------
+    
+1, forget that Tamsin is still basically a *programming* language, or at
+best an LL(n) grammar, and try to write a left-recursive rule:
+    
+    expr = expr & "+" & expr | expr & "*" & expr | "0" | "1".
+
+2, base a `{}` loop around something that always succeeds, like `return` or
+`eof` at the end of the input.
+
+    expr = {"k" | return l}.
+    
+3, base a loop around something that doesn't consume any input, like `!`.
+
+    expr = !"\n" & expr
+
 Advanced Programming
 --------------------
 
@@ -66,121 +83,6 @@ productions in the `$` module, and they may be unaliased.
     | @unalias return.
     | main = $.return(ok).
     = ok
-
-### Advanced use of `using` ###
-
-A production scanner may contain an embedded `using` and use another
-production scanner.
-
-    | main = program using scanner1.
-    | 
-    | scanner1 = scan1 using $.char.
-    | scan1 = "a" | "b" | "c" | "(" & other & ")" & return list.
-    | 
-    | other = xyz using scanner2.
-    | xyz = "1" & "1" | "1" & "2" | "2" & "3".
-    | 
-    | scanner2 = scan2 using $.char.
-    | scan2 = "x" & return 1 | "y" & return 2 | "z" & return 3.
-    | program = "c" & "list" & "a".
-    + c(xx)a
-    = a
-
-    | main = program using scanner1.
-    | 
-    | scanner1 = scan1 using $.char.
-    | scan1 = "a" | "b" | "c" | "(" & other & ")" & return list.
-    | 
-    | other = xyz using scanner2.
-    | xyz = "1" & "1" | "1" & "2" | "2" & "3".
-    | 
-    | scanner2 = scan2 using $.char.
-    | scan2 = "x" & return 1 | "y" & return 2 | "z" & return 3.
-    | program = "c" & "list" & "a".
-    + c(yy)a
-    ? expected 'list' found 'EOF'
-
-Maybe an excessive number of minor variations on that...
-
-    | main = program using scanner1.
-    | 
-    | scanner1 = scan1 using $.char.
-    | scan1 = "a" | "b" | "c" | "(" & xyz using scanner2 & ")" & return list.
-    | 
-    | xyz = "1" & "1" | "1" & "2" | "2" & "3".
-    | 
-    | scanner2 = scan2 using $.char.
-    | scan2 = "x" & return 1 | "y" & return 2 | "z" & return 3.
-    | program = "c" & "list" & "a".
-    + c(xx)a
-    = a
-
-    | main = program using scanner1.
-    | 
-    | scanner1 = scan1 using $.char.
-    | scan1 = "a" | "b" | "c" | "(" & {other} & ")" & return list.
-    | 
-    | other = xyz using scanner2.
-    | xyz = "1" & "1" | "1" & "2" | "2" & "3".
-    | 
-    | scanner2 = scan2 using $.char.
-    | scan2 = "x" & return 1 | "y" & return 2 | "z" & return 3.
-    | program = "c" & "list" & "a".
-    + c(xxxyyzxy)a
-    = a
-
-    | main = program using scanner1.
-    | 
-    | scanner1 = scan1 using $.char.
-    | scan1 = "a" | "b" | "c" | "(" & {xyz using scanner2} & ")" & return list.
-    | 
-    | xyz = "1" & "1" | "1" & "2" | "2" & "3".
-    | 
-    | scanner2 = scan2 using $.char.
-    | scan2 = "x" & return 1 | "y" & return 2 | "z" & return 3.
-    | program = "c" & "list" & "a".
-    + c(xxxyyzxy)a
-    = a
-
-    | main = program using scanner1.
-    | 
-    | scanner1 = scan1 using $.char.
-    | scan1 = "a" | "b" | "c"
-    |       | "(" & {xyz → R using scanner2} & ")" & return R.
-    | 
-    | xyz = "1" & "1" & return 11 | "1" & "2" & return 12 | "2" & "3" & return 23.
-    | 
-    | scanner2 = scan2 using $.char.
-    | scan2 = "x" & return 1 | "y" & return 2 | "z" & return 3.
-    | program = "c" & ("11" | "12" | "23") → R & "a" & return R.
-    + c(xxxyyzxy)a
-    = 12
-
-The production being applied with the production scanner can also switch
-its own scanner.  It switches back to the production scanner when done.
-
-    | main = program using scanner.
-    | 
-    | scanner = scan using $.char.
-    | scan = {" "} & set T = '' & {("a" | "b" | "c") → S & set T = T + S}.
-    | 
-    | program = "abc" & "cba" & "bac".
-    + abc    cba bac
-    = bac
-
-    | main = program using scanner.
-    | 
-    | scanner = scan using $.char.
-    | scan = {" "} & set T = '' & {("a" | "b" | "c") → S & set T = T + S}.
-    | 
-    | program = "abc" & (subprogram using subscanner) & "bac".
-    | 
-    | subscanner = subscan using $.char.
-    | subscan = {" "} & set T = '' & {("s" | "t" | "u") → S & set T = T + S}.
-    | 
-    | subprogram = "stu" & "uuu".
-    + abc    stu   uuu bac
-    = bac
 
 ### Implicit Buffer ###
 
