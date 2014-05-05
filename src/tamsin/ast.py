@@ -3,9 +3,6 @@
 # Copyright (c)2014 Chris Pressey, Cat's Eye Technologies.
 # Distributed under a BSD-style license; see LICENSE for more information.
 
-# Most of the AST is just tuples; the exceptions are the two top-level
-# classes.   (for now, eventally they will all be like this)
-
 # Note that __unicode__ and __repr__ perform very different tasks:
 # __unicode__ : make a string that looks like a Tamsin term
 # __repr__ : make a string that is valid Python code for constructing the AST

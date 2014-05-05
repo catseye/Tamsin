@@ -8,7 +8,8 @@ Tamsin is an oddball little language that can't decide if it's a
 
 Its primary goal is to allow the rapid development of **parsers**,
 **static analyzers**, **interpreters**, and **compilers**, and to allow them
-to be expressed *compactly*.  Golf your grammar!
+to be expressed *compactly*.  Golf your grammar!  (Or write it like a decent
+human being would.)
 
 The current development version of Tamsin is 0.1-PRE.  As indicated by the
 0.x version number, it is a **work in progress**, with the usual caveat that
@@ -73,8 +74,8 @@ The Tamsin reference repository is [hosted on Github](https://github.com/catseye
 
 This repository contains the reference implementation of Tamsin, called
 `tamsin`, written in Python.  It can interpret a Tamsin program, and compile
-a program written in (core) Tamsin to C.  The distribution also contains
-implementations of the Tamsin scanner and parser written in Tamsin itself
+a program written in (core) Tamsin to C.  The distribution also contains an
+[implementation of the Tamsin scanner and parser written in Tamsin itself](https://github.com/catseye/Tamsin/blob/master/eg/tamsin-parser.tamsin)
 (although we're still a ways from a fully bootrapped implementation.)
 
 While the interpreter is fine for prototyping, note that some informal
@@ -107,11 +108,12 @@ executable all in one step, like so:
 Design Goals
 ------------
 
-*   Allow writing very compact parsers, interpreters, and compilers.
-    (Not *quite* to the point of being a golfing language, but nearly.)
-*   Allow parsers, interpreters, and compilers to be quickly prototyped.
-*   Allow writing (almost) anything using (almost) only recursive-descent
-    parsing techniques.
+*   Allow parsers, static analyzers, interpreters, and compilers to be
+    quickly prototyped.  (And in the future, processor simulators and VM's
+    and such things too.)
+*   Allow writing these things very compactly.
+*   Allow writing anything using only recursive-descent parsing techniques
+    (insofar as this is possible.)
 *   Provide means to solve practical problems.
 *   Keep the language simple (grammar should fit on a page.)
 *   Recognize that the preceding two goals are in tension.
@@ -127,15 +129,14 @@ BSD-style license; see the file [LICENSE](https://github.com/catseye/Tamsin/blob
 Related work
 ------------
 
-*   [CoCo/R](http://www.scifac.ru.ac.za/coco/)
-*   [Parsec](http://www.haskell.org/haskellwiki/Parsec)
-*   [Perl](http://perl.com/)
-*   [Erlang](http://erlang.org/) influenced the pattern-matching (in turn,
-    Erlang was influenced by Prolog in this regard)
-*   Though not a conscious influence, it has a similar feel to
-    [K](https://github.com/kevinlawler/kona); in Kona's parlance, Tamsin
-    is a _vertical language_
-*   Cat's Eye Technologies' esoteric and experimental languages
-    [Squishy2K](http://catseye.tc/node/Squishy2K),
-    [Arboretuum](http://catseye.tc/node/Arboretuum), and
-    [Treacle](http://catseye.tc/node/Treacle)
+*   [CoCo/R](http://www.scifac.ru.ac.za/coco/) (parser generation)
+*   [Parsec](http://www.haskell.org/haskellwiki/Parsec) (parser combination)
+*   [Perl](http://perl.com/) (rubbish listing)
+*   [Erlang](http://erlang.org/) (pattern-matching)
+    [K](https://github.com/kevinlawler/kona) (similar feel; Tamsin
+    is a _vertical language_)
+*   [Cat's Eye Technologies](http://catseye.tc)' esoteric and experimental
+    languages:
+    *   [Squishy2K](http://catseye.tc/node/Squishy2K)
+    *   [Arboretuum](http://catseye.tc/node/Arboretuum)
+    *   [Treacle](http://catseye.tc/node/Treacle)

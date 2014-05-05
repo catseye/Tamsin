@@ -83,7 +83,7 @@ def main(args, tamsin_dir='.'):
             try:
                 subprocess.check_call((exe_filename,))
                 exit_code = 0
-            except CalledProcessError:
+            except subprocess.CalledProcessError:
                 exit_code = 1
             subprocess.call(('rm', '-f', c_filename, exe_filename))
             sys.exit(exit_code)

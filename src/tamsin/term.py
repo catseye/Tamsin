@@ -3,6 +3,10 @@
 # Copyright (c)2014 Chris Pressey, Cat's Eye Technologies.
 # Distributed under a BSD-style license; see LICENSE for more information.
 
+# Note that __unicode__ and __repr__ perform very different tasks:
+# __unicode__ : make a string that looks like a Tamsin term
+# __repr__ : make a string that is valid Python code for constructing the Term
+
 
 class Term(object):
     def expand(self, context):

@@ -10,7 +10,7 @@
 from tamsin.ast import (
     Production, And, Or, Not, While, Call, Send, Set, Using
 )
-from tamsin.term import Term, Atom, Constructor, Variable, Concat
+from tamsin.term import Atom, Constructor, Variable, Concat
 
 PRELUDE = r'''
 /*
