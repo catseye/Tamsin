@@ -1,3 +1,6 @@
+# This example Tamsin program was written by Chris Pressey, and is
+# hereby placed in the public domain.  It comes with NO WARRANTY.
+
 main = sexp → S using scanner & reverse(S, nil) → SR & eval(SR).
 scanner = scan using $.char.
 scan = {" "} & ("(" | ")" | (T ← '' & {$.alnum → S & T ← T + S} & return T)).

@@ -1,11 +1,9 @@
 #!/bin/sh
 
 FILES="
-    README.markdown
     doc/Tamsin.markdown
-    doc/Advanced_Features.markdown
+    doc/Tested_Examples.markdown
 "
-#    doc/Case_Study.markdown
 if [ x$1 = x ]; then
    $0 interpreter &&
    $0 compiler &&
@@ -18,9 +16,6 @@ fi
 if [ x$1 = xcompiler ]; then
     echo "Testing compiler..."
     ./build.sh || exit 1
-    FILES="doc/Tamsin.markdown"
-    #FILES="doc/Tamsin.markdown README.markdown"
-    #FILES="doc/Tamsin.markdown doc/Case_Study.markdown README.markdown"
     falderal --substring-error fixture/compiler.py.markdown $FILES
 elif [ x$1 = xscanner ]; then
     echo "Testing scanner in Tamsin..."

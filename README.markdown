@@ -7,12 +7,12 @@ Tamsin is an oddball little language that can't decide if it's a
 [rubbish lister](https://github.com/catseye/Tamsin/blob/master/doc/Philosophy.markdown#rubbish-lister).
 
 Its primary goal is to allow the rapid development of **parsers**,
-**interpreters**, and **compilers**, and to allow them to be expressed
-compactly.  Golf your grammar!
+**static analyzers**, **interpreters**, and **compilers**, and to allow them
+to be expressed *compactly*.  Golf your grammar!
 
-Tamsin is still a **work in progress**, but the basic ideas have crystallized,
-and a 0.1 release may happen soon (with the usual caveat that version 0.2
-might look completely different.)
+The current development version of Tamsin is 0.1-PRE.  As indicated by the
+0.x version number, it is a **work in progress**, with the usual caveat that
+things may change rapidly (and version 0.2 might look completely different.)
 
 Code Examples
 -------------
@@ -78,7 +78,10 @@ implementations of the Tamsin scanner and parser written in Tamsin itself
 (although we're still a ways from a fully bootrapped implementation.)
 
 While the interpreter is fine for prototyping, note that some informal
-benchmarking revealed the compiled C programs to be about 30x faster.
+benchmarking revealed the compiled C programs to be about 30x faster.  **Note**
+however that while the compiler passes all the tests, it currently fails to
+correctly compile the Tamsin parser written in Tamsin, so it should still be
+considered a **proof of concept**.
 
 To start using `tamsin`,
 
@@ -111,9 +114,10 @@ Design Goals
     parsing techniques.
 *   Provide means to solve practical problems.
 *   Keep the language simple (grammar should fit on a page.)
+*   Recognize that the preceding two goals are in tension.
 *   Have a relatively simple reference implementation (currently less than
-    3 KLoc, including everything — debugging and the C runtime used by the
-    compiler.)
+    2500 lines of code, including everything — debugging and the C runtime
+    used by the compiler.)
 
 License
 -------
@@ -125,6 +129,13 @@ Related work
 
 *   [CoCo/R](http://www.scifac.ru.ac.za/coco/)
 *   [Parsec](http://www.haskell.org/haskellwiki/Parsec)
-*   [Squishy2K](http://catseye.tc/node/Squishy2K),
+*   [Perl](http://perl.com/)
+*   [Erlang](http://erlang.org/) influenced the pattern-matching (in turn,
+    Erlang was influenced by Prolog in this regard)
+*   Though not a conscious influence, it has a similar feel to
+    [K](https://github.com/kevinlawler/kona); in Kona's parlance, Tamsin
+    is a _vertical language_
+*   Cat's Eye Technologies' esoteric and experimental languages
+    [Squishy2K](http://catseye.tc/node/Squishy2K),
     [Arboretuum](http://catseye.tc/node/Arboretuum), and
     [Treacle](http://catseye.tc/node/Treacle)

@@ -1,23 +1,37 @@
 TODO
 ----
 
-*   turn system library back into built-in keywords (esp. if ¶ can be used)
-*   `@include` -- for the scanner, especially -- move metac's to `lib`
 *   figure out why compiled version of tamsin-ast hangs...
-*   arbitrary non-printable characters in terms: `\x99`
-*   `byte` versus `utf_8` scanners ("char" is vague, isn't it?)
 
 ### 8-bit clean/UTF-8 ###
 
-*   8-bit clean strings, in both Python and C.  tests for these as string
-    literals, ability to scan them on input, and ability to produce them
-    on output.
-*   decode UTF-8 in compiled C code : character scanner yields one Unicode char
-*   more tests for UTF-8
+*   arbitrary non-printable characters in terms: `\x99`
+*   `byte` versus `utf_8` scanners ("char" is vague, isn't it?)
+*   `byte` scanner must be 8-bit clean, i.e. can return `\x00`
+*   `emit` alongside `print`.
+*   `emit` must be 8-bit clean, i.e. can emit `\x00`
+*   `utf_8` scanner must yield a Unicode char when it finds one encoded in UTF-8
+*   tests for all these
+*   implement all these in both Python and C
 
 ### lower-priority/experimental ###
 
-*   EOF and nil are the same?  it would make sense...
+*   productions with names with arbitrary characters in them.
+*   something like «foo» but foo is the name of a *non*terminal — symbolic
+    production references (like Perl's horrible globs as a cheap substitute
+    for actual function references or lambdas.)
+*   module syntax:
+    
+        module {
+            prod = expr.
+        }
+
+*   `:foo` means production `foo` in the current module.  `$.char` becomes
+    `$:char`.
+*   turn system library back into built-in keywords (esp. if : can be used)
+*   should be able to import ("open") other modules into your own namespace.
+*   including files, library files should be **handled by the implementation**
+*   EOF and nil are the same?  it would make sense... call it `end`?
 *   regex-like shortcuts: `\w` for "word", `\s` for "whitespace", etc.
 *   meta-circular implementation of compiler!
 *   `$.unquote` should take left and right quotes to expect

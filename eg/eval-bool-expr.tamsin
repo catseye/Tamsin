@@ -1,3 +1,6 @@
+# This example Tamsin program was written by Chris Pressey, and is
+# hereby placed in the public domain.  It comes with NO WARRANTY.
+
 main = expr0 → E using scanner & eval(E).
 expr0 = expr1 → E1 & {"or" & expr1 → E2 & E1 ← or(E1,E2)} & E1.
 expr1 = term → E1 & {"and" & term → E2 & E1 ← and(E1,E2)} & E1.
