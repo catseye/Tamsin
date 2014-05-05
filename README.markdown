@@ -2,9 +2,9 @@ Tamsin
 ======
 
 Tamsin is an oddball little language that can't decide if it's a
-[meta-language](doc/Philosophy.markdown#meta-language), a
-[programming language](doc/Philosophy.markdown#programming-language), or a
-[rubbish lister](doc/Philosophy.markdown#rubbish-lister).
+[meta-language](https://github.com/catseye/Tamsin/blob/master/doc/Philosophy.markdown#meta-language), a
+[programming language](https://github.com/catseye/Tamsin/blob/master/doc/Philosophy.markdown#programming-language), or a
+[rubbish lister](https://github.com/catseye/Tamsin/blob/master/doc/Philosophy.markdown#rubbish-lister).
 
 Its primary goal is to allow the rapid development of **parsers**,
 **interpreters**, and **compilers**, and to allow them to be expressed
@@ -61,12 +61,11 @@ out the 2nd-last field of each record — 11 lines of code.
 For more information
 --------------------
 
-If the above has piqued your curiosity, you may want to read the specification
-documents, which contain many more small examples written to demonstrate
-(and test) the syntax and behavior of Tamsin:
+If the above has piqued your curiosity, you may want to read the specification,
+which contains many more small examples written to demonstrate (and test) the
+syntax and behavior of Tamsin:
 
-*   [The Tamsin Core Language Specification](doc/Tamsin.markdown)
-*   [Advanced Features of the Tamsin Language](doc/Advanced_Features.markdown)
+*   [The Tamsin v0.1 Language Specification](https://github.com/catseye/Tamsin/blob/master/doc/Tamsin.markdown)
 
 Quick Start
 -----------
@@ -120,7 +119,7 @@ Design Goals
 License
 -------
 
-BSD-style license; see the file [LICENSE](LICENSE).
+BSD-style license; see the file [LICENSE](https://github.com/catseye/Tamsin/blob/master/LICENSE).
 
 Related work
 ------------
