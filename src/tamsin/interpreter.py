@@ -4,7 +4,7 @@
 # Distributed under a BSD-style license; see LICENSE for more information.
 
 from tamsin.ast import (
-    Production, And, Or, Not, While, Call, Send, Set, Using, Prodref
+    Production, And, Or, Not, While, Call, Send, Set, Using, Prodref, Concat
 )
 from tamsin.term import Term, EOF, Atom, Constructor, Variable
 from tamsin.event import EventProducer
@@ -227,6 +227,7 @@ class Interpreter(EventProducer):
             ibuf = ast.ibuf
             prods = self.program.find_productions(prodref)
             self.event('call_candidates', prods)
+            args = [self.interpret(x)[1] for x in args]
             args = [x.expand(self.context) for x in args]
             for prod in prods:
                 formals = prod.formals
@@ -267,7 +268,7 @@ class Interpreter(EventProducer):
             self.context.store(ast.variable.name, result)
             return (success, result)
         elif isinstance(ast, Using):
-            sub = ast.lhs
+            sub = ast.rule
             prodref = ast.prodref
             scanner_name = prodref.name
             if prodref.module == '$' and scanner_name == u'char':
@@ -284,7 +285,8 @@ class Interpreter(EventProducer):
             self.scanner.pop_engine()
             return (succeeded, result)
         elif isinstance(ast, Set):
-            result = ast.term.expand(self.context)
+            (success, term) = self.interpret(ast.texpr)
+            result = term.expand(self.context)
             self.context.store(ast.variable.name, result)
             return (True, result)
         elif isinstance(ast, Not):
@@ -318,6 +320,14 @@ class Interpreter(EventProducer):
             self.scanner.install_state(saved_scanner_state)
             self.event('end_while', result)
             return (True, successful_result)
+        elif isinstance(ast, Concat):
+            (success, lhs) = self.interpret(ast.lhs)
+            lhs = unicode(lhs.expand(self.context))
+            (success, rhs) = self.interpret(ast.rhs)
+            rhs = unicode(rhs.expand(self.context))
+            return (True, Atom(lhs + rhs))
+        elif isinstance(ast, Term):
+            return (True, ast)
         else:
             raise NotImplementedError(repr(ast))
 

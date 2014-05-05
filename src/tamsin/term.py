@@ -91,26 +91,3 @@ class Variable(Term):
 
     def __repr__(self):
         return "Variable(%r)" % (self.name)
-
-
-class Concat(Term):
-    def __init__(self, lhs, rhs):
-        assert isinstance(lhs, Term)
-        assert isinstance(rhs, Term)
-        self.lhs = lhs
-        self.rhs = rhs
-
-    def expand(self, context):
-        lhs = self.lhs.expand(context)
-        rhs = self.rhs.expand(context)
-        return Atom(unicode(lhs) + unicode(rhs))
-
-    def collect_variables(self, variables):
-        self.lhs.collect_variables(variables)
-        self.rhs.collect_variables(variables)
-
-    def __unicode__(self):
-        return u"%s%s" % (self.lhs, self.rhs)
-
-    def __repr__(self):
-        return "Concat(%r, %r)" % (self.lhs, self.rhs)

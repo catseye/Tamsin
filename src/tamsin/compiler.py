@@ -8,9 +8,9 @@
 # Does not support `using` or `@` at the moment.
 
 from tamsin.ast import (
-    Production, And, Or, Not, While, Call, Send, Set, Using
+    Production, And, Or, Not, While, Call, Send, Set, Concat, Using
 )
-from tamsin.term import Atom, Constructor, Variable, Concat
+from tamsin.term import Atom, Constructor, Variable
 
 PRELUDE = r'''
 /*
@@ -261,7 +261,7 @@ class Compiler(object):
                 args = ', '.join(["temp_arg%s" % p for p in xrange(0, i)])
                 self.emit("%s_%s0(%s);" % (prodmod, name, args))
         elif isinstance(ast, Set):
-            self.emit_term(ast.term, "temp")
+            self.emit_term(ast.texpr, "temp")
             self.emit("result = temp;")
             self.emit("%s = result;" % ast.variable.name)
             self.emit("ok = 1;")
@@ -314,7 +314,7 @@ class Compiler(object):
                 self.emit("scanner_push_engine(scanner, &scanner_char_engine);")
             else:
                 self.emit("scanner_push_engine(scanner, &program_%s0);" % scanner_name)
-            self.compile_r(ast.lhs)
+            self.compile_r(ast.rule)
             self.emit("scanner_pop_engine(scanner);")
         else:
             raise NotImplementedError(repr(ast))

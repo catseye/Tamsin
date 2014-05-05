@@ -7,7 +7,7 @@
 # __unicode__ : make a string that looks like a Tamsin term
 # __repr__ : make a string that is valid Python code for constructing the AST
 
-from tamsin.term import Variable
+from tamsin.term import Term, Variable
 
 
 def format_list(l):
@@ -198,37 +198,55 @@ class Send(AST):
 
 
 class Set(AST):
-    def __init__(self, variable, term):
+    def __init__(self, variable, texpr):
         self.variable = variable
-        self.term = term
+        self.texpr = texpr
 
     def __repr__(self):
         return u"Set(%r, %r)" % (
             self.variable,
-            self.term
+            self.texpr
         )
 
     def __unicode__(self):
         return u"set(%s, %s)" % (
             self.variable,
-            self.term
+            self.texpr
+        )
+
+
+class Concat(AST):
+    def __init__(self, lhs, rhs):
+        self.lhs = lhs
+        self.rhs = rhs
+
+    def __repr__(self):
+        return u"Concat(%r, %r)" % (
+            self.lhs,
+            self.rhs
+        )
+
+    def __unicode__(self):
+        return u"%s+%s" % (
+            self.lhs,
+            self.rhs
         )
 
 
 class Using(AST):
-    def __init__(self, lhs, prodref):
-        self.lhs = lhs
+    def __init__(self, rule, prodref):
+        self.rule = rule
         assert isinstance(prodref, Prodref)
         self.prodref = prodref
 
     def __repr__(self):
         return u"Using(%r, %r)" % (
-            self.lhs,
+            self.rule,
             self.prodref
         )
 
     def __unicode__(self):
         return u"using(%s, %s)" % (
-            self.lhs,
+            self.rule,
             self.prodref
         )

@@ -4,7 +4,8 @@
 # Distributed under a BSD-style license; see LICENSE for more information.
 
 from tamsin.ast import (
-    Program, Production, And, Or, Not, While, Call, Send, Set, Variable, Using
+    Program, Production, And, Or, Not, While, Call, Send, Set, Variable, Using,
+    Concat
 )
 from tamsin.term import Term
 from tamsin.event import EventProducer
@@ -43,7 +44,7 @@ class Analyzer(EventProducer):
         elif isinstance(ast, And):
             return And(self.analyze(ast.lhs), self.analyze(ast.rhs))
         elif isinstance(ast, Using):
-            return Using(self.analyze(ast.lhs), ast.prodref)
+            return Using(self.analyze(ast.rule), ast.prodref)
         elif isinstance(ast, Call):
             prodref = ast.prodref
             if prodref.module == '' and prodref.name not in self.prodnames:
@@ -55,12 +56,15 @@ class Analyzer(EventProducer):
             return Send(self.analyze(ast.rule), ast.variable)
         elif isinstance(ast, Set):
             assert isinstance(ast.variable, Variable), ast
-            assert isinstance(ast.term, Term), repr(ast)
-            return ast
+            return Set(ast.variable, self.analyze(ast.texpr))
         elif isinstance(ast, Not):
             return Not(self.analyze(ast.rule))
         elif isinstance(ast, While):
             return While(self.analyze(ast.rule))
+        elif isinstance(ast, Concat):
+            return Concat(self.analyze(ast.lhs), self.analyze(ast.rhs))
+        elif isinstance(ast, Term):
+            return ast
         else:
             raise NotImplementedError(repr(ast))
 
@@ -73,7 +77,7 @@ class Analyzer(EventProducer):
             self.collect_locals(ast.lhs, locals_)
             self.collect_locals(ast.rhs, locals_)
         elif isinstance(ast, Using):
-            self.collect_locals(ast.lhs, locals_)
+            self.collect_locals(ast.rule, locals_)
         elif isinstance(ast, Call):
             pass
         elif isinstance(ast, Send) or isinstance(ast, Set):

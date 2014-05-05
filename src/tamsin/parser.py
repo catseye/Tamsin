@@ -4,10 +4,11 @@
 # Distributed under a BSD-style license; see LICENSE for more information.
 
 from tamsin.ast import (
-    Program, Production, And, Or, Not, While, Call, Send, Set, Using, Prodref
+    Program, Production, And, Or, Not, While, Call, Send, Set, Concat, Using,
+    Prodref
 )
 from tamsin.term import (
-    Atom, Constructor, Variable, Concat, EOF
+    Atom, Constructor, Variable, EOF
 )
 from tamsin.event import EventProducer
 from tamsin.scanner import (
@@ -134,7 +135,7 @@ class Parser(EventProducer):
             s = unicode(self.consume_any()[1:-1])
             return Call(Prodref('$', 'expect'), [Atom(s)], None)
         elif self.consume(u'«') or self.consume('<<'):
-            t = self.term()
+            t = self.texpr()
             if self.consume(u'»') or self.consume('>>'):
                 return Call(Prodref('$', 'expect'), [t], None)
             else:
@@ -145,20 +146,20 @@ class Parser(EventProducer):
         elif self.consume('set'):
             v = self.variable()
             self.expect("=")
-            t = self.term()
+            t = self.texpr()
             return Set(v, t)
         elif self.peek()[0].isupper():
             # TODO: handle ... & X+Y  (maybe)
             v = self.variable()
             if self.consume(u'←') or self.consume('<-'):
-                t = self.term()
+                t = self.texpr()
             else:
                 return Call(Prodref('$', 'return'), [v], None)
             return Set(v, t)
         else:
             # implied return of term
             if self.peek()[0].isupper() or self.peek()[0] == "'":
-                t = self.term()
+                t = self.texpr()
                 return Call(Prodref('$', 'return'), [t], None)
             prodref = self.prodref()
             args = []
@@ -169,18 +170,18 @@ class Parser(EventProducer):
                 i = 0
                 args = []
                 while i < arity:
-                    args.append(self.term())
+                    args.append(self.texpr())
                     i += 1
             else:
                 if self.consume('('):
                     if self.peek() != ')':
-                        args.append(self.term())
+                        args.append(self.texpr())
                         while self.consume(','):
-                            args.append(self.term())
+                            args.append(self.texpr())
                     self.expect(')')
             ibuf = None
             if self.consume('@'):
-                ibuf = self.term()
+                ibuf = self.texpr()
             return Call(prodref, args, ibuf)
 
     def prodref(self):
@@ -199,12 +200,15 @@ class Parser(EventProducer):
         else:
             self.error('variable')
 
-    def term(self):
-        lhs = self.term1()
+    def texpr(self):
+        lhs = self.term()
         while self.consume('+'):
-            rhs = self.term1()
+            rhs = self.term()
             lhs = Concat(lhs, rhs)
         return lhs
+
+    def term(self):
+        return self.term1()
 
     def term1(self):
         if self.peek()[0].isupper():
