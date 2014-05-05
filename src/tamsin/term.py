@@ -77,7 +77,7 @@ class Constructor(Term):
 class Variable(Term):
     def __init__(self, name):
         assert isinstance(name, unicode)
-        assert name[0].isupper()
+        assert name[0].isupper() or name[0] == u'_', name
         self.name = name
 
     def expand(self, context):

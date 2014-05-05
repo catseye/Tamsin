@@ -2,6 +2,7 @@ TODO
 ----
 
 *   figure out why compiled version of tamsin-ast hangs...
+*   definitely there's some kind of a problem with alnum vs eof in our C code
 
 ### 8-bit clean/UTF-8 ###
 
@@ -30,6 +31,7 @@ TODO
             prod = expr.
         }
 
+*   module-level updatable variables.
 *   turn system library back into built-in keywords (esp. if : can be used)
 *   should be able to import ("open") other modules into your own namespace.
 *   including files, library files should be **handled by the implementation**
@@ -41,14 +43,10 @@ TODO
 *   Tamsin scanner: more liberal (every non-alphanum+_ symbol scans as itself,
     incl. ones that have no meaning currently like `/` and `?`)
 *   use `←` instead of `@`, why not?
-*   `¶foo` means production called `foo`, to disambiguate
-    (this would mean unaliasing is less necessary -- call your production
-    `¶return` if you like) -- ASCII version?  `^^foo`? `:foo`? `||foo`? `//foo`?
 *   pattern match in send:
     *   `fields → F@fields(H,T) & H`
 *   maps, implemented as hash tables.
     *   `Table ← {} & fields → F@fields(H,T) & Table[H] ← T`
-*   global variables.  or better, variables scoped to a set of productions.
 *   these idioms are so common there ought to be a form for them:
     *   `set A = '' & {rule → B & A ← A + B} & A`
     *   `set A = nil & {rule → B & A ← cons(A, B)} & A`

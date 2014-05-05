@@ -16,7 +16,7 @@ fi
 if [ x$1 = xcompiler ]; then
     echo "Testing compiler..."
     ./build.sh || exit 1
-    falderal --substring-error fixture/compiler.py.markdown $FILES
+    falderal $VERBOSE --substring-error fixture/compiler.py.markdown $FILES
 elif [ x$1 = xscanner ]; then
     echo "Testing scanner in Tamsin..."
     for EG in eg/*.tamsin; do
@@ -53,8 +53,8 @@ elif [ x$1 = xcompiledast ]; then   # check that tamsin-ast output looks like bi
     done
 elif [ x$1 = xinterpreter ]; then
     echo "Testing Python interpreter..."
-    falderal --substring-error fixture/tamsin.py.markdown $FILES
+    falderal $VERBOSE --substring-error fixture/tamsin.py.markdown $FILES
 elif [ -e $1 ]; then
     echo "Testing file with interpreter..."
-    falderal --substring-error fixture/tamsin.py.markdown $1
+    falderal $VERBOSE --substring-error fixture/tamsin.py.markdown $1
 fi

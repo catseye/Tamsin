@@ -825,6 +825,36 @@ Oh, and since we were speaking of sentinels earlier...
     = and!this!one
     = ok
 
+### folds ###
+
+The following idiom is essentially a *fold* from functional programming.
+
+    | main = word → W & "." & W.
+    | word = T ← '' & {$:alnum → S & T ← T + S} & return T.
+    + dogwood.
+    = dogwood
+
+It is so common, that Tamsin supports a special form for it.  The infix
+operator `/` takes a rule on the left-hand side, and a term (used as the
+initial value) on the right-hand side, and expands to the above.
+
+    | main = word → W & "." & W.
+    | word = $:alnum/''.
+    + dogwood.
+    = dogwood
+
+    | main = word → W & "." & W.
+    | word = $:alnum/'prefix'.
+    + dogwood.
+    = prefixdogwood
+
+You can use any rule you desire, not just a non-terminal, on the LHS of `/`.
+
+    | main = binary → W & "." & W.
+    | binary = ("0" | "1")/'%'.
+    + 0110110110.
+    = %0110110110
+
 Modules
 -------
 
@@ -1355,6 +1385,7 @@ written in Tamsin and can be found in `eg/tamsin-parser.tamsin`.
     Expr1      ::= Expr2 {("&&" | "&") Expr2}.
     Expr2      ::= Expr3 ["using" ProdRef].
     Expr3      ::= Expr4 [("→" | "->") Variable].
+    Expr4      ::= Expr5 ["/" Term ["/" ("+" | Term)]].
     Expr4      ::= "(" Expr0 ")"
                  | "[" Expr0 "]"
                  | "{" Expr0 "}"

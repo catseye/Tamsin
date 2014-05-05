@@ -117,6 +117,17 @@ class Parser(EventProducer):
         return lhs
 
     def expr4(self):
+        lhs = self.expr5()
+        if self.consume('/'):
+            t = self.term()
+            sett = Set(Variable(u'_1'), t)
+            sendd = Send(lhs, Variable(u'_2'))
+            accc = Set(Variable(u'_1'), Concat(Variable(u'_1'), Variable(u'_2')))
+            returnn = Call(Prodref('$', 'return'), [Variable(u'_1')], None)
+            lhs = And(And(sett, While(And(sendd, accc))), returnn)
+        return lhs
+
+    def expr5(self):
         if self.consume('('):
             e = self.expr0()
             self.expect(')')
@@ -141,7 +152,7 @@ class Parser(EventProducer):
             else:
                 self.error("'>>'")
         elif self.consume('!'):
-            e = self.expr4()
+            e = self.expr5()
             return Not(e)
         elif self.consume('set'):
             v = self.variable()
