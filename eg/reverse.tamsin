@@ -1,0 +1,3 @@
+main = reverse(pair(a, pair(b, pair(c, nil))), nil).
+reverse(pair(H, T), A) = reverse(T, pair(H, A)).
+reverse(nil, A) = A.

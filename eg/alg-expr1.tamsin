@@ -1,0 +1,4 @@
+main = (expr0 & eof & 'ok').
+expr0 = expr1 & {"+" & expr1}.
+expr1 = term & {"*" & term}.
+term = "x" | "y" | "z" | "(" & expr0 & ")".

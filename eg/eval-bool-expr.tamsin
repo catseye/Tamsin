@@ -1,0 +1,17 @@
+main = expr0 → E using scanner & eval(E).
+expr0 = expr1 → E1 & {"or" & expr1 → E2 & E1 ← or(E1,E2)} & E1.
+expr1 = term → E1 & {"and" & term → E2 & E1 ← and(E1,E2)} & E1.
+term = "true" | "false" | "(" & expr0 → E & ")" & E.
+eval(and(A, B)) = eval(A) → EA & eval(B) → EB & and(EA, EB).
+eval(or(A, B)) = eval(A) → EA & eval(B) → EB & or(EA, EB).
+eval(X) = X.
+and(true, true) = 'true'.
+and(A, B) = 'false'.
+or(false, false) = 'false'.
+or(A, B) = 'true'.
+scanner = scan using $.char.
+scan = {" "} & ("(" | ")" | token).
+token = "f" & "a" & "l" & "s" & "e" & 'false'
+      | "t" & "r" & "u" & "e" & 'true'
+      | "o" & "r" & 'or'
+      | "a" & "n" & "d" & 'and'.
