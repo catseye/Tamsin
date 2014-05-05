@@ -71,11 +71,18 @@ documents, which contain many more small examples written to demonstrate
 Quick Start
 -----------
 
-This repository contains the reference implementation of Tamsin, written in
-Python.  It can interpret a Tamsin program, and compile a program written
-in (core) Tamsin to C.
+The Tamsin reference repository is [hosted on Github](https://github.com/catseye/tamsin).
 
-To start using it,
+This repository contains the reference implementation of Tamsin, called
+`tamsin`, written in Python.  It can interpret a Tamsin program, and compile
+a program written in (core) Tamsin to C.  The distribution also contains
+implementations of the Tamsin scanner and parser written in Tamsin itself
+(although we're still a ways from a fully bootrapped implementation.)
+
+While the interpreter is fine for prototyping, note that some informal
+benchmarking revealed the compiled C programs to be about 30x faster.
+
+To start using `tamsin`,
 
 *   Clone the repository — `git clone https://github.com/catseye/tamsin`
 *   Either:
@@ -92,13 +99,9 @@ Then you can run `tamsin` like so:
 *   `tamsin run eg/csv_parse.tamsin < eg/names.csv`
 
 You can also compile to C and compile the C to an executable and run the
-executable all in one step, from the repo directory, like so:
+executable all in one step, like so:
 
-*   `./loadngo eg/csv_extract.tamsin < eg/names.csv`
-
-While the reference implementation is fine for prototyping, note that initial
-benchmarking reveals the compiled C programs to be about 30x faster.  (I'll
-write up something more detailed about this eventually.)
+*   `tamsin loadngo eg/csv_extract.tamsin < eg/names.csv`
 
 Design Goals
 ------------
@@ -109,7 +112,7 @@ Design Goals
 *   Allow writing (almost) anything using (almost) only recursive-descent
     parsing techniques.
 *   Provide means to solve practical problems.
-*   Keep the language simple (grammar should fit on a page)
+*   Keep the language simple (grammar should fit on a page.)
 *   Have a relatively simple reference implementation (currently less than
     3 KLoc, including everything — debugging and the C runtime used by the
     compiler.)
@@ -126,4 +129,4 @@ Related work
 *   [Parsec](http://www.haskell.org/haskellwiki/Parsec)
 *   [Squishy2K](http://catseye.tc/node/Squishy2K),
     [Arboretuum](http://catseye.tc/node/Arboretuum), and
-    [Treacle]((http://catseye.tc/node/Treacle)
+    [Treacle](http://catseye.tc/node/Treacle)
