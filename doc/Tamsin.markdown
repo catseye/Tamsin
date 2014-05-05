@@ -1,16 +1,16 @@
-The Tamsin v0.1-PRE Language Specification
-==========================================
+The Tamsin Language Specification, version 0.1
+==============================================
 
 This document is a **work in progress**.
 
 *Note* that this document only specifies the behaviour of Tamsin version
-0.1-PRE.  The reference interpreter in fact supports a few more features
+0.1.  The reference interpreter in fact supports a few more features
 than are listed here.  Those features are listed in the
 [Advanced Features document](Advanced_Features.markdown), and may appear
-in a future version of Tamsin (like 0.2) but they are *not* slated for
-inclusion in version 0.1.
+in a future version of Tamsin (like 0.2) but they are *not* included in
+version 0.1.
 
-This document, plus the reference implementation `tamsin.py`, is as close
+This document, plus the reference implementation `tamsin`, is as close
 to normative as we're going to come for the time being.  But they are still
 a ways from being definitive.
 
