@@ -3,10 +3,11 @@
 from os.path import realpath, dirname, join
 import sys
 
-sys.path.insert(0, join(dirname(realpath(sys.argv[0])), '..', 'src'))
+tamsin_dir = join(dirname(realpath(sys.argv[0])), '..')
+sys.path.insert(0, join(tamsin_dir, 'src'))
 
 from tamsin.main import main
 
 
 if __name__ == '__main__':
-    main(sys.argv[1:])
+    main(sys.argv[1:], tamsin_dir=tamsin_dir)

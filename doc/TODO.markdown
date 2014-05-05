@@ -2,35 +2,30 @@ TODO
 ----
 
 *   turn system library back into built-in keywords (esp. if ¶ can be used)
-*   better command-line argument parsing
-*   `@include` -- for the scanner, especially
-*   `$.unquote` should take left and right quotes to expect
-*   define a stringify-repr operation on terms
+*   `@include` -- for the scanner, especially -- move metac's to `lib`
+*   figure out why compiled version of tamsin-ast hangs...
+*   arbitrary non-printable characters in terms: `\x99`
+*   `byte` versus `utf_8` scanners ("char" is vague, isn't it?)
 
 ### 8-bit clean/UTF-8 ###
 
 *   8-bit clean strings, in both Python and C.  tests for these as string
     literals, ability to scan them on input, and ability to produce them
     on output.
-*   arbitrary non-printable characters in terms and such
 *   decode UTF-8 in compiled C code : character scanner yields one Unicode char
 *   more tests for UTF-8
 
-### meta-circularity/bootstrapping ###
-
-*   meta-circular implementation of analyzer!
-*   meta-circular implementation of compiler!
-*   meta-circular implementation of interpreter!  (not so useful?)
-*   figure out why compiled verstion of tamsin-ast hangs...
-
 ### lower-priority/experimental ###
 
+*   meta-circular implementation of compiler!
+*   `$.unquote` should take left and right quotes to expect
+*   define a stringify-repr operation on terms
 *   Tamsin scanner: more liberal (every non-alphanum+_ symbol scans as itself,
     incl. ones that have no meaning currently like `/` and `?`)
 *   use `←` instead of `@`, why not?
 *   `¶foo` means production called `foo`, to disambiguate
     (this would mean unaliasing is less necessary -- call your production
-    `¶return` if you like) -- ASCII version?  `p^foo`?
+    `¶return` if you like) -- ASCII version?  `^^foo`? `:foo`? `||foo`? `//foo`?
 *   pattern match in send:
     *   `fields → F@fields(H,T) & H`
 *   maps, implemented as hash tables.
@@ -42,6 +37,7 @@ TODO
     indeed, this is a fold!  something like...
     *   `fold rule '' +`
     *   `fold rule nil cons`
+    *   maybe `rule/nil/cons`
     i.e.
     *   `"fold" & expr0 & term & ("+" | term)`
     that certainly implies that `+` is a constructor though.  hmmm...
@@ -51,6 +47,7 @@ TODO
         expr1 = term → E & fold ("*" & term) E mul.
         term = "x" | "y" | "z" | "(" & expr0 → E & ")" & E.
 
+*   on that topic — production values and/or lambda productions...
 *   auto-generate terms from productions, like Rooibos does
 *   `;` = `&`?
 *   pretty-print AST for error messages

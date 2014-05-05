@@ -4,6 +4,8 @@
 # Distributed under a BSD-style license; see LICENSE for more information.
 
 import codecs
+import os
+import subprocess
 import sys
 
 from tamsin.event import DebugEventListener
@@ -42,7 +44,7 @@ def run(ast, listeners=None):
     print unicode(result).encode('UTF-8')
 
 
-def main(args):
+def main(args, tamsin_dir='.'):
     listeners = []
     if args[0] == '--debug':
         listeners.append(DebugEventListener())
@@ -67,6 +69,24 @@ def main(args):
         #print >>sys.stderr, repr(ast)
         compiler = Compiler(ast, sys.stdout)
         compiler.compile()
+    elif args[0] == 'loadngo':
+        ast = parse_and_check(args[1])
+        c_filename = 'foo.c'
+        exe_filename = './foo'
+        with codecs.open(c_filename, 'w', 'UTF-8') as f:
+            compiler = Compiler(ast, f)
+            compiler.compile()
+            c_src_dir = os.path.join(tamsin_dir, 'c_src')
+            command = ("gcc", "-g", "-I%s" % c_src_dir, "-L%s" % c_src_dir,
+                       c_filename, "-o", exe_filename, "-ltamsin")
+            subprocess.check_call(command)
+            try:
+                subprocess.check_call((exe_filename,))
+                exit_code = 0
+            except CalledProcessError:
+                exit_code = 1
+            subprocess.call(('rm', '-f', c_filename, exe_filename))
+            sys.exit(exit_code)
     else:
         ast = parse_and_check(args[0])
         run(ast, listeners=listeners)
