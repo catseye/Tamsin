@@ -46,7 +46,7 @@ expr4      = "(" & expr0 → E & ")" & E
            | "eof" & return call(prodref('$', 'eof'), nil)
            | terminal
            | variable → V & 
-             ("←" & term → T & return set(V, T)
+             (("←" | "<-") & term → T & return set(V, T)
              | return call(prodref('$', return), list(V, nil)))
            | sq_string → T &
              $:unquote(T) → T &

@@ -9,7 +9,8 @@ if [ x$1 = x ]; then
    $0 compiler &&
    $0 scanner &&
    $0 parser &&
-   $0 ast
+   $0 ast &&
+   echo "All tests passed!"
    exit $?
 fi
 
@@ -42,6 +43,7 @@ elif [ x$1 = xast ]; then   # check that tamsin-ast output looks like bin/tamsin
     done
 elif [ x$1 = xcompiledast ]; then   # check that tamsin-ast output looks like bin/tamsin parse
     echo "Compiling parser (for AST) in Tamsin and testing it..."
+    ./build.sh
     bin/tamsin compile eg/tamsin-ast.tamsin > foo.c && \
        gcc -g -Ic_src -Lc_src foo.c -o tamsin-ast -ltamsin || exit 1
     for EG in eg/*.tamsin; do

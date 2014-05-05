@@ -2,6 +2,6 @@
 # hereby placed in the public domain.  It comes with NO WARRANTY.
 
 main = expr0.
-expr0 = expr1 → E1 & {"+" & expr1 → E2 & E1 ← add(E1,E2)} & E1.
-expr1 = term → E1 & {"*" & term → E2 & E1 ← mul(E1,E2)} & E1.
-term = "x" | "y" | "z" | "(" & expr0 → E & ")" & E.
+expr0 = expr1 -> E1 & {"+" & expr1 -> E2 & E1 <- add(E1,E2)} & E1.
+expr1 = term -> E1 & {"*" & term -> E2 & E1 <- mul(E1,E2)} & E1.
+term = "x" | "y" | "z" | "(" & expr0 -> E & ")" & E.

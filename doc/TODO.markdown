@@ -1,8 +1,8 @@
 TODO
 ----
 
-*   figure out why compiled version of tamsin-ast hangs...
-*   definitely there's some kind of a problem with alnum vs eof in our C code
+*   figure out why compiled version of tamsin-ast says
+    `expected EOF found 'expr0'` on alg-expr2 (even with digraphs)
 
 ### 8-bit clean/UTF-8 ###
 
@@ -35,6 +35,7 @@ TODO
 *   turn system library back into built-in keywords (esp. if : can be used)
 *   should be able to import ("open") other modules into your own namespace.
 *   including files, library files should be **handled by the implementation**
+*   document, too, the implementation-dependent nature of input and output
 *   EOF and nil are the same?  it would make sense... call it `end`?
 *   regex-like shortcuts: `\w` for "word", `\s` for "whitespace", etc.
 *   meta-circular implementation of compiler!

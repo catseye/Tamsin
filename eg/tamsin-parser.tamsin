@@ -23,7 +23,7 @@ expr4      = "(" & expr0 & ")"
            | "fail" & term
            | "print" & term
            | terminal
-           | variable & ["←" & term]
+           | variable & [("←" | "<-") & term]
            | sq_string
            | prodref & ["(" & [term & {"," & term}] & ")"] & ["@" & term].
 term       = term0.

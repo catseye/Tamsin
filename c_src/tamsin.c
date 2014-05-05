@@ -99,7 +99,7 @@ void tamsin_startswith(struct scanner *s, const char *str) {
 }
 
 struct term *tamsin_unquote(const struct term *q) {
-    if (q->atom[0] == '"' || q->atom[1] == '\'') {
+    if (q->atom[0] == '"' || q->atom[0] == '\'') {
         char *s = strdup(q->atom);
         s[strlen(s)-1] = '\0';
         return term_new(s+1);
