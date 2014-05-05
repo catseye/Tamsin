@@ -3,7 +3,7 @@
 
 main = {scan -> T & print T} & ''.
 
-scanner = scan using $:char.
+scanner = scan using $:utf8.
 scan = skippable & (symbol | str('\'') | str('"') | sc_word).
 symbol = "&" & "&" & '&&'
        | "|" & "|" & '||'

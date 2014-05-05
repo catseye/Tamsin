@@ -9,7 +9,7 @@ import subprocess
 import sys
 
 from tamsin.event import DebugEventListener
-from tamsin.scanner import EOF, Scanner, CharScannerEngine, TamsinScannerEngine
+from tamsin.scanner import EOF, Scanner, UTF8ScannerEngine, TamsinScannerEngine
 from tamsin.parser import Parser
 from tamsin.interpreter import Interpreter
 from tamsin.analyzer import Analyzer
@@ -28,7 +28,7 @@ def parse_and_check(filename, scanner_engine=None):
 
 def mk_interpreter(ast, listeners=None):
     scanner = Scanner(sys.stdin.read().decode('UTF-8'), listeners=listeners)
-    scanner.push_engine(CharScannerEngine())
+    scanner.push_engine(UTF8ScannerEngine())
     interpreter = Interpreter(
         ast, scanner, listeners=listeners
     )
@@ -67,7 +67,7 @@ def main(args, tamsin_dir='.'):
     elif args[0] == 'compile':
         ast = parse_and_check(args[1])
         #print >>sys.stderr, repr(ast)
-        compiler = Compiler(ast, sys.stdout)
+        compiler = Compiler(ast, sys.stdout, encoding='UTF-8')
         compiler.compile()
     elif args[0] == 'loadngo':
         ast = parse_and_check(args[1])

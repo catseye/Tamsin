@@ -72,7 +72,7 @@ Parse and evaluate a Boolean expression.
     | and(A, B) = 'false'.
     | or(false, false) = 'false'.
     | or(A, B) = 'true'.
-    | scanner = scan using $:char.
+    | scanner = scan using $:utf8.
     | scan = {" "} & ("(" | ")" | token).
     | token = "f" & "a" & "l" & "s" & "e" & 'false'
     |       | "t" & "r" & "u" & "e" & 'true'
@@ -105,7 +105,7 @@ commas and double-quotes inside quotes.
 Evaluate a trivial S-expression-based language.
 
     | main = sexp → S using scanner & reverse(S, nil) → SR & eval(SR).
-    | scanner = scan using $:char.
+    | scanner = scan using $:utf8.
     | scan = {" "} & ("(" | ")" | (T ← '' & {$:alnum → S & T ← T + S} & return T)).
     | sexp = $:alnum | list.
     | list = "(" & listtail(nil).

@@ -208,7 +208,14 @@ class TamsinScannerEngine(ScannerEngine):
         scanner.error('identifiable character')
 
 
-class CharScannerEngine(ScannerEngine):
+class UTF8ScannerEngine(ScannerEngine):
+    def scan_impl(self, scanner):
+        if scanner.is_at_eof():
+            return EOF
+        return scanner.chop(1)
+
+
+class ByteScannerEngine(ScannerEngine):
     def scan_impl(self, scanner):
         if scanner.is_at_eof():
             return EOF

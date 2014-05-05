@@ -7,7 +7,7 @@
 # __unicode__ : make a string that looks like a Tamsin term
 # __repr__ : make a string that is valid Python code for constructing the AST
 
-from tamsin.term import Term, Variable
+from tamsin.term import Variable
 
 
 def format_list(l):

@@ -70,12 +70,13 @@ int main(int argc, char **argv) {
 '''
 
 class Compiler(object):
-    def __init__(self, program, outfile):
+    def __init__(self, program, outfile, encoding=None):
         self.program = program
         self.outfile = outfile
         self.indent_ = 0
         self.current_prod_name = None   # this is without the 0, 1, 2...
         self.current_prod = None
+        self.encoding = encoding
 
     def indent(self):
         self.indent_ += 1
@@ -85,7 +86,9 @@ class Compiler(object):
 
     def emit(self, *args):
         s = "    " * self.indent_ + ''.join(args) + "\n"
-        self.outfile.write(s.encode('UTF-8'))
+        if self.encoding:
+            s = s.encode(self.encoding)
+        self.outfile.write(s)
 
     def compile(self):
         self.emit(PRELUDE)
@@ -310,8 +313,10 @@ class Compiler(object):
         elif isinstance(ast, Using):
             prodref = ast.prodref
             scanner_name = prodref.name
-            if scanner_name == u'char':
-                self.emit("scanner_push_engine(scanner, &scanner_char_engine);")
+            if scanner_name == u'utf8':
+                self.emit("scanner_push_engine(scanner, &scanner_utf8_engine);")
+            elif scanner_name == u'byte':
+                self.emit("scanner_push_engine(scanner, &scanner_byte_engine);")
             else:
                 self.emit("scanner_push_engine(scanner, &program_%s0);" % scanner_name)
             self.compile_r(ast.rule)

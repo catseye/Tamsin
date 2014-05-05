@@ -9,7 +9,7 @@ from tamsin.ast import (
 from tamsin.term import Term, EOF, Atom, Constructor, Variable
 from tamsin.event import EventProducer
 from tamsin.scanner import (
-    CharScannerEngine, ProductionScannerEngine
+    ByteScannerEngine, UTF8ScannerEngine, ProductionScannerEngine
 )
 
 
@@ -271,8 +271,10 @@ class Interpreter(EventProducer):
             sub = ast.rule
             prodref = ast.prodref
             scanner_name = prodref.name
-            if prodref.module == '$' and scanner_name == u'char':
-                new_engine = CharScannerEngine()
+            if prodref.module == '$' and scanner_name == u'byte':
+                new_engine = ByteScannerEngine()
+            elif prodref.module == '$' and scanner_name == u'utf8':
+                new_engine = UTF8ScannerEngine()
             else:
                 prods = self.program.find_productions(prodref)
                 if len(prods) != 1:

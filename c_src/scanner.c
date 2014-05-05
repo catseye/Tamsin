@@ -17,11 +17,16 @@ struct scanner *scanner_new(const char *buffer) {
     return scanner;
 }
 
-void scanner_char_engine(void) {
+void scanner_byte_engine(void) {
+}
+
+void scanner_utf8_engine(void) {
 }
 
 struct term *scan(struct scanner *s) {
-    if (s->engines == NULL || s->engines->production == &scanner_char_engine) {
+    if (s->engines == NULL ||
+        s->engines->production == &scanner_byte_engine ||
+        s->engines->production == &scanner_utf8_engine) {
         char c = s->buffer[s->position];
         if (c == '\0') {
             return &tamsin_EOF;

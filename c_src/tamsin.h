@@ -97,7 +97,8 @@ void unscan(struct scanner *);
 void commit(struct scanner *);
 void scanner_push_engine(struct scanner *, void (*)(void));
 void scanner_pop_engine(struct scanner *);
-void scanner_char_engine(void);
+void scanner_byte_engine(void);
+void scanner_utf8_engine(void);
 
 /* -------------------------------------------------------- tamsin */
 

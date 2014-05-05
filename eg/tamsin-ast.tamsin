@@ -90,7 +90,7 @@ dq_string = $:startswith('"').
 reverse(list(H, T), A) = reverse(T, list(H, A)).
 reverse(nil, A) = A.
 
-scanner = scan using $:char.
+scanner = scan using $:utf8.
 scan = skippable & (symbol | str('\'') | str('"') | sc_word).
 symbol = "&" & "&" & '&&'
        | "|" & "|" & '||'
