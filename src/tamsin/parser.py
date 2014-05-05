@@ -185,13 +185,17 @@ class Parser(EventProducer):
             return Call(prodref, args, ibuf)
 
     def prodref(self):
+        module = ''
         if self.consume('$'):
-            self.expect('.')
+            module = '$'
+            self.expect(':')
             name = self.consume_any()
-            return Prodref('$', name)
         else:
             name = self.consume_any()
-            return Prodref('', name)
+            if self.consume(':'):
+                module = name
+                name = self.consume_any()
+        return Prodref(module, name)
 
     def variable(self):
         if self.peek()[0].isupper():

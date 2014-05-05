@@ -33,17 +33,17 @@ term1      = atom & ["(" & [term & {"," & term}] & ")"]
 atom       = word | sq_string.
 terminal   = dq_string
            | ("«" | "<<") & term & ("»" | ">>").
-prodref    = [modref & "."] & word.
+prodref    = [modref & ":"] & word.
 modref     = "$".
 pragma     = "alias" & word & word & "=" & prodref
            | "unalias" & word.
 
-word = $.alnum.
-variable = $.upper.
-sq_string = $.startswith('\'').
-dq_string = $.startswith('"').
+word = $:alnum.
+variable = $:upper.
+sq_string = $:startswith('\'').
+dq_string = $:startswith('"').
 
-scanner = scan using $.char.
+scanner = scan using $:char.
 scan = skippable & (symbol | str('\'') | str('"') | sc_word).
 symbol = "&" & "&" & '&&'
        | "|" & "|" & '||'
@@ -51,7 +51,7 @@ symbol = "&" & "&" & '&&'
        | "<" & "-" & '<-'
        | "<" & "<" & '<<'
        | ">" & ">" & '>>'
-       | "=" | "(" | ")" | "[" | "]" | "{" | "}" | "!" | "|" | "&"
+       | "=" | "(" | ")" | "[" | "]" | "{" | "}" | "!" | "|" | "&" | ":"
        | "," | "." | "@" | "+" | "$" | "→" | "←" | "«" | "»".
 str(Q) = «Q» → T & {(escape | !«Q» & any) → S & T ← T + S} & «Q» &
          return T + Q.
@@ -61,7 +61,7 @@ escape = "\\" & "n" & '\n'
        | "\\" & "\\" & '\\'
        | "\\" & "'" & '\''
        | "\\" & "\"" & '"'.
-sc_word = $.alnum → T & { ($.alnum | "_") → S & T ← T + S } & T.
+sc_word = $:alnum → T & { ($:alnum | "_") → S & T ← T + S } & T.
 skippable = {whitespace | comment}.
 whitespace = " " | "\t" | "\r" | "\n".
 comment = "#" & {!"\n" & any} & "\n".

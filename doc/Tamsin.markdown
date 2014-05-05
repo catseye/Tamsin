@@ -840,58 +840,60 @@ In fact, we have been using the `$` module already!  But our usage of it
 has been hidden under syntactic sugar (which you'll learn more about in
 the "Aliases" section below.)
 
-    | main = $.expect(k).     # same as "k"
+    | main = $:expect(k).     # same as "k"
     + k
     = k
 
-    | main = $.expect(k).     # same as "k"
+    | main = $:expect(k).     # same as "k"
     + l
     ? expected 'k' found 'l'
 
 The section about aliases needs to be written too.
 
-Here's `$.alnum`, which only consumes alphanumeric tokens.
+Here's `$:alnum`, which only consumes tokens where the first character is
+alphanumeric.
 
-    | main = "(" & {$.alnum → A} & ")" & A.
+    | main = "(" & {$:alnum → A} & ")" & A.
     + (abc123deefghi459876jklmnopqRSTUVXYZ0)
     = 0
 
-    | main = "(" & {$.alnum → A} & ")" & A.
+    | main = "(" & {$:alnum → A} & ")" & A.
     + (abc123deefghi459876!jklmnopqRSTUVXYZ0)
     ? expected ')' found '!'
 
-Here's `$.upper`, which only consumes uppercase alphabetic tokens.
+Here's `$:upper`, which only consumes tokens where the first character is
+uppercase alphabetic.
 
-    | main = "(" & {$.upper → A} & ")" & A.
+    | main = "(" & {$:upper → A} & ")" & A.
     + (ABCDEFGHIJKLMNOPQRSTUVWXYZ)
     = Z
 
-    | main = "(" & {$.upper → A} & ")" & A.
+    | main = "(" & {$:upper → A} & ")" & A.
     + (ABCDEFGHIJKLMNoPQRSTUVWXYZ)
     ? expected ')' found 'o'
 
-Here's `$.startswith`, which only consumes tokens which start with
+Here's `$:startswith`, which only consumes tokens which start with
 the given term.  (For a single-character scanner this isn't very
 impressive.)
 
-    | main = "(" & {$.startswith('A') → A} & ")" & A.
+    | main = "(" & {$:startswith('A') → A} & ")" & A.
     + (AAAA)
     = A
 
-    | main = "(" & {$.startswith('A') → A} & ")" & A.
+    | main = "(" & {$:startswith('A') → A} & ")" & A.
     + (AAAABAAA)
     ? expected ')' found 'B'
 
-Here's `$.mkterm`, which takes an atom and a list and creates a term.
+Here's `$:mkterm`, which takes an atom and a list and creates a term.
 
-    | main = $.mkterm(atom, list(a, list(b, list(c, nil)))).
+    | main = $:mkterm(atom, list(a, list(b, list(c, nil)))).
     = atom(a, b, c)
 
-Here's `$.unquote`, which takes a term which begins and ends with a
+Here's `$:unquote`, which takes a term which begins and ends with a
 quote symbol (TODO: should be the given quote symbol) and returns
 the contents.
 
-    | main = $.unquote('"hello"').
+    | main = $:unquote('"hello"').
     = hello
 
 Evaluation
@@ -981,13 +983,13 @@ As you have seen, the default scanner returns single characters.
 
 You can select a different scanner for a rule with `using`.  There is
 at least one built-in scanner in the built-in `$` module: the default
-character scanner.  It is available as `$.char`.
+character scanner.  It is available as `$:char`.
 
-    | main = ("a" & "b" & "c") using $.char.
+    | main = ("a" & "b" & "c") using $:char.
     + abc
     = c
 
-    | main = "abc" using $.char.
+    | main = "abc" using $:char.
     + abc
     ? expected 'abc' found 'a'
 
@@ -1006,7 +1008,7 @@ Note that we are not `using` it yet in this example; this example just
 demonstrates that the `token` production returns tokens.
 
     | main = {token → A & print A} & 'ok'.
-    | token = ("c" & "a" & "t" & 'cat' | "d" & "o" & "g" & 'dog') using $.char.
+    | token = ("c" & "a" & "t" & 'cat' | "d" & "o" & "g" & 'dog') using $:char.
     + catdogdogcatcatdog
     = cat
     = dog
@@ -1019,8 +1021,8 @@ demonstrates that the `token` production returns tokens.
 (works OK from the command line but DOESN'T work ok from Falderal?  weird.)
 
       | main = {token → A & print A} & 'ok'.
-      | token = ({" "} & ("(" | ")" | word)) using $.char.
-      | word = $.alnum → L & {$.alnum → M & set L = L + M} & L.
+      | token = ({" "} & ("(" | ")" | word)) using $:char.
+      | word = $:alnum → L & {$:alnum → M & set L = L + M} & L.
       + cabbage( bag     gaffe fad ) ()) bag(bagbag bag)
       = cabbage
       = (
@@ -1048,15 +1050,15 @@ Here is how you would use the above scanner, as a scanner, in a program:
 
     | main = ("(" & "cons" & ")" & 'ok') using token.
     | 
-    | token = ({" "} & ("(" | ")" | word)) using $.char.
-    | word = $.alnum → L & {$.alnum → M & set L = L + M} & L.
+    | token = ({" "} & ("(" | ")" | word)) using $:char.
+    | word = $:alnum → L & {$:alnum → M & set L = L + M} & L.
     + ( cons )
     = ok
 
     | main = ("(" & "cons" & ")" & 'ok') using token.
     | 
-    | token = ({" "} & ("(" | ")" | word)) using $.char.
-    | word = $.alnum → L & {$.alnum → M & set L = L + M} & L.
+    | token = ({" "} & ("(" | ")" | word)) using $:char.
+    | word = $:alnum → L & {$:alnum → M & set L = L + M} & L.
     + ( quote )
     ? expected 'cons' found 'quote'
 
@@ -1065,7 +1067,7 @@ similar to the strings it scanned, this is just a convention, and may be
 subverted:
 
     | main = ("meow" & "woof") using token.
-    | token = ("c" & "a" & "t" & 'meow' | "d" & "o" & "g" & 'woof') using $.char.
+    | token = ("c" & "a" & "t" & 'meow' | "d" & "o" & "g" & 'woof') using $:char.
     + catdog
     = woof
 
@@ -1074,7 +1076,7 @@ The justification for this is that it's the end of the input, as far as
 the scanner can understand it.
 
     | main = program using scanner.
-    | scanner = scan using $.char.
+    | scanner = scan using $:char.
     | scan = "a" | "b" | "@".
     | program = "a" & "@" & "b" & return ok.
     + x
@@ -1083,7 +1085,7 @@ the scanner can understand it.
 If you don't like that, you can write your scanner to fail the way you want.
 
     | main = program using scanner.
-    | scanner = scan using $.char.
+    | scanner = scan using $:char.
     | scan = "a" | "b" | "@" | return bleah.
     | program = "a" & "@" & "b" & return ok.
     + x
@@ -1093,7 +1095,7 @@ On the other hand, if the scanner understands all the tokens, but the parser
 doesn't see the tokens it expects, you get the usual error.
 
     | main = program using scanner.
-    | scanner = scan using $.char.
+    | scanner = scan using $:char.
     | scan = "a" | "b" | "@".
     | program = "a" & "@" & "b" & return ok.
     + b@a
@@ -1103,7 +1105,7 @@ Parsing using a production scanner ignores any extra text given to it,
 just like the built-in parser.
 
     | main = program using scanner.
-    | scanner = scan using $.char.
+    | scanner = scan using $:char.
     | scan = (
     |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
     |        ).
@@ -1114,7 +1116,7 @@ just like the built-in parser.
 The production scanner properly handles backtracking on a per-token basis.
 
     | main = program using scanner.
-    | scanner = scan using $.char.
+    | scanner = scan using $:char.
     | scan = (
     |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
     |        ).
@@ -1128,7 +1130,7 @@ The production scanner properly handles backtracking on a per-token basis.
     = ok
 
     | main = program using scanner.
-    | scanner = scan using $.char.
+    | scanner = scan using $:char.
     | scan = (
     |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
     |        ).
@@ -1143,31 +1145,31 @@ The production scanner properly handles backtracking on a per-token basis.
 
 You can mix two scanners in one production.
 
-    | main = "dog" using token & ("!" & "!" & "!") using $.char & return ok.
+    | main = "dog" using token & ("!" & "!" & "!") using $:char & return ok.
     | 
-    | token = ({" "} & ("(" | ")" | word)) using $.char.
-    | word = $.alnum → L & {$.alnum → M & set L = L + M} & L.
+    | token = ({" "} & ("(" | ")" | word)) using $:char.
+    | word = $:alnum → L & {$:alnum → M & set L = L + M} & L.
     + dog!!!
     = ok
 
 Note that the `token` scanner we've defined doesn't consume spaces after a
 token, and that the char scanner doesn't skip spaces.
 
-    | main = "dog" using token & ("c" & "a" & "t") using $.char & return ok.
+    | main = "dog" using token & ("c" & "a" & "t") using $:char & return ok.
     | 
-    | token = ({" "} & ("(" | ")" | word)) using $.char.
-    | word = $.alnum → L & {$.alnum → M & set L = L + M} & L.
+    | token = ({" "} & ("(" | ")" | word)) using $:char.
+    | word = $:alnum → L & {$:alnum → M & set L = L + M} & L.
     + dog cat
     ? expected 'c' found ' '
 
 But we can convince it to skip those spaces...
 
     | main = "dog" using token
-    |      & ({" "} & "c" & "a" & "t") using $.char
+    |      & ({" "} & "c" & "a" & "t") using $:char
     |      & return ok.
     | 
-    | token = ({" "} & ("(" | ")" | word)) using $.char.
-    | word = $.alnum → L & {$.alnum → M & set L = L + M} & L.
+    | token = ({" "} & ("(" | ")" | word)) using $:char.
+    | word = $:alnum → L & {$:alnum → M & set L = L + M} & L.
     + dog        cat
     = ok
 
@@ -1179,8 +1181,8 @@ of the `using`, scanning returns to whatever scanner was in force before the
     |      & ({"."} & "c" & "a" & "t")
     |      & return ok.
     | 
-    | token = ({" "} & ("(" | ")" | word)) using $.char.
-    | word = $.alnum → L & {$.alnum → M & set L = L + M} & L.
+    | token = ({" "} & ("(" | ")" | word)) using $:char.
+    | word = $:alnum → L & {$:alnum → M & set L = L + M} & L.
     + dog...........cat
     = ok
 
@@ -1191,11 +1193,11 @@ production.
 (another one that doesn't work under Falderal?  am I using the `subprocess`
 module subtly incorrectly, I wonder?)
 
-        | main = ("c" & "a" & "t" → G) using $.char
+        | main = ("c" & "a" & "t" → G) using $:char
         |      & ("dog" & return G) using token.
         | 
-        | token = ({" "} & ("(" | ")" | word)) using $.char.
-        | word = $.alnum → L & {$.alnum → M & set L = L + M} & L.
+        | token = ({" "} & ("(" | ")" | word)) using $:char.
+        | word = $:alnum → L & {$:alnum → M & set L = L + M} & L.
         + cat dog
         = t
 
@@ -1212,13 +1214,13 @@ production scanner.
 
     | main = program using scanner1.
     | 
-    | scanner1 = scan1 using $.char.
+    | scanner1 = scan1 using $:char.
     | scan1 = "a" | "b" | "c" | "(" & other & ")" & return list.
     | 
     | other = xyz using scanner2.
     | xyz = "1" & "1" | "1" & "2" | "2" & "3".
     | 
-    | scanner2 = scan2 using $.char.
+    | scanner2 = scan2 using $:char.
     | scan2 = "x" & return 1 | "y" & return 2 | "z" & return 3.
     | program = "c" & "list" & "a".
     + c(xx)a
@@ -1226,13 +1228,13 @@ production scanner.
 
     | main = program using scanner1.
     | 
-    | scanner1 = scan1 using $.char.
+    | scanner1 = scan1 using $:char.
     | scan1 = "a" | "b" | "c" | "(" & other & ")" & return list.
     | 
     | other = xyz using scanner2.
     | xyz = "1" & "1" | "1" & "2" | "2" & "3".
     | 
-    | scanner2 = scan2 using $.char.
+    | scanner2 = scan2 using $:char.
     | scan2 = "x" & return 1 | "y" & return 2 | "z" & return 3.
     | program = "c" & "list" & "a".
     + c(yy)a
@@ -1242,12 +1244,12 @@ Maybe an excessive number of minor variations on that...
 
     | main = program using scanner1.
     | 
-    | scanner1 = scan1 using $.char.
+    | scanner1 = scan1 using $:char.
     | scan1 = "a" | "b" | "c" | "(" & xyz using scanner2 & ")" & return list.
     | 
     | xyz = "1" & "1" | "1" & "2" | "2" & "3".
     | 
-    | scanner2 = scan2 using $.char.
+    | scanner2 = scan2 using $:char.
     | scan2 = "x" & return 1 | "y" & return 2 | "z" & return 3.
     | program = "c" & "list" & "a".
     + c(xx)a
@@ -1255,13 +1257,13 @@ Maybe an excessive number of minor variations on that...
 
     | main = program using scanner1.
     | 
-    | scanner1 = scan1 using $.char.
+    | scanner1 = scan1 using $:char.
     | scan1 = "a" | "b" | "c" | "(" & {other} & ")" & return list.
     | 
     | other = xyz using scanner2.
     | xyz = "1" & "1" | "1" & "2" | "2" & "3".
     | 
-    | scanner2 = scan2 using $.char.
+    | scanner2 = scan2 using $:char.
     | scan2 = "x" & return 1 | "y" & return 2 | "z" & return 3.
     | program = "c" & "list" & "a".
     + c(xxxyyzxy)a
@@ -1269,12 +1271,12 @@ Maybe an excessive number of minor variations on that...
 
     | main = program using scanner1.
     | 
-    | scanner1 = scan1 using $.char.
+    | scanner1 = scan1 using $:char.
     | scan1 = "a" | "b" | "c" | "(" & {xyz using scanner2} & ")" & return list.
     | 
     | xyz = "1" & "1" | "1" & "2" | "2" & "3".
     | 
-    | scanner2 = scan2 using $.char.
+    | scanner2 = scan2 using $:char.
     | scan2 = "x" & return 1 | "y" & return 2 | "z" & return 3.
     | program = "c" & "list" & "a".
     + c(xxxyyzxy)a
@@ -1282,13 +1284,13 @@ Maybe an excessive number of minor variations on that...
 
     | main = program using scanner1.
     | 
-    | scanner1 = scan1 using $.char.
+    | scanner1 = scan1 using $:char.
     | scan1 = "a" | "b" | "c"
     |       | "(" & {xyz → R using scanner2} & ")" & return R.
     | 
     | xyz = "1" & "1" & return 11 | "1" & "2" & return 12 | "2" & "3" & return 23.
     | 
-    | scanner2 = scan2 using $.char.
+    | scanner2 = scan2 using $:char.
     | scan2 = "x" & return 1 | "y" & return 2 | "z" & return 3.
     | program = "c" & ("11" | "12" | "23") → R & "a" & return R.
     + c(xxxyyzxy)a
@@ -1299,7 +1301,7 @@ its own scanner.  It switches back to the production scanner when done.
 
     | main = program using scanner.
     | 
-    | scanner = scan using $.char.
+    | scanner = scan using $:char.
     | scan = {" "} & set T = '' & {("a" | "b" | "c") → S & set T = T + S}.
     | 
     | program = "abc" & "cba" & "bac".
@@ -1308,12 +1310,12 @@ its own scanner.  It switches back to the production scanner when done.
 
     | main = program using scanner.
     | 
-    | scanner = scan using $.char.
+    | scanner = scan using $:char.
     | scan = {" "} & set T = '' & {("a" | "b" | "c") → S & set T = T + S}.
     | 
     | program = "abc" & (subprogram using subscanner) & "bac".
     | 
-    | subscanner = subscan using $.char.
+    | subscanner = subscan using $:char.
     | subscan = {" "} & set T = '' & {("s" | "t" | "u") → S & set T = T + S}.
     | 
     | subprogram = "stu" & "uuu".
@@ -1346,8 +1348,8 @@ written in Tamsin and can be found in `eg/tamsin-parser.tamsin`.
     Term0      ::= Term1 {"+" Term1}.
     Term1      ::= Atom ["(" [Term {"," Term}] ")"]
                  | Variable.
-    ProdRef    ::= [ModuleRef "."] ProdName.
-    ModuleRef  ::= "$".
+    ProdRef    ::= [[ModuleRef] ":"] ProdName.
+    ModuleRef  ::= "$" | ModName.
     Pragma     ::= "alias" ProdName Integer "=" ProdRef
                  | "unalias" ProdName.
     Atom       ::= ("'" {any} "'" | { "a".."z" | "0".."9" }) using $.char.

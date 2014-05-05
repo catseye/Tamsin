@@ -12,7 +12,7 @@ and(true, true) = 'true'.
 and(A, B) = 'false'.
 or(false, false) = 'false'.
 or(A, B) = 'true'.
-scanner = scan using $.char.
+scanner = scan using $:char.
 scan = {" "} & ("(" | ")" | token).
 token = "f" & "a" & "l" & "s" & "e" & 'false'
       | "t" & "r" & "u" & "e" & 'true'

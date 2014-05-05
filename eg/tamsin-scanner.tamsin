@@ -1,14 +1,17 @@
 # Scanner for Tamsin tokens, written in Tamsin.
 # Distributed under a BSD-style license; see LICENSE.
 
-tamsin = skippable & (symbol | str('\'') | str('"') | word).
+main = {scan -> T & print T} & ''.
+
+scanner = scan using $:char.
+scan = skippable & (symbol | str('\'') | str('"') | sc_word).
 symbol = "&" & "&" & '&&'
        | "|" & "|" & '||'
        | "-" & ">" & '->'
        | "<" & "-" & '<-'
        | "<" & "<" & '<<'
        | ">" & ">" & '>>'
-       | "=" | "(" | ")" | "[" | "]" | "{" | "}" | "!" | "|" | "&"
+       | "=" | "(" | ")" | "[" | "]" | "{" | "}" | "!" | "|" | "&" | ":"
        | "," | "." | "@" | "+" | "$" | "→" | "←" | "«" | "»".
 str(Q) = «Q» → T & {(escape | !«Q» & any) → S & T ← T + S} & «Q» &
          return T + Q.
@@ -18,9 +21,7 @@ escape = "\\" & "n" & '\n'
        | "\\" & "\\" & '\\'
        | "\\" & "'" & '\''
        | "\\" & "\"" & '"'.
-word = $.alnum → T & { ($.alnum | "_") → S & T ← T + S } & T.
-variable = $.upper → T & { ($.alnum | "_") → S & T ← T + S } & T.
+sc_word = $:alnum → T & { ($:alnum | "_") → S & T ← T + S } & T.
 skippable = {whitespace | comment}.
 whitespace = " " | "\t" | "\r" | "\n".
 comment = "#" & {!"\n" & any} & "\n".
-main = {tamsin -> T & print T} & ''.
