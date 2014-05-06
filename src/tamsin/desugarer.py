@@ -24,7 +24,10 @@ class Desugarer(EventProducer):
 
     def desugar(self, ast):
         if isinstance(ast, Program):
-            return Program(ast.prodmap, [self.desugar(p) for p in ast.prodlist])
+            return Program(
+                ast.modmap, ast.modlist,
+                ast.prodmap, [self.desugar(p) for p in ast.prodlist]
+            )
         elif isinstance(ast, Production):
             return Production(ast.name, 0, ast.formals, [],
                               self.desugar(ast.body))

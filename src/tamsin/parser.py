@@ -52,14 +52,15 @@ class Parser(EventProducer):
         while self.consume('@'):
             self.pragma()
             self.expect('.')
+        mods = []
         prods = []
         while self.peek() is not EOF:
             prod_or_mod = self.prod_or_mod()
             if isinstance(prod_or_mod, Production):
                 prods.append(prod_or_mod)
             else:
-                print repr(prod_or_mod)
-        return Program({}, prods)
+                mods.append(prod_or_mod)
+        return Program({}, mods, {}, prods)
 
     def pragma(self):
         if self.consume('alias'):

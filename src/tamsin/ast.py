@@ -35,7 +35,9 @@ class Module(AST):
 
 
 class Program(AST):
-    def __init__(self, prodmap, prodlist):
+    def __init__(self, modmap, modlist, prodmap, prodlist):
+        self.modmap = prodmap
+        self.modlist = prodlist
         self.prodmap = prodmap
         self.prodlist = prodlist
 
@@ -57,7 +59,9 @@ class Program(AST):
             return [Production('$.%s' % name, 0, formals, [], None)]
     
     def __repr__(self):
-        return "Program(%r, %r)" % (self.prodmap, self.prodlist)
+        return "Program(%r, %r, %r, %r)" % (
+            self.modmap, self.modlist, self.prodmap, self.prodlist
+        )
 
     def __str__(self):
         return "program(%s)" % format_list(self.prodlist)

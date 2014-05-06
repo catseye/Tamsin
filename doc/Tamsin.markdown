@@ -1002,12 +1002,21 @@ long as you call them with `:foo`.
 
 Here is the syntax for defining a module:
 
-        | module {
-        |   expr = "x".
+    | blah {
+    |   expr = "y".
+    | }
+    | main = expr.
+    | expr = "x".
+    + x
+    = x
+
+        | blah {
+        |   expr = "y".
         | }
-        | main = module:expr.
-        + x
-        = x
+        | main = blah:expr.
+        | expr = "x"
+        + y
+        = y
 
 Evaluation
 ----------
@@ -1558,5 +1567,5 @@ Appendix C. System Module
 *   `$:return(X)` — always succeeds, returning X
 *   `$:print(X)` — prints X to output as a side-effect, returns X
 *   `$:startswith(X)` — consumes token if it starts with first character of X
-*   `$:unquote(X)` — consumes nothing; returns X without quotes if X is quoted
+*   `$:unquote(X,L,R)` — consumes nothing; returns X without quotes if X is quoted
 *   `$:utf8` — UTF-8-encoded Unicode character scanner production

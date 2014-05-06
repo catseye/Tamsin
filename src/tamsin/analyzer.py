@@ -40,7 +40,7 @@ class Analyzer(EventProducer):
                 self.prodmap[prod.name].append(prod)
             if 'main' not in self.prodmap:
                 raise ValueError("no 'main' production defined")
-            return Program(self.prodmap, None)
+            return Program(ast.modmap, ast.modlist, self.prodmap, ast.prodlist)
         elif isinstance(ast, Production):
             locals_ = set()
             body = self.analyze(ast.body)
