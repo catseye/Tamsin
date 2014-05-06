@@ -71,10 +71,11 @@ struct term *term_concat(const struct term *, const struct term *);
  * Given a possibly non-"atom" term, return a "atom" term consisting of
  * contents of the given term flattened into an atom.
  *
- * Note: for now, the returned term MAY OR MAY NOT be newly allocated.
+ * The returned term is always newly allocated.
  */
-struct term *term_flatten(struct term *);
+struct term *term_flatten(const struct term *);
 
+void term_fput(const struct term *, FILE *);
 int term_match(struct term *, struct term *);
 
 extern struct term tamsin_EOF;

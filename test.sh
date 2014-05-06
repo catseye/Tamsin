@@ -10,6 +10,7 @@ if [ x$1 = x ]; then
    $0 scanner &&
    $0 parser &&
    $0 ast &&
+   $0 compiledast &&
    echo "All tests passed!"
    exit $?
 fi
@@ -57,6 +58,7 @@ elif [ x$1 = xcompiledast ]; then   # check that tamsin-ast output looks like bi
         ./tamsin-ast <$EG > 2.txt || exit 1
         diff -ru 1.txt 2.txt > ast.diff
         diff -ru 1.txt 2.txt || exit 1
+        #cat 2.txt
     done
 elif [ x$1 = xinterpreter ]; then
     echo "Testing Python interpreter..."

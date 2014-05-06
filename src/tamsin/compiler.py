@@ -58,13 +58,12 @@ int main(int argc, char **argv) {
 
     program_main0();
 
-    result = term_flatten(result);
     if (ok) {
-        fwrite(result->atom, 1, result->size, stdout);
+        term_fput(result, stdout);
         fwrite("\n", 1, 1, stdout);
         exit(0);
     } else {
-        fwrite(result->atom, 1, result->size, stderr);
+        term_fput(result, stderr);
         fwrite("\n", 1, 1, stderr);
         exit(1);
     }
@@ -224,7 +223,7 @@ class Compiler(object):
                 elif name == 'print':
                     self.emit_term(args[0], "temp")
                     self.emit("result = temp;")
-                    self.emit("fwrite(result->atom, 1, result->size, stdout);")
+                    self.emit("term_fput(result, stdout);")
                     self.emit(r'fwrite("\n", 1, 1, stdout);')
                     self.emit("ok = 1;")
                 elif name == 'eof':

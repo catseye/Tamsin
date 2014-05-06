@@ -1,22 +1,28 @@
 TODO
 ----
 
-*   figure out why compiled version of tamsin-ast says
-    `expected EOF found 'expr0'` on alg-expr2 (even with digraphs)
+*   module syntax:
+    
+        module {
+            prod = expr.
+        }
 
-### 8-bit clean/UTF-8 ###
-
-*   `byte` scanner must be 8-bit clean, i.e. can return `\x00` -- in C version
-*   `print` must be 8-bit clean, i.e. can emit `\x00` -- in C version
-*   `utf8` scanner must yield a Unicode char when it finds one encoded in UTF-8 -- in C version
-*   tests for failing when utf8 scanner hits badly-encoded utf8
-
+*   module-level updatable variables.
+*   including files, library files should be **handled by the implementation**
+*   document, too, the implementation-dependent nature of input and output
+*   EOF and nil are the same?  it would make sense... call it `end`?
+*   regex-like shortcuts: `\w` for "word", `\s` for "whitespace", etc.
+*   `$.unquote` should take left and right quotes to expect
+*   define a stringify-repr operation on terms
+*   stronger tests for scanner, parser: dump all falderal testbodies to files
 *   `emit` alongside `print`.
 *   `emit` must be 8-bit clean, i.e. can emit `\x00`
 *   tests for `emit`
 
 ### lower-priority/experimental ###
 
+*   tests for failing when utf8 scanner hits badly-encoded utf8
+*   numeric values... somehow.  number('65') = #65.  decode(ascii, 'A') = #65.
 *   tell/rewind the implicit buffer -- for VM's etc
 *   `using` production x: x's scanner defaults to utf8, not x
 *   figure out good way to do aliases with the Tamsin-parser-in-Tamsin
@@ -25,22 +31,9 @@ TODO
 *   something like «foo» but foo is the name of a *non*terminal — symbolic
     production references (like Perl's horrible globs as a cheap substitute
     for actual function references or lambdas.)
-*   module syntax:
-    
-        module {
-            prod = expr.
-        }
-
-*   module-level updatable variables.
 *   turn system library back into built-in keywords (esp. if : can be used)
 *   should be able to import ("open") other modules into your own namespace.
-*   including files, library files should be **handled by the implementation**
-*   document, too, the implementation-dependent nature of input and output
-*   EOF and nil are the same?  it would make sense... call it `end`?
-*   regex-like shortcuts: `\w` for "word", `\s` for "whitespace", etc.
 *   meta-circular implementation of compiler!
-*   `$.unquote` should take left and right quotes to expect
-*   define a stringify-repr operation on terms
 *   Tamsin scanner: more liberal (every non-alphanum+_ symbol scans as itself,
     incl. ones that have no meaning currently like `*` and `?`)
 *   use `←` instead of `@`, why not?
@@ -55,7 +48,6 @@ TODO
 *   `$.alpha`
 *   `$.digit`
 *   don't consume stdin until asked to scan.
-*   numeric values... somehow.  number('65') = #65.  decode(ascii, 'A') = #65.
 *   token classes... somehow.  (then numeric is just a special token class?)
 *   term expressions -- harder than it sounds
 *   be generous and allow "xyz" in term context position?

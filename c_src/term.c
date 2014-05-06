@@ -98,16 +98,16 @@ const struct term BRA = { "(", 1, NULL, NULL };
 const struct term KET = { ")", 1, NULL, NULL };
 const struct term COMMA = { ", ", 2, NULL, NULL };
 
-struct term *term_flatten(struct term *t) {
+struct term *term_flatten(const struct term *t) {
     struct term_list *tl;
 
     if (t->storing != NULL) {          /* it's an variable; get its value */
         return term_flatten(t->storing);
     } else if (t->subterms == NULL) {  /* it's an atom */
-        return t;
+        return term_new(t->atom, t->size);
     } else {                           /* it's a constructor */
         struct term *n;
-        /* XXX why do we clone t here? */
+        /* we clone t here to get an atom from its tag */
         n = term_concat(term_new(t->atom, t->size), &BRA);
 
         for (tl = t->subterms; tl != NULL; tl = tl->next) {
@@ -122,19 +122,24 @@ struct term *term_flatten(struct term *t) {
     term_format_r(t);
 }
 
-void term_fput(struct term *t, FILE *f) {
+void term_fput(const struct term *t, FILE *f) {
     struct term *flat = term_flatten(t);
-    fprintf(f, "%s", flat->atom);
+
+    fwrite(flat->atom, 1, flat->size, f);
 }
 
 int term_match(struct term *pattern, struct term *ground)
 {
     struct term_list *tl1, *tl2;
 
-    //term_fput(pattern, stdout);
-    //printf(" ?= ");
-    //term_fput(ground, stdout);
-    //printf("...\n");
+    /*
+    FILE *f = stderr;
+    fprintf(f, "******** ");
+    term_fput(pattern, f);
+    fprintf(f, " ?= ");
+    term_fput(ground, f);
+    fprintf(f, "...\n");
+    */
 
     assert(ground->storing == NULL);
 

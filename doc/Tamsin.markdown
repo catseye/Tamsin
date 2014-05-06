@@ -439,29 +439,41 @@ and atoms without quotes.
 A literal string may contain escape sequences.  Note, I hate escape sequences!
 So I might not leave this feature in, or, at least, not quite like this.
 
-    | main = "a" & "\"" & "b" & return 'don\'t'.
+    | main = "a" & "\"" & "b" & print 'don\'t'.
     + a"b
     = don't
+    = don't
 
-    | main = "a" & "\\" & "b" & return 'don\\t'.
+    | main = "a" & "\\" & "b" & print 'don\\t'.
     + a\b
     = don\t
+    = don\t
 
-    | main = "a" & "\n" & "b" & return 'don\nt'.
+    | main = "a" & "\n" & "b" & print 'don\nt'.
     + a
     + b
     = don
     = t
+    = don
+    = t
 
-    | main = "a" & "\t" & "b" & return 'don\tt'.
+    | main = "a" & "\t" & "b" & print 'don\tt'.
     + a	b
+    = don	t
     = don	t
 
 The escape sequence \x must be followed by two hex digits.
 
-    | main = "a" & "\x4a" & "b" & return 'don\x4at'.
+    | main = "a" & "\x4a" & "b" & print 'don\x4at'.
     + aJb
     = donJt
+    = donJt
+
+Note also that you can print a constructor.
+
+    | main = print hi(there('I\'m'(a(constructor)))).
+    = hi(there(I'm(a(constructor))))
+    = hi(there(I'm(a(constructor))))
 
 ### Examples using Terms ###
 
