@@ -217,7 +217,7 @@ class Parser(EventProducer):
     def variable(self):
         if self.peek()[0].isupper():
             var = self.consume_any()
-            return Variable(var)
+            return Variable(var.decode('UTF-8'))
         else:
             self.error('variable')
 

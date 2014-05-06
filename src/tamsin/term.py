@@ -42,7 +42,7 @@ EOF = EOF()  # unique
 
 class Atom(Term):
     def __init__(self, text):
-        assert isinstance(text, unicode)
+        #assert isinstance(text, unicode)
         self.text = text
 
     def __unicode__(self):

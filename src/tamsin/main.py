@@ -45,7 +45,7 @@ def main(args, tamsin_dir='.'):
         listeners.append(DebugEventListener())
         args = args[1:]
     if args[0] == 'scan':
-        scanner = Scanner(sys.stdin.read().decode('UTF-8'), listeners=listeners)
+        scanner = Scanner(sys.stdin.read(), listeners=listeners)
         scanner.push_engine(TamsinScannerEngine())
         tok = None
         while tok is not EOF:

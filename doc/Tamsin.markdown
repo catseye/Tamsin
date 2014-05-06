@@ -457,6 +457,12 @@ So I might not leave this feature in, or, at least, not quite like this.
     + a	b
     = don	t
 
+The escape sequence \x must be followed by two hex digits.
+
+    | main = "a" & "\x4a" & "b" & return 'don\x4at'.
+    + aJb
+    = donJt
+
 ### Examples using Terms ###
 
 This program accepts a pair of bits and evaluates to a term, a constructor
@@ -1080,9 +1086,9 @@ This includes bytes that would be special in UTF-8.
     + 00ff00
     = ff0a
     
-        | main = "\x00" → N using $:byte & return '\x01' + N + '\xff'.
-        + 00
-        = 0100ff
+    | main = "\x00" → N using $:byte & return '\x01' + N + '\xff'.
+    + 00
+    = 0100ff
 
     -> Tests for functionality "Intepret Tamsin program"
 
