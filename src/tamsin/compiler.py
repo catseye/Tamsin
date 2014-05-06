@@ -56,7 +56,7 @@ int main(int argc, char **argv) {
     ok = 0;
     result = term_new_from_cstring("nil");
 
-    program_main0();
+    prod_main_main0();
 
     if (ok) {
         term_fput(result, stdout);
@@ -95,8 +95,8 @@ class Compiler(object):
         for mod_name in self.program.modmap:
             for prod_name in self.program.modmap[mod_name].prodmap:
                 for prod in self.program.modmap[mod_name].prodmap[prod_name]:
-                    self.emit("void program_%s%s(%s);" % (
-                        prod.name, prod.rank,
+                    self.emit("void prod_%s_%s%s(%s);" % (
+                        mod_name, prod.name, prod.rank,
                         ', '.join(["struct term *" % f for f in prod.formals])
                     ))
         self.emit("")
@@ -129,7 +129,9 @@ class Compiler(object):
                 i += 1
 
             fmls = ', '.join(fmls)
-            self.emit("void program_%s%s(%s) {" % (name, ast.rank, fmls))
+            self.emit("void prod_%s_%s%s(%s) {" % (
+                self.currmod.name, name, ast.rank, fmls
+             ))
             self.indent()
 
             all_pattern_variables = set()
@@ -150,7 +152,9 @@ class Compiler(object):
                 
                 if next:
                     args = ', '.join(["i%s" % i for i in xrange(0, len(formals))])
-                    self.emit("program_%s%s(%s);" % (name, next.rank, args))
+                    self.emit("prod_%s_%s%s(%s);" % (
+                        self.currmod.name, name, next.rank, args
+                    ))
                 else:
                     self.emit('result = term_new_from_cstring'
                               '("No \'%s\' production matched arguments");' %
@@ -213,7 +217,7 @@ class Compiler(object):
             self.emit("%s = result;" % ast.variable.name)
         elif isinstance(ast, Call):
             prodref = ast.prodref
-            prodmod = prodref.module
+            prodmod = prodref.module or 'main'
             name = prodref.name
             args = ast.args
     
@@ -259,15 +263,13 @@ class Compiler(object):
                 else:
                     raise NotImplementedError(name)
             else:
-                prodmod = 'program'
-                
                 i = 0
                 for a in args:
                     self.emit_term(a, "temp_arg%s" % i)
                     i += 1
                 
                 args = ', '.join(["temp_arg%s" % p for p in xrange(0, i)])
-                self.emit("%s_%s0(%s);" % (prodmod, name, args))
+                self.emit("prod_%s_%s0(%s);" % (prodmod, name, args))
         elif isinstance(ast, Set):
             self.emit_term(ast.texpr, "temp")
             self.emit("result = temp;")
@@ -317,13 +319,17 @@ class Compiler(object):
             self.emit("}")
         elif isinstance(ast, Using):
             prodref = ast.prodref
+            scanner_mod = prodref.module or 'main'
             scanner_name = prodref.name
-            if scanner_name == 'utf8':
-                self.emit("scanner_push_engine(scanner, &scanner_utf8_engine);")
-            elif scanner_name == 'byte':
-                self.emit("scanner_push_engine(scanner, &scanner_byte_engine);")
+            if scanner_mod == '$':
+                if scanner_name == 'utf8':
+                    self.emit("scanner_push_engine(scanner, &scanner_utf8_engine);")
+                elif scanner_name == 'byte':
+                    self.emit("scanner_push_engine(scanner, &scanner_byte_engine);")
             else:
-                self.emit("scanner_push_engine(scanner, &program_%s0);" % scanner_name)
+                self.emit("scanner_push_engine(scanner, &prod_%s_%s0);" % (
+                    scanner_mod, scanner_name
+                ))
             self.compile_r(ast.rule)
             self.emit("scanner_pop_engine(scanner);")
         else:
