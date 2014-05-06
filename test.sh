@@ -7,9 +7,9 @@ FILES="
 if [ x$1 = x ]; then
    $0 interpreter &&
    $0 compiler &&
-   #$0 scanner &&
-   #$0 parser &&
-   #$0 ast &&
+   $0 scanner &&
+   $0 parser &&
+   $0 ast &&
    $0 compiledast &&
    $0 compileddesugarer &&
    echo "All tests passed!"

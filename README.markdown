@@ -11,19 +11,20 @@ Its primary goal is to allow the rapid development of **parsers**,
 to be expressed *compactly*.  Golf your grammar!  (Or write it like a decent
 human being, if you must.)
 
-The current released version of Tamsin is 0.1; the development version is
-0.2-PRE.  As indicated by the 0.x version number, it is a **work in progress**,
-with the usual caveat that things may change rapidly (and that version 0.2 might
-look completely different.)
+The current released version of Tamsin is 0.2; the development version is
+0.3-PRE.  As indicated by the 0.x version number, it is a **work in progress**,
+with the usual caveat that things may change rapidly (and that version 0.3 might
+look completely different.)  See [HISTORY](https://github.com/catseye/Tamsin/blob/master/HISTORY.markdown)
+for a list of major changes.
 
 Code Examples
 -------------
 
 Make a story more exciting in **1 line of code**:
 
-    main = S ← '' & {("." & '!' | "?" & '?!' | any) → C & S ← S + C} & S.
+    main = ("." & '!' | "?" & '?!' | any)/''.
 
-Parse an algebraic expression in **4 lines of code**:
+Parse an algebraic expression for syntactic correctness in **4 lines of code**:
 
     main = (expr0 & eof & 'ok').
     expr0 = expr1 & {"+" & expr1}.
@@ -49,24 +50,22 @@ out the 2nd-last field of each record — in **11 lines of code**:
     line = field → F & {"," & field → G & F ← fields(G, F)} & F.
     field = strings | bare.
     strings = string → T & {string → S & T ← T + '"' + S} & T.
-    string = "\"" & T ← '' & {!"\"" & any → S & T ← T + S} & "\"" & T.
-    bare = T ← '' & {!(","|"\n") & any → S & T ← T + S} & T.
-    extract(lines(Lines, Line)) = extract(Lines) & extract_field(Line).
+    string = "\"" & (!"\"" & any)/'' → T & "\"" & T.
+    bare = (!(","|"\n") & any)/''.
+    extract(lines(Ls, L)) = extract(Ls) & extract_field(L).
     extract(L) = L.
-    extract_field(fields(Last, fields(This, X))) = print This.
-    extract_field(X) = return X.
+    extract_field(fields(L, fields(T, X))) = print T.
+    extract_field(X) = X.
 
 Evaluate an (admittedly trivial) S-expression based language in
-**17 lines of code**:
+**15 lines of code**:
 
     main = sexp → S using scanner & reverse(S, nil) → SR & eval(SR).
-    scanner = scan using $.char.
-    scan = {" "} & ("(" | ")" | (T ← '' & {$.alnum → S & T ← T + S} & return T)).
-    sexp = $.alnum | list.
-    list = "(" & listtail(nil).
-    listtail(L) = sexp → S & listtail(pair(S, L)) | ")" & L.
-    head(pair(A, B)) = return A.
-    tail(pair(A, B)) = return B.
+    scanner = ({" "} & ("(" | ")" | $:alnum/'')) using $:utf8.
+    sexp = $:alnum | list.
+    list = "(" & sexp/nil/pair → L & ")" & L.
+    head(pair(A, B)) = A.
+    tail(pair(A, B)) = B.
     cons(A, B) = return pair(A, B).
     eval(pair(head, pair(X, nil))) = eval(X) → R & head(R).
     eval(pair(tail, pair(X, nil))) = eval(X) → R & tail(R).
@@ -76,6 +75,9 @@ Evaluate an (admittedly trivial) S-expression based language in
     reverse(pair(H, T), A) = reverse(H, nil) → HR & reverse(T, pair(HR, A)).
     reverse(nil, A) = A.
     reverse(X, A) = X.
+
+Interpret a small subset of Tamsin in
+**[less than 160 lines of code](https://github.com/catseye/Tamsin/blob/master/eg/tamsin-micro-interpreter.tamsin)**.
 
 For more information
 --------------------
@@ -163,4 +165,3 @@ Related work
     *   [Squishy2K](http://catseye.tc/node/Squishy2K)
     *   [Arboretuum](http://catseye.tc/node/Arboretuum)
     *   [Treacle](http://catseye.tc/node/Treacle)
-    

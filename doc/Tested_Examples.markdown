@@ -62,8 +62,8 @@ Reverse a list.
 Parse and evaluate a Boolean expression.
 
     | main = expr0 → E using scanner & eval(E).
-    | expr0 = expr1 → E1 & {"or" & expr1 → E2 & E1 ← or(E1,E2)} & E1.
-    | expr1 = term → E1 & {"and" & term → E2 & E1 ← and(E1,E2)} & E1.
+    | expr0 = expr1 → E1 & ("or" & expr1)/E1/or.
+    | expr1 = term → E1 & ("and" & term)/E1/and.
     | term = "true" | "false" | "(" & expr0 → E & ")" & E.
     | eval(and(A, B)) = eval(A) → EA & eval(B) → EB & and(EA, EB).
     | eval(or(A, B)) = eval(A) → EA & eval(B) → EB & or(EA, EB).
@@ -89,12 +89,12 @@ commas and double-quotes inside quotes.
     | line = field → F & {"," & field → G & F ← fields(G, F)} & F.
     | field = strings | bare.
     | strings = string → T & {string → S & T ← T + '"' + S} & T.
-    | string = "\"" & T ← '' & {!"\"" & any → S & T ← T + S} & "\"" & T.
-    | bare = T ← '' & {!(","|"\n") & any → S & T ← T + S} & T.
-    | extract(lines(Lines, Line)) = extract(Lines) & extract_field(Line).
+    | string = "\"" & (!"\"" & any)/'' → T & "\"" & T.
+    | bare = (!(","|"\n") & any)/''.
+    | extract(lines(Ls, L)) = extract(Ls) & extract_field(L).
     | extract(L) = L.
-    | extract_field(fields(Last, fields(This, X))) = print This.
-    | extract_field(X) = return X.
+    | extract_field(fields(L, fields(T, X))) = print T.
+    | extract_field(X) = X.
     + Harold,1850,"21 Baxter Street",burgundy
     + Smythe,1833,"31 Little Street, St. James",mauve
     + Jones,1791,"41 ""The Gardens""",crimson
@@ -105,13 +105,11 @@ commas and double-quotes inside quotes.
 Evaluate a trivial S-expression-based language.
 
     | main = sexp → S using scanner & reverse(S, nil) → SR & eval(SR).
-    | scanner = scan using $:utf8.
-    | scan = {" "} & ("(" | ")" | (T ← '' & {$:alnum → S & T ← T + S} & return T)).
+    | scanner = ({" "} & ("(" | ")" | $:alnum/'')) using $:utf8.
     | sexp = $:alnum | list.
-    | list = "(" & listtail(nil).
-    | listtail(L) = sexp → S & listtail(pair(S, L)) | ")" & L.
-    | head(pair(A, B)) = return A.
-    | tail(pair(A, B)) = return B.
+    | list = "(" & sexp/nil/pair → L & ")" & L.
+    | head(pair(A, B)) = A.
+    | tail(pair(A, B)) = B.
     | cons(A, B) = return pair(A, B).
     | eval(pair(head, pair(X, nil))) = eval(X) → R & head(R).
     | eval(pair(tail, pair(X, nil))) = eval(X) → R & tail(R).
