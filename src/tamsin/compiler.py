@@ -254,6 +254,10 @@ class Compiler(object):
                     self.emit_term(args[1], "lquote")
                     self.emit_term(args[2], "rquote")
                     self.emit('result = tamsin_unquote(temp, lquote, rquote);')
+                elif name == 'equal':
+                    self.emit_term(args[0], "templ")
+                    self.emit_term(args[1], "tempr")
+                    self.emit('result = tamsin_equal(templ, tempr);')
                 elif name == 'mkterm':
                     self.emit_term(args[0], "temp_atom")
                     self.emit_term(args[1], "temp_list")

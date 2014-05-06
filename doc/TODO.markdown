@@ -14,6 +14,8 @@ TODO
 
 ### lower-priority/experimental ###
 
+*   error reporting: line number
+*   error handling: skip to next sentinel and report more errors
 *   regex-like shortcuts: `\w` for "word", `\s` for "whitespace", etc.
 *   EOF and nil are the same?  it would make sense... call it `end`?
 *   module-level updatable variables.

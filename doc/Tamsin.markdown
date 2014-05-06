@@ -909,6 +909,8 @@ This section needs to be written.  Basically, a module is a set of
 productions inside a namespace.  There is one built-in module called `$`
 and it is always in scope.
 
+### System Module ###
+
 The module `$` contains a number of built-in productions which would not
 be possible or practical to implement in Tamsin.  See Appendix C for a list.
 
@@ -976,6 +978,18 @@ the contents in-between will be returned as an atom.  Otherwise fails.
 
     | main = $:unquote('(hello)', '(', '"').
     ? term '(hello)' is not quoted with '(' and '"'
+
+Here's `$:equal`, which takes two terms, L and R, where L and R must be atoms.
+If L and R are the same atom (the strings are identical), succeeds and returns
+that atom.  Otherwise fails.
+
+    | main = $:equal('hi', 'hi').
+    = hi
+
+    | main = $:equal('hi', 'lo').
+    ? term 'hi' does not equal 'lo'
+
+### Back to Modules in General ###
 
 `:foo` always means production `foo` in the current module.
 
