@@ -15,8 +15,15 @@ grammar    = {"@" & pragma & "."} &
              } &
              eof &
              reverse(LP, nil) → LP &
-             MM ← module(main, LP) &
-             LM ← list(MM, LM) &
+             #
+             # If we leave this line like this:
+             # MM ← module(main, LP) &
+             # we have *some* sort of problem in the desugarer, which
+             # *might* have to do with a conflict between uses of the
+             # list constructor.  or might not...
+             # ...so we include in directly in the next constructor
+             #
+             LM ← list(module(main, LP), LM) &
              reverse(LM, nil) → LM &
              return program(LM).
 module     = word → N &
