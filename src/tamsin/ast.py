@@ -250,3 +250,23 @@ class Using(AST):
             self.rule,
             self.prodref
         )
+
+
+class Fold(AST):
+    def __init__(self, rule, initial, constratom):
+        self.rule = rule
+        self.initial = initial
+        self.constratom = constratom
+
+    def __repr__(self):
+        return u"Fold(%r, %r, %r)" % (
+            self.rule,
+            self.initial,
+            self.constratum
+        )
+
+    def __str__(self):
+        return "fold(%s, %s)" % (
+            self.rule,
+            self.initial
+        )

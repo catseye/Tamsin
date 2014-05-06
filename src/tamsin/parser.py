@@ -5,7 +5,7 @@
 
 from tamsin.ast import (
     Program, Production, And, Or, Not, While, Call, Send, Set, Concat, Using,
-    Prodref
+    Prodref, Fold
 )
 from tamsin.term import (
     Atom, Constructor, Variable, EOF
@@ -119,18 +119,11 @@ class Parser(EventProducer):
     def expr4(self):
         lhs = self.expr5()
         if self.consume('/'):
-            t = self.term()
-            sett = Set(Variable('_1'), t)
-            sendd = Send(lhs, Variable('_2'))
-            accc = Set(Variable('_1'), Concat(Variable('_1'), Variable('_2')))
+            initial = self.texpr()
+            constratom = None
             if self.consume('/'):
-                atom = self.term()
-                assert isinstance(atom, Atom)
-                accc = Set(Variable('_1'),
-                           Constructor(atom.text,
-                                       [Variable('_2'), Variable('_1')]))
-            returnn = Call(Prodref('$', 'return'), [Variable('_1')], None)
-            lhs = And(And(sett, While(And(sendd, accc))), returnn)
+                constratom = self.term()
+            return Fold(lhs, initial, constratom)
         return lhs
 
     def expr5(self):

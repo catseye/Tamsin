@@ -2,7 +2,7 @@
 # hereby placed in the public domain.  It comes with NO WARRANTY.
 
 main = sexp → S using scanner & reverse(S, nil) → SR & eval(SR).
-scanner = scan using $:char.
+scanner = scan using $:utf8.
 scan = {" "} & ("(" | ")" | (T ← '' & {$:alnum → S & T ← T + S} & return T)).
 sexp = $:alnum | list.
 list = "(" & listtail(nil).

@@ -10,7 +10,7 @@ Hello, world!
 
 Make a story more exciting!
 
-    | main = S ← '' & {("." & '!' | "?" & '?!' | any) → C & S ← S + C} & S.
+    | main = ("." & '!' | "?" & '?!' | any)/''.
     + Chapter 1
     + ---------
     + It was raining.  She knocked on the door.  She heard

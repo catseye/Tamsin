@@ -14,25 +14,25 @@ expr0      = expr1 & {("|" | "||") & expr1}.
 expr1      = expr2 & {("&" | "&&") & expr2}.
 expr2      = expr3 & ["using" & prodref].
 expr3      = expr4 & [("→" | "->") & variable].
-expr4      = "(" & expr0 & ")"
+expr4      = expr5 & ["/" & texpr].
+expr5      = "(" & expr0 & ")"
            | "[" & expr0 & "]"
            | "{" & expr0 & "}"
-           | "!" & expr4
-           | "set" & variable & "=" & term
-           | "return" & term
-           | "fail" & term
-           | "print" & term
+           | "!" & expr5
+           | "set" & variable & "=" & texpr
+           | "return" & texpr
+           | "fail" & texpr
+           | "print" & texpr
            | terminal
-           | variable & [("←" | "<-") & term]
+           | variable & [("←" | "<-") & texpr]
            | sq_string
-           | prodref & ["(" & [term & {"," & term}] & ")"] & ["@" & term].
-term       = term0.
-term0      = term1 & {"+" & term1}.
-term1      = atom & ["(" & [term & {"," & term}] & ")"]
+           | prodref & ["(" & [texpr & {"," & texpr}] & ")"] & ["@" & texpr].
+texpr      = term & {"+" & term}.
+term       = atom & ["(" & [term & {"," & term}] & ")"]
            | variable.
 atom       = word | sq_string.
 terminal   = dq_string
-           | ("«" | "<<") & term & ("»" | ">>").
+           | ("«" | "<<") & texpr & ("»" | ">>").
 prodref    = [modref & ":"] & word.
 modref     = "$".
 pragma     = "alias" & word & word & "=" & prodref
@@ -52,7 +52,7 @@ symbol = "&" & "&" & '&&'
        | "<" & "<" & '<<'
        | ">" & ">" & '>>'
        | "=" | "(" | ")" | "[" | "]" | "{" | "}" | "!" | "|" | "&" | ":"
-       | "," | "." | "@" | "+" | "$" | "→" | "←" | "«" | "»".
+       | "/" | "," | "." | "@" | "+" | "$" | "→" | "←" | "«" | "»".
 str(Q) = «Q» → T & {(escape | !«Q» & any) → S & T ← T + S} & «Q» &
          return T + Q.
 escape = "\\" & "n" & '\n'

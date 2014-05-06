@@ -5,17 +5,25 @@
 
 from tamsin.ast import (
     Program, Production, And, Or, Not, While, Call, Send, Set, Variable, Using,
-    Concat
+    Concat, Fold, Prodref
 )
-from tamsin.term import Term
+from tamsin.term import Term, Atom, Constructor
 from tamsin.event import EventProducer
 
 
 class Analyzer(EventProducer):
-    """
-    look for undefined nonterminals
-    create a map of production name -> list of productions
-    create a map of production name -> list of local variables used therein
+    """The Analyzer takes an AST, walks it, and returns a new AST.
+    It is responsible for:
+    
+    * Looking for undefined nonterminals and raising an error if such found.
+      (this includes 'main')
+    * Desugaring Fold() nodes.
+    * Finding the set of local variable names used in each production and
+      sticking that in the locals_ field of the new Production node.
+    * Creating a map from production name -> list of productions and
+      sticking that in the prodmap field of the new Program node.
+
+    TODO: it should also find any locals that are accessed before being set
     """
     def __init__(self, program, listeners=None):
         self.listeners = listeners
@@ -36,8 +44,8 @@ class Analyzer(EventProducer):
             return Program(self.prodmap, None)
         elif isinstance(ast, Production):
             locals_ = set()
-            self.collect_locals(ast, locals_)
             body = self.analyze(ast.body)
+            self.collect_locals(body, locals_)
             return Production(ast.name, 0, ast.formals, locals_, body)
         elif isinstance(ast, Or):
             return Or(self.analyze(ast.lhs), self.analyze(ast.rhs))
@@ -65,6 +73,17 @@ class Analyzer(EventProducer):
             return Concat(self.analyze(ast.lhs), self.analyze(ast.rhs))
         elif isinstance(ast, Term):
             return ast
+        elif isinstance(ast, Fold):
+            set_ = Set(Variable('_1'), ast.initial)
+            send_ = Send(ast.rule, Variable('_2'))
+            acc_ = Set(Variable('_1'), Concat(Variable('_1'), Variable('_2')))
+            if ast.constratom is not None:
+                assert isinstance(ast.constratom, Atom)
+                acc_ = Set(Variable('_1'),
+                           Constructor(ast.constratom.text,
+                                       [Variable('_2'), Variable('_1')]))
+            return_ = Call(Prodref('$', 'return'), [Variable('_1')], None)
+            return And(And(set_, While(And(send_, acc_))), return_)
         else:
             raise NotImplementedError(repr(ast))
 

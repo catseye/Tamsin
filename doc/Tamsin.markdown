@@ -869,12 +869,38 @@ You can use any rule you desire, not just a non-terminal, on the LHS of `/`.
     + 0110110110.
     = %0110110110
 
+Note that the RHS of `/` is a term expression, so it can contain a `+`.
+
+    | main = ("0" | "1")/'%' + '&'.
+    + 0110110110.
+    = %&0110110110
+
 If there is an additional `/`, it must be followed by an atom.  This atom
 will be used as a constructor, instead of the concat operation.
 
     | main = $:alnum/nil/cons.
     + dog.
     = cons(g, cons(o, cons(d, nil)))
+
+Note that the middle of `//` is a term expression.
+
+    | main = $:alnum/cat+food/cons.
+    + dog.
+    = cons(g, cons(o, cons(d, catfood)))
+
+Note that the RHS of `//` is *not* a term expression.
+
+    | main = $:alnum/ni+l/co+ns.
+    + dog.
+    ? Expected '.' at '+ns.'
+
+Not that (for now) `/`'s cannot be nested.  But you can make a sub-production
+for this purpose.
+
+    | main = ("*" & string)/nil/cons.
+    | string = $:alnum/''.
+    + *hi*there*nice*day*isnt*it
+    = cons(it, cons(isnt, cons(day, cons(nice, cons(there, cons(hi, nil))))))
 
 Modules
 -------
@@ -1035,6 +1061,13 @@ return the rightmost bottommost leaf.
     | rightmost(X) = return X.
     + tree(tree(0,1),tree(0,tree(1,2)))
     = 2
+
+Note that `+` is part of a "term expression", but cannot be used as a
+pattern.
+
+    | main = what(hel+lo).
+    | what(he+llo) = 'yes'.
+    ? Expected ')'
 
 Advanced Scanning
 -----------------
@@ -1448,20 +1481,22 @@ written in Tamsin and can be found in `eg/tamsin-parser.tamsin`.
     Expr1      ::= Expr2 {("&&" | "&") Expr2}.
     Expr2      ::= Expr3 ["using" ProdRef].
     Expr3      ::= Expr4 [("→" | "->") Variable].
-    Expr4      ::= Expr5 ["/" Term ["/" ("+" | Term)]].
+    Expr4      ::= Expr5 ["/" Texpr ["/" Term)]].
     Expr4      ::= "(" Expr0 ")"
                  | "[" Expr0 "]"
                  | "{" Expr0 "}"
                  | "!" Expr0
-                 | "set" Variable "=" Term
-                 | "return" Term
-                 | "fail" Term
-                 | LitToken
-                 | ProdRef ["(" [Term {"," Term}] ")"] ["@" Term].
-    Term       ::= Term0.
-    Term0      ::= Term1 {"+" Term1}.
-    Term1      ::= Atom ["(" [Term {"," Term}] ")"]
+                 | "set" Variable "=" Texpr
+                 | "return" Texpr
+                 | "fail" Texpr
+                 | Terminal
+                 | Variable [("←" | "<-") Texpr]
+                 | ProdRef ["(" [Texpr {"," Texpr}] ")"] ["@" Texpr].
+    Texpr      ::= Term {"+" Term}.
+    Term       ::= Atom ["(" [Term {"," Term}] ")"]
                  | Variable.
+    Terminal   ::= DoubleQuotedStringLiteral
+                 | ("«" | "<<") Texpr ("»" | ">>").
     ProdRef    ::= [[ModuleRef] ":"] ProdName.
     ModuleRef  ::= "$" | ModName.
     Pragma     ::= "alias" ProdName Integer "=" ProdRef
