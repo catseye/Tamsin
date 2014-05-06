@@ -1,6 +1,7 @@
 TODO
 ----
 
+*   analyzer needs to resolve module '' → current module
 *   including files, library files should be **handled by the implementation**
 *   document, too, the implementation-dependent nature of input and output
 *   define a stringify-repr operation on terms
@@ -8,6 +9,8 @@ TODO
 *   `emit` alongside `print`.
 *   `emit` must be 8-bit clean, i.e. can emit `\x00`
 *   tests for `emit`
+*   option for ref interp to not output result (or by default, don't)
+*   "fakie" interpreter
 
 ### lower-priority/experimental ###
 

@@ -168,6 +168,14 @@ class Interpreter(EventProducer):
                 else:
                     return (False, Atom("expected '%s, found '%s'" %
                                         (bindings['X'], self.scanner.peek())))
+            elif name == '$.equal':
+                if (isinstance(bindings['L'], Atom) and
+                    isinstance(bindings['R'], Atom) and
+                    bindings['L'].text == bindings['R'].text):
+                    return (True, bindings['L'])
+                else:
+                    return (False, Atom("term '%s' does not equal '%s'" %
+                                        (bindings['L'], bindings['R'])))
             elif name == '$.unquote':
                 x = str(bindings['X'])
                 if (x.startswith((str(bindings['L']),)) and

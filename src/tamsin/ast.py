@@ -34,13 +34,14 @@ class Program(AST):
             mod = 'main'
         if mod == '$':
             formals = {
+                'equal': [Variable('L'), Variable('R')],
                 'expect': [Variable('X')],
                 'fail': [Variable('X')],
+                'mkterm': [Variable('T'), Variable('L')],
                 'print': [Variable('X')],
                 'return': [Variable('X')],
                 'startswith': [Variable('X')],
                 'unquote': [Variable('X'), Variable('L'), Variable('R')],
-                'mkterm': [Variable('T'), Variable('L')],
             }.get(name, [])
             return [Production('$.%s' % name, 0, formals, [], None)]
         else:
