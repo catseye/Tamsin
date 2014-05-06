@@ -17,7 +17,7 @@ from tamsin.compiler import Compiler
 
 
 def parse_and_check(filename, scanner_engine=None):
-    with codecs.open(filename, 'r', 'UTF-8') as f:
+    with open(filename, 'r') as f:
         contents = f.read()
         parser = Parser(contents, scanner_engine=scanner_engine)
         ast = parser.grammar()
@@ -26,17 +26,12 @@ def parse_and_check(filename, scanner_engine=None):
         return ast
 
 
-def mk_interpreter(ast, listeners=None):
-    scanner = Scanner(sys.stdin.read().decode('UTF-8'), listeners=listeners)
+def run(ast, listeners=None):
+    scanner = Scanner(sys.stdin.read(), listeners=listeners)
     scanner.push_engine(UTF8ScannerEngine())
     interpreter = Interpreter(
         ast, scanner, listeners=listeners
     )
-    return interpreter
-
-
-def run(ast, listeners=None):
-    interpreter = mk_interpreter(ast, listeners=listeners)
     (succeeded, result) = interpreter.interpret_program(ast)
     if not succeeded:
         sys.stderr.write(unicode(result).encode('UTF-8') + "\n")

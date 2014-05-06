@@ -9,14 +9,16 @@ from tamsin.term import EOF
 
 class Scanner(EventProducer):
     def __init__(self, buffer, position=0, listeners=None):
-        """Does NOT call scan() for you.  You should do that only when
-        you want to scan a token (not before.)
+        """Create a new Scanner object.
+        
+        buffer should be a raw string, not unicode.
 
         """
         self.listeners = listeners
         self.event('set_buffer', buffer)
         self.buffer = buffer
         assert buffer is not None
+        assert not isinstance(buffer, unicode)
         self.position = position
         self.reset_position = position
         self.engines = []
@@ -27,12 +29,20 @@ class Scanner(EventProducer):
         )
 
     def get_state(self):
+        """Returns an object which saves the current state of this
+        Scanner.
+
+        """
         assert self.position == self.reset_position, \
             "scanner in divergent state: pos=%s, reset=%s" % (
                 self.position, self.reset_position)
         return (self.position, self.buffer)
 
     def install_state(self, (position, buffer)):
+        """Restores the state of this Scanner to that which was saved by
+        a previous call to get_state().
+
+        """
         self.position = position
         self.reset_position = position
         self.buffer = buffer
@@ -42,12 +52,39 @@ class Scanner(EventProducer):
 
     def pop_engine(self):
         self.engines.pop()
-    
+
     def is_at_eof(self):
-        """Should only be used by ScannerEngines."""
+        """Returns True iff there is no more input to scan.
+
+        Should only be used by ScannerEngines.  Parsing code should check
+        to see if peek() is EOF instead.
+
+        """
         return self.position >= len(self.buffer)
 
+    def is_at_utf8(self):
+        """Returns the number of bytes following that comprise a UTF-8
+        character.  Will be 0 for non-UTF-8 characters.
+
+        Should only be used by ScannerEngines.
+
+        """
+        k = ord(self.buffer[self.position])
+        if k & 0b11100000 == 0b11000000:
+            return 2
+        if k & 0b11110000 == 0b11100000:
+            return 3
+        if k & 0b11111000 == 0b11110000:
+            return 4
+        return 0
+        
     def chop(self, amount):
+        """Returns amount characters from the buffer and advances the
+        scan position by amount.
+
+        Should only be used by ScannerEngines.
+
+        """
         if self.position > len(self.buffer) - amount:
             raise ValueError("internal: tried to chop past end of buffer")
         result = self.buffer[self.position:self.position+amount]
@@ -72,10 +109,10 @@ class Scanner(EventProducer):
         report = self.buffer[position:position+length]
         if len(report) == length:
             report += '...'
-        return report
+        return repr(report)
 
     def error(self, expected):
-        raise ValueError(u"Expected %s at '%s' (position %s)" %
+        raise ValueError(u"Expected %s at %s (position %s)" %
                          (expected,
                           self.report_buffer(self.position, 20),
                           self.position))
@@ -88,13 +125,16 @@ class Scanner(EventProducer):
         (and you will trigger an assert when you try to scan().)
         If you want to just see what the next token would be, call peek().
 
+        The returned token will always be a Unicode string.
+
         """
         assert self.position == self.reset_position, \
             "scanner in divergent state: pos=%s, reset=%s" % (
                 self.position, self.reset_position)
-        tok = self.engines[-1].scan_impl(self)
-        self.event('scanned', self, tok)
-        return tok
+        token = self.engines[-1].scan_impl(self)
+        assert token is EOF or isinstance(token, unicode)
+        self.event('scanned', self, token)
+        return token
 
     def unscan(self):
         self.position = self.reset_position
@@ -141,7 +181,9 @@ class Scanner(EventProducer):
 
 
 class ScannerEngine(object):
-    pass
+    def scan_impl(self, scanner):
+        """Should always return a Unicode string."""
+        raise NotImplementedError
 
 
 CLOSE_QUOTE = {
@@ -173,16 +215,24 @@ class TamsinScannerEngine(ScannerEngine):
             return EOF
 
         if scanner.startswith(('&&', '||', '->', '<-', '<<', '>>')):
-            return scanner.chop(2)
+            return scanner.chop(2).decode('UTF-8')
+
+        c = scanner.is_at_utf8()
+        if c > 0:
+            c = scanner.chop(c).decode('UTF-8')
+            if c in (u'→', u'←', u'«', u'»'):
+                return c
+            else:
+                scanner.error('identifiable character')
 
         if scanner.startswith(('=', '(', ')', '[', ']', '{', '}', '!', ':', '/',
-                            '|', '&', u'→', u'←', ',', '.', '@', '+', '$',
-                            u'«', u'»')):
-            return scanner.chop(1)
+                            '|', '&', ',', '.', '@', '+', '$',
+                            )):
+            return scanner.chop(1).decode('UTF-8')
 
         for quote in (CLOSE_QUOTE.keys()):
             if scanner.startswith((quote,)):
-                tok = quote
+                token = quote
                 scanner.chop(1)
                 while (not scanner.is_at_eof() and
                        not scanner.startswith((CLOSE_QUOTE[quote],))):
@@ -193,17 +243,18 @@ class TamsinScannerEngine(ScannerEngine):
                             char = ESCAPE_SEQUENCE[char]
                         else:
                             scanner.error('legal escape sequence')
-                    tok += char
+                    token += char
                 scanner.chop(1)  # chop ending quote
-                tok += CLOSE_QUOTE[quote]  # we add specific, in cas it was EOF
-                return tok
+                # we add the specific close quote we expect, in case it was EOF
+                token += CLOSE_QUOTE[quote]
+                return token.decode('UTF-8')
 
         if scanner.isalnum():
-            tok = ''
+            token = ''
             while not scanner.is_at_eof() and (scanner.isalnum() or
                                                scanner.startswith(('_',))):
-                tok += scanner.chop(1)
-            return tok
+                token += scanner.chop(1)
+            return token.decode('UTF-8')
 
         scanner.error('identifiable character')
 
@@ -212,14 +263,21 @@ class UTF8ScannerEngine(ScannerEngine):
     def scan_impl(self, scanner):
         if scanner.is_at_eof():
             return EOF
-        return scanner.chop(1)
+        
+        c = scanner.is_at_utf8()
+        if c > 0:
+            return scanner.chop(c).decode('UTF-8')
+        
+        return scanner.chop(1).decode('UTF-8')
 
 
 class ByteScannerEngine(ScannerEngine):
     def scan_impl(self, scanner):
         if scanner.is_at_eof():
             return EOF
-        return scanner.chop(1)
+        import sys
+        print repr(scanner.buffer[scanner.position])
+        return scanner.chop(1).decode('UTF-8')
 
 
 class ProductionScannerEngine(ScannerEngine):
