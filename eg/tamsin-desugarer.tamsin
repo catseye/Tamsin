@@ -134,18 +134,14 @@ desugar(using(R, P)) = desugar(R) → DR & return using(DR, P).
 desugar(send(R, V)) = desugar(R) → DR & return send(DR, V).
 desugar(set(V, T)) = desugar(T) → DT & return set(V, DT).
 
-desugar(fold(R, I)) = desugar(R) → DR & return fold(DR, I).
-
-# set_ = Set(Variable('_1'), ast.initial)
-# send_ = Send(self.desugar(ast.rule), Variable('_2'))
-# acc_ = Set(Variable('_1'), Concat(Variable('_1'), Variable('_2')))
-# if ast.constratom is not None:
-#     assert isinstance(ast.constratom, Atom)
-#     acc_ = Set(Variable('_1'),
-#                Constructor(ast.constratom.text,
-#                            [Variable('_2'), Variable('_1')]))
-# return_ = Call(Prodref('$', 'return'), [Variable('_1')], None)
-# return And(And(set_, While(And(send_, acc_))), return_)
+desugar(fold(R, I)) =
+    desugar(R) → DR &
+    SET ← set('_1', I) &
+    SEND ← send(DR, '_2') &
+    CAT ← '_1' + '_2' &
+    ACC ← set('_1', CAT) &
+    RET ← call(prodref('$', 'return'), list('_1', nil)) &
+    return and(and(SET, while(and(SEND, ACC))), RET).
 
 desugar(Else) = Else.
 
