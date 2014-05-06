@@ -56,6 +56,16 @@ struct term *term_new_variable(const char *, struct term *);
 void add_subterm(struct term *, struct term *);
 
 /*
+ * Returns 1 if the atom portion of both terms is identical, otherwise 0.
+ */
+int term_atoms_equal(const struct term *, const struct term *);
+
+/*
+ * Returns 1 if the atom portion of term is identical to given C string, else 0.
+ */
+int term_atom_cstring_equal(const struct term *, const char *);
+
+/*
  * Given the name of a variable, return the variable term of the
  * same name that is leftmost, uppermost in the given term.
  */

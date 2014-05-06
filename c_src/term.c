@@ -52,10 +52,24 @@ void term_add_subterm(struct term *term, struct term *subterm) {
     term->subterms = tl;        
 }
 
+int term_atoms_equal(const struct term *lhs, const struct term *rhs) {
+    if (lhs->size != rhs->size) {
+        return 0;
+    }
+    return memcmp(lhs->atom, rhs->atom, lhs->size) == 0;
+}
+
+int term_atom_cstring_equal(const struct term *lhs, const char *string) {
+    if (lhs->size != strlen(string)) {
+        return 0;
+    }
+    return memcmp(lhs->atom, string, lhs->size) == 0;
+}
+
 struct term *term_find_variable(const struct term *t, const char *name) {
     struct term_list * tl;
 
-    if (t->storing != NULL && !strcmp(name, t->atom)) {
+    if (t->storing != NULL && term_atom_cstring_equal(t, name)) {
         return t->storing;
     }
     
@@ -119,7 +133,6 @@ struct term *term_flatten(const struct term *t) {
         n = term_concat(n, &KET);
         return n;
     }
-    term_format_r(t);
 }
 
 void term_fput(const struct term *t, FILE *f) {
@@ -128,32 +141,40 @@ void term_fput(const struct term *t, FILE *f) {
     fwrite(flat->atom, 1, flat->size, f);
 }
 
+#define DEBUG(f, s)       fprintf(f, s)
+#define DEBUG_TERM(t, f)  term_fput(t, f)
+
+#define DEBUG(f, s)
+#define DEBUG_TERM(f, s)
+
 int term_match(struct term *pattern, struct term *ground)
 {
     struct term_list *tl1, *tl2;
 
-    /*
     FILE *f = stderr;
-    fprintf(f, "******** ");
-    term_fput(pattern, f);
-    fprintf(f, " ?= ");
-    term_fput(ground, f);
-    fprintf(f, "...\n");
-    */
+    DEBUG(f, "<");
+    DEBUG_TERM(pattern, f);
+    DEBUG(f, "> ?= <");
+    DEBUG_TERM(ground, f);
+    DEBUG(f, ">...\n");
 
     assert(ground->storing == NULL);
 
     if (pattern->storing != NULL) {
         pattern->storing = ground;
-        //printf("unified, YES\n");
+        DEBUG(f, "unified, YES\n");
         return 1;
     }
-    if (strcmp(pattern->atom, ground->atom)) {
-        //printf("not same atom ('%s' vs '%s'), NO\n", pattern->atom, ground->atom);
+    if (!term_atoms_equal(pattern, ground)) {
+        DEBUG(f, "not same atom, <");
+        DEBUG_TERM(pattern, f);
+        DEBUG(f, "> vs <");
+        DEBUG_TERM(ground, f);
+        DEBUG(f, ">, NO\n");
         return 0;
     }
     if (pattern->subterms == NULL && ground->subterms == NULL) {
-        //printf("same atom, YES\n");
+        DEBUG(f, "same atom, YES\n");
         return 1;
     }
 
@@ -161,17 +182,16 @@ int term_match(struct term *pattern, struct term *ground)
     tl2 = ground->subterms;
     while (tl1 != NULL && tl2 != NULL) {
         if (!term_match(tl1->term, tl2->term)) {
-            //printf("no submatch, NO\n");
+            DEBUG(f, "no submatch, NO\n");
             return 0;
         }
         tl1 = tl1->next;
         tl2 = tl2->next;
     }
     if (tl1 != NULL || tl2 != NULL) {
-        /* not the same # of subterms */
-        //printf("not same # of subterms, NO\n");
+        DEBUG(f, "not same # of subterms, NO\n");
         return 0;
     }
-    //printf("subterms match, YES\n");
+    DEBUG(f, "subterms match, YES\n");
     return 1;
 }

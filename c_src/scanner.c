@@ -43,6 +43,7 @@ struct term *scan(struct scanner *s) {
 
         t = term_new(s->buffer + s->position, len);
         s->position += len;
+        /*term_fput(t, stderr);*/
         return t;
     } else if (s->engines->production == &scanner_byte_engine) {
         char c = s->buffer[s->position];
@@ -50,7 +51,7 @@ struct term *scan(struct scanner *s) {
         s->position++;
         return term_new_from_char(c);
     } else {
-        //fprintf(stderr, "calling s->engines here\n");
+        /*fprintf(stderr, "calling s->engines here\n");*/
         struct term *save_result = result;
         int save_reset_position = s->reset_position;
 
@@ -64,7 +65,7 @@ struct term *scan(struct scanner *s) {
             return result;
         }
     }
-};
+}
 
 void unscan(struct scanner *s) {
     s->position = s->reset_position;

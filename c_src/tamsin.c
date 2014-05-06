@@ -41,8 +41,7 @@ void tamsin_any(struct scanner *s) {
 
 void tamsin_expect(struct scanner *s, const struct term *expected) {
     struct term *scanned = scan(s);
-    if (scanned != &tamsin_EOF && scanned->size == expected->size &&
-        !memcmp(scanned->atom, expected->atom, expected->size)) {
+    if (scanned != &tamsin_EOF && term_atoms_equal(scanned, expected)) {
         commit(s);
         result = scanned;
         ok = 1;
@@ -106,16 +105,13 @@ void tamsin_startswith(struct scanner *s, const char *str) {
 
 struct term *tamsin_unquote(const struct term *q) {
     if (q->atom[0] == '"' || q->atom[0] == '\'') {
-        char *s = strdup(q->atom);
-        s[strlen(s)-1] = '\0';
-        return term_new_from_cstring(s+1);
+        return term_new(q->atom + 1, q->size - 2);
     }
     return term_new(q->atom, q->size);
 }
 
 struct term *tamsin_mkterm_r(struct term *t, const struct term *list) {
-    /* XXX NO strcmp PLEASE */
-    if (!strcmp(list->atom, "list") && list->subterms != NULL) {
+    if (term_atom_cstring_equal(list, "list") && list->subterms != NULL) {
         tamsin_mkterm_r(t, list->subterms->next->term);
         term_add_subterm(t, list->subterms->term);
     }
