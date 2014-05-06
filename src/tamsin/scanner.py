@@ -319,6 +319,6 @@ class ProductionScannerEngine(ScannerEngine):
             assert isinstance(token, Term)
             if token is EOF:
                 return token
-            return unicode(token).encode('UTF-8')
+            return str(token)
         else:
             return EOF

@@ -70,13 +70,12 @@ int main(int argc, char **argv) {
 '''
 
 class Compiler(object):
-    def __init__(self, program, outfile, encoding=None):
+    def __init__(self, program, outfile):
         self.program = program
         self.outfile = outfile
         self.indent_ = 0
         self.current_prod_name = None   # this is without the 0, 1, 2...
         self.current_prod = None
-        self.encoding = encoding
 
     def indent(self):
         self.indent_ += 1
@@ -86,8 +85,6 @@ class Compiler(object):
 
     def emit(self, *args):
         s = "    " * self.indent_ + ''.join(args) + "\n"
-        if self.encoding:
-            s = s.encode(self.encoding)
         self.outfile.write(s)
 
     def compile(self):
@@ -272,7 +269,7 @@ class Compiler(object):
             self.emit("{")
             self.indent()
             self.emit_decl_state()
-            self.emit_term(Atom(u'nil'), 'successful_result')
+            self.emit_term(Atom('nil'), 'successful_result')
             self.emit("ok = 1;")
             self.emit("while (ok) {")
             self.indent()
@@ -313,9 +310,9 @@ class Compiler(object):
         elif isinstance(ast, Using):
             prodref = ast.prodref
             scanner_name = prodref.name
-            if scanner_name == u'utf8':
+            if scanner_name == 'utf8':
                 self.emit("scanner_push_engine(scanner, &scanner_utf8_engine);")
-            elif scanner_name == u'byte':
+            elif scanner_name == 'byte':
                 self.emit("scanner_push_engine(scanner, &scanner_byte_engine);")
             else:
                 self.emit("scanner_push_engine(scanner, &program_%s0);" % scanner_name)

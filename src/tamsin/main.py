@@ -54,34 +54,34 @@ def main(args, tamsin_dir='.'):
                 print tok
         print
     elif args[0] == 'parse':
-        with codecs.open(args[1], 'r', 'UTF-8') as f:
+        with open(args[1], 'r') as f:
             contents = f.read()
             parser = Parser(contents)
             ast = parser.grammar()
-        print unicode(ast).encode('UTF-8')
+        print str(ast)
     elif args[0] == 'compile':
         ast = parse_and_check(args[1])
         #print >>sys.stderr, repr(ast)
-        compiler = Compiler(ast, sys.stdout, encoding='UTF-8')
+        compiler = Compiler(ast, sys.stdout)
         compiler.compile()
     elif args[0] == 'loadngo':
         ast = parse_and_check(args[1])
         c_filename = 'foo.c'
         exe_filename = './foo'
-        with codecs.open(c_filename, 'w', 'UTF-8') as f:
+        with open(c_filename, 'w') as f:
             compiler = Compiler(ast, f)
             compiler.compile()
-            c_src_dir = os.path.join(tamsin_dir, 'c_src')
-            command = ("gcc", "-g", "-I%s" % c_src_dir, "-L%s" % c_src_dir,
-                       c_filename, "-o", exe_filename, "-ltamsin")
+        c_src_dir = os.path.join(tamsin_dir, 'c_src')
+        command = ("gcc", "-g", "-I%s" % c_src_dir, "-L%s" % c_src_dir,
+                   c_filename, "-o", exe_filename, "-ltamsin")
+        try:
             subprocess.check_call(command)
-            try:
-                subprocess.check_call((exe_filename,))
-                exit_code = 0
-            except subprocess.CalledProcessError:
-                exit_code = 1
-            subprocess.call(('rm', '-f', c_filename, exe_filename))
-            sys.exit(exit_code)
+            subprocess.check_call((exe_filename,))
+            exit_code = 0
+        except subprocess.CalledProcessError:
+            exit_code = 1
+        #subprocess.call(('rm', '-f', c_filename, exe_filename))
+        sys.exit(exit_code)
     else:
         ast = parse_and_check(args[0])
         run(ast, listeners=listeners)

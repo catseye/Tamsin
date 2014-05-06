@@ -163,7 +163,7 @@ class Interpreter(EventProducer):
                                         self.scanner.peek()))
             elif name == '$.startswith':
                 if (self.scanner.peek() is not EOF and
-                    self.scanner.peek()[0].startswith(unicode(bindings['X']))):
+                    self.scanner.peek()[0].startswith((str(bindings['X']),))):
                     return (True, Atom(self.scanner.consume_any()))
                 else:
                     return (False, Atom("expected '%s, found '%s'" %

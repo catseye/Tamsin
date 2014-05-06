@@ -6,19 +6,19 @@ TODO
 
 ### 8-bit clean/UTF-8 ###
 
-*   arbitrary non-printable characters in terms: `\x99`
-*   `byte` versus `utf_8` scanners ("char" is vague, isn't it?)
-*   `byte` scanner must be 8-bit clean, i.e. can return `\x00`
+*   `byte` scanner must be 8-bit clean, i.e. can return `\x00` -- in C version
+*   `print` must be 8-bit clean, i.e. can emit `\x00` -- in C version
+*   `utf8` scanner must yield a Unicode char when it finds one encoded in UTF-8 -- in C version
+*   tests for failing when utf8 scanner hits badly-encoded utf8
+
 *   `emit` alongside `print`.
 *   `emit` must be 8-bit clean, i.e. can emit `\x00`
-*   `utf_8` scanner must yield a Unicode char when it finds one encoded in UTF-8
-*   tests for all these
-*   implement all these in both Python and C
+*   tests for `emit`
 
 ### lower-priority/experimental ###
 
 *   tell/rewind the implicit buffer -- for VM's etc
-*   `using` production x: x's scanner defaults to byte or utf_8, not x
+*   `using` production x: x's scanner defaults to utf8, not x
 *   figure out good way to do aliases with the Tamsin-parser-in-Tamsin
     (dynamic grammar is really more of a Zz thing...)
 *   productions with names with arbitrary characters in them.

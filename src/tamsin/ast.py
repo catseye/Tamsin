@@ -3,8 +3,8 @@
 # Copyright (c)2014 Chris Pressey, Cat's Eye Technologies.
 # Distributed under a BSD-style license; see LICENSE for more information.
 
-# Note that __unicode__ and __repr__ perform very different tasks:
-# __unicode__ : make a string that looks like a Tamsin term
+# Note that __str__ and __repr__ perform very different tasks:
+# __str__ : make a string that looks like a Tamsin term
 # __repr__ : make a string that is valid Python code for constructing the AST
 
 from tamsin.term import Variable
@@ -47,8 +47,8 @@ class Program(AST):
     def __repr__(self):
         return "Program(%r, %r)" % (self.prodmap, self.prodlist)
 
-    def __unicode__(self):
-        return u"program(%s)" % format_list(self.prodlist)
+    def __str__(self):
+        return "program(%s)" % format_list(self.prodlist)
 
 
 class Production(AST):
@@ -68,8 +68,8 @@ class Production(AST):
             self.body
         )
 
-    def __unicode__(self):
-        return u"production(%s, %s, %s)" % (
+    def __str__(self):
+        return "production(%s, %s, %s)" % (
             self.name,
             format_list(self.formals),
             self.body
@@ -87,8 +87,8 @@ class Prodref(AST):
             self.name
         )
 
-    def __unicode__(self):
-        return u"prodref(%s, %s)" % (
+    def __str__(self):
+        return "prodref(%s, %s)" % (
             self.module,
             self.name
         )
@@ -105,8 +105,8 @@ class And(AST):
             self.rhs
         )
 
-    def __unicode__(self):
-        return u"and(%s, %s)" % (
+    def __str__(self):
+        return "and(%s, %s)" % (
             self.lhs,
             self.rhs
         )
@@ -122,8 +122,8 @@ class Or(AST):
             self.rhs
         )
 
-    def __unicode__(self):
-        return u"or(%s, %s)" % (
+    def __str__(self):
+        return "or(%s, %s)" % (
             self.lhs,
             self.rhs
         )
@@ -138,8 +138,8 @@ class Not(AST):
             self.rule
         )
 
-    def __unicode__(self):
-        return u"not(%s)" % (
+    def __str__(self):
+        return "not(%s)" % (
             self.rule
         )
 
@@ -153,8 +153,8 @@ class While(AST):
             self.rule
         )
 
-    def __unicode__(self):
-        return u"while(%s)" % (
+    def __str__(self):
+        return "while(%s)" % (
             self.rule
         )
 
@@ -172,8 +172,8 @@ class Call(AST):
             self.ibuf
         )
 
-    def __unicode__(self):        
-        return u"call(%s, %s)" % (
+    def __str__(self):        
+        return "call(%s, %s)" % (
             self.prodref,
             format_list(self.args)
         )
@@ -190,8 +190,8 @@ class Send(AST):
             self.variable
         )
 
-    def __unicode__(self):
-        return u"send(%s, %s)" % (
+    def __str__(self):
+        return "send(%s, %s)" % (
             self.rule,
             self.variable
         )
@@ -208,8 +208,8 @@ class Set(AST):
             self.texpr
         )
 
-    def __unicode__(self):
-        return u"set(%s, %s)" % (
+    def __str__(self):
+        return "set(%s, %s)" % (
             self.variable,
             self.texpr
         )
@@ -226,8 +226,8 @@ class Concat(AST):
             self.rhs
         )
 
-    def __unicode__(self):
-        return u"%s%s" % (
+    def __str__(self):
+        return "%s%s" % (
             self.lhs,
             self.rhs
         )
@@ -245,8 +245,8 @@ class Using(AST):
             self.prodref
         )
 
-    def __unicode__(self):
-        return u"using(%s, %s)" % (
+    def __str__(self):
+        return "using(%s, %s)" % (
             self.rule,
             self.prodref
         )
