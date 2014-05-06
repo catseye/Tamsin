@@ -157,8 +157,11 @@ class Compiler(object):
                     ))
                 else:
                     self.emit('result = term_new_from_cstring'
-                              '("No \'%s\' production matched arguments");' %
+                              '("No \'%s\' production matched arguments ");' %
                               self.current_prod_name)
+                    for i in xrange(0, len(formals)):
+                        self.emit('result = term_concat(result, term_flatten(i%d));' % i)
+                        self.emit('result = term_concat(result, term_new_from_cstring(", "));')
                     self.emit("ok = 0;")
                 self.emit("return;")
                 self.outdent()

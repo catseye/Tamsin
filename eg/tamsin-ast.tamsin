@@ -1,21 +1,31 @@
 # Parser and scanner for Tamsin AST, written in Tamsin.
 # Distributed under a BSD-style license; see LICENSE.
 
-# Note that this contains support for some features which are not in 0.1.
+# Note that this may contain support for some features which are not in
+# the current released or pre-released version.
 
 main = grammar using scanner.
 
 grammar    = {"@" & pragma & "."} &
-             L ← nil &
-             production → P & "." &
-             L ← list(P, L) &
+             LM ← nil &
+             LP ← nil &
              {
-                 production → P & "." &
-                 L ← list(P, L)
+                 production → P & "." & LP ← list(P, LP)
+                 | module → M & LM ← list(M, LM)
              } &
              eof &
-             reverse(L, nil) → L &
-             return program(L).
+             reverse(LP, nil) → LP &
+             MM ← module(main, LP) &
+             LM ← list(MM, LM) &
+             reverse(LM, nil) → LM &
+             return program(LM).
+module     = word → N &
+             LP ← nil &
+             "{" &
+             {production → P & "." & LP ← list(P, LP)} &
+             "}" &
+             reverse(LP, nil) → LP &
+             return module(N, LP).
 production = word → N &
              F ← nil &
              [formals → F] &

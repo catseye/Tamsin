@@ -1,21 +1,31 @@
 # Desugarer for Tamsin AST, written in Tamsin.
 # Distributed under a BSD-style license; see LICENSE.
 
-# Note that this contains support for some features which are not in 0.1.
+# Note that this may contain support for some features which are not in
+# the current released or pre-released version.
 
 main = (grammar using scanner) → AST & desugar(AST).
 
 grammar    = {"@" & pragma & "."} &
-             L ← nil &
-             production → P & "." &
-             L ← list(P, L) &
+             LM ← nil &
+             LP ← nil &
              {
-                 production → P & "." &
-                 L ← list(P, L)
+                 module → M & LM ← list(M, LM)
+                 | production → P & "." & LP ← list(P, LP)
              } &
              eof &
-             reverse(L, nil) → L &
-             return program(L).
+             reverse(LP, nil) → LP &
+             MM ← module(main, LP) &
+             LM ← list(MM, LM) &
+             reverse(LM, nil) → LM &
+             return program(LM).
+module     = word → N &
+             "{" &
+             LP ← nil &
+             {production → P & "." & LP ← list(P, LP)} &
+             "}" &
+             reverse(LP, nil) → LP &
+             return module(N, LP).
 production = word → N &
              F ← nil &
              [formals → F] &
@@ -123,6 +133,7 @@ desugar_all(nil) = 'nil'.
 
 
 desugar(program(L)) = desugar_all(L) → DL & return program(DL).
+desugar(module(N, L)) = desugar_all(L) → DL & return module(N, DL).
 desugar(production(N, F, E)) = desugar(E) → DE & return production(N, F, DE).
 desugar(or(L, R)) = desugar(L) → DL & desugar(R) → DR & return or(DL, DR).
 desugar(and(L, R)) = desugar(L) → DL & desugar(R) → DR & return and(DL, DR).
