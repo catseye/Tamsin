@@ -1,0 +1,12 @@
+fetch(K1, list(pair(K2, V), T)) = $:equal(K1, K2) & V | fetch(K1, T).
+fetch(K, nil)                   = fail K + ' not found'.
+
+store(K, V, A)                  = return list(pair(K, V), A).
+
+main =
+    ST ← nil &
+    store(x, 21, ST) → ST &
+    store(y, 17, ST) → ST &
+    store(z, 11, ST) → ST &
+    fetch(y, ST).
+

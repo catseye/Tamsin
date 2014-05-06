@@ -1,10 +1,12 @@
-# Fakie interpreter for Tamsin AST, written in Tamsin.
+# Interpreter for "Micro-Tamsin", written in Tamsin.
+# (see doc/Micro-Tamsin.markdown.)
 # Distributed under a BSD-style license; see LICENSE.
 
 # Note that this may contain support for some features which are not in
 # the current released or pre-released version.
 
-main = (grammar using scanner) → AST & interpret(AST, nil, AST).
+main = (grammar using scanner) → AST &
+       interpret(AST, AST).
 
 grammar    = {"@" & pragma & "."} &
              LM ← nil &
@@ -13,16 +15,8 @@ grammar    = {"@" & pragma & "."} &
                  module → M & LM ← list(M, LM)
                  | production → P & "." & LP ← list(P, LP)
              } &
-             eof &
+             "/" &
              reverse(LP, nil) → LP &
-             #
-             # If we leave this line like this:
-             # MM ← module(main, LP) &
-             # we have *some* sort of problem in the desugarer, which
-             # *might* have to do with a conflict between uses of the
-             # list constructor.  or might not...
-             # ...so we include in directly in the next constructor
-             #
              LM ← list(module(main, LP), LM) &
              reverse(LM, nil) → LM &
              return program(LM).
@@ -130,51 +124,25 @@ skippable = {whitespace | comment}.
 whitespace = " " | "\t" | "\r" | "\n".
 comment = "#" & {!"\n" & any} & "\n".
 
-interpret(PROGRAM, STORE, program(L)) =
+interpret(PROGRAM, program(L)) =
     find_main_module_prods(L) → MMP &
     find_prod(main, MMP) → Main &
-    interpret(PROGRAM, STORE, Main).
+    interpret(PROGRAM, Main).
 
-interpret(PROGRAM, STORE, production(N, F, E)) =
-    interpret(PROGRAM, STORE, E).
+interpret(PROGRAM, production(N, F, E)) = interpret(PROGRAM, E).
+interpret(program(L), call(prodref('$', 'return'), list(X, nil))) = return X.
+interpret(program(L), call(prodref('$', 'expect'), list(X, nil))) = «X».
+interpret(program(L), call(prodref('$', 'print'), list(X, nil))) = print X.
 
-interpret(program(L), STORE, call(prodref('$', 'return'), list(X, nil))) =
-    return X.
-
-interpret(program(L), STORE, call(prodref(M, N), A)) =
+interpret(program(L), call(prodref(M, N), A)) =
     find_main_module_prods(L) → MMP &
     find_prod(N, MMP) → P &
-    interpret(program(L), STORE, P).
+    interpret(program(L), P).
 
-interpret(PROGRAM, STORE, or(L, R)) =
-    interpret(PROGRAM, STORE, L) | interpret(PROGRAM, STORE, R).
-
-interpret(PROGRAM, STORE, and(L, R)) =
-    interpret(PROGRAM, STORE, L) & interpret(PROGRAM, STORE, R).
-
-interpret(PROGRAM, STORE, not(X)) =
-    !interpret(PROGRAM, STORE, X).
-
-interpret(PROGRAM, STORE, while(X)) =
-    {interpret(PROGRAM, STORE, X)}.
-
-interpret(PROGRAM, STORE, concat(L, R)) =
-    return L+R.
-
-#interpret(PROGRAM, STORE, using(R, P)) =
-#    interpret(PROGRAM, R) using P.
-
-interpret(PROGRAM, STORE, concat(L, R)) =
-     return L+R.
-
-#interpret(PROGRAM, STORE, send(R, V)) =
-#     interpret(PROGRAM, STORE, R) → Result &
-#     V ← Result.
-
-#interpret(PROGRAM, STORE, set(V, T)) =
-#     V ← T.
-
-
+interpret(PROGRAM, or(L, R)) = interpret(PROGRAM, L) | interpret(PROGRAM, R).
+interpret(PROGRAM, and(L, R)) = interpret(PROGRAM, L) & interpret(PROGRAM, R).
+interpret(PROGRAM, not(X)) = !interpret(PROGRAM, X).
+interpret(PROGRAM, while(X)) = {interpret(PROGRAM, X)}.
 
 find_main_module_prods(list(module(main, Ps),T)) = Ps.
 find_main_module_prods(list(H,T)) = find_main_module_prods(T).
@@ -184,9 +152,3 @@ find_prod(N1, list(production(N2, F, E),T)) =
     $:equal(N1, N2) & return production(N2, F, E) | find_prod(N1, T).
 find_prod(N, list(H,T)) = find_prod(N, T).
 find_prod(N, nil) = fail 'no ' + N + ' production'.
-
-
-fetch(K1, list(pair(K2, V), T)) = $:equal(K1, K2) & V | fetch(K1, T).
-fetch(K, nil)                   = fail K + ' not found'.
-
-store(K, V, A)                  = return list(pair(K, V), A).

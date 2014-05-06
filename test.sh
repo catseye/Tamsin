@@ -71,10 +71,10 @@ elif [ x$1 = xdesugarer ]; then
         diff -ru 1.txt 2.txt || exit 1
     done
 elif [ x$1 = xcompileddesugarer ]; then
+    echo "Compiling desugarer in Tamsin and testing it..."
     ./build.sh
     bin/tamsin compile eg/tamsin-desugarer.tamsin > foo.c && \
        gcc -g -Ic_src -Lc_src foo.c -o tamsin-desugarer -ltamsin || exit 1
-    echo "Compiling desugarer in Tamsin and testing it..."
     for EG in eg/*.tamsin; do
         echo $EG
         bin/tamsin desugar $EG > 1.txt
@@ -82,6 +82,14 @@ elif [ x$1 = xcompileddesugarer ]; then
         diff -ru 1.txt 2.txt > ast.diff
         diff -ru 1.txt 2.txt || exit 1
     done
+elif [ x$1 = xmicro ]; then
+    echo "Compiling Micro-Tamsin interpreter..."
+    ./build.sh
+    bin/tamsin compile eg/tamsin-micro-interpreter.tamsin > foo.c && \
+       gcc -g -Ic_src -Lc_src foo.c -o micro-tamsin -ltamsin || exit 1
+    echo "Testing Micro-Tamsin interpreter..."
+    FILES="doc/Micro-Tamsin.markdown"
+    falderal $VERBOSE --substring-error fixture/micro-tamsin.markdown $FILES
 elif [ x$1 = xinterpreter ]; then
     echo "Testing Python interpreter..."
     falderal $VERBOSE --substring-error fixture/tamsin.py.markdown $FILES

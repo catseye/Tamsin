@@ -193,13 +193,6 @@ Alternatives can select code to be executed, based on the input.
     = cord
     = ok
 
-Note that the production named by a non-terminal must exist in the program,
-even if it is never evaluated.
-
-    | main = "k" | something_undefined.
-    + k
-    ? something_undefined
-
 And that's the basics.  With these tools, you can write simple
 recursive-descent parsers.  For example, to consume nested parentheses
 containing a zero:
@@ -646,6 +639,16 @@ This would also work, and is more similar to conventional programming
 languages; however, in my opinion, it is not as clear either, because in
 the rules which parse the sub-expressions, it is `expr` that is the focus
 of the logic, rather than the variables the results are being sent into.
+
+Static Checking
+---------------
+
+Note that the production named by a non-terminal must exist in the program,
+even if it is never evaluated.
+
+    | main = "k" | something_undefined.
+    + k
+    ? something_undefined
 
 Advanced Parsing
 ----------------

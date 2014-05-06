@@ -129,11 +129,13 @@ struct term *tamsin_unquote(const struct term *q,
 }
 
 struct term *tamsin_equal(struct term *l, const struct term *r) {
+    struct term *result;
+
     if (term_atoms_equal(l, r)) {
         ok = 1;
         return l;
     }
-    struct term *result = term_new_from_cstring("term '");
+    result = term_new_from_cstring("term '");
     result = term_concat(result, l);
     result = term_concat(result, term_new_from_cstring(
         "' does not equal '"
@@ -141,6 +143,7 @@ struct term *tamsin_equal(struct term *l, const struct term *r) {
     result = term_concat(result, r);
     result = term_concat(result, &APOS);
     ok = 0;
+
     return result;
 }
 

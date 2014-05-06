@@ -141,8 +141,10 @@ void term_fput(const struct term *t, FILE *f) {
     fwrite(flat->atom, 1, flat->size, f);
 }
 
+/*
 #define DEBUG(f, s)       fprintf(f, s)
 #define DEBUG_TERM(t, f)  term_fput(t, f)
+*/
 
 #define DEBUG(f, s)
 #define DEBUG_TERM(f, s)
