@@ -122,7 +122,8 @@ void tamsin_expect(struct scanner *, const struct term *);
 void tamsin_alnum(struct scanner *);
 void tamsin_upper(struct scanner *);
 void tamsin_startswith(struct scanner *, const char *);
-struct term *tamsin_unquote(const struct term *);
+struct term *tamsin_unquote(const struct term *,
+                            const struct term *, const struct term *);
 struct term *tamsin_mkterm(const struct term *, const struct term *);
 
 

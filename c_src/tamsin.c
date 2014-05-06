@@ -103,11 +103,29 @@ void tamsin_startswith(struct scanner *s, const char *str) {
     }
 }
 
-struct term *tamsin_unquote(const struct term *q) {
-    if (q->atom[0] == '"' || q->atom[0] == '\'') {
-        return term_new(q->atom + 1, q->size - 2);
+struct term *tamsin_unquote(const struct term *q,
+                            const struct term *l, const struct term *r) {
+    if (q->size < 1 || l->size != 1 || r->size != 1) {
+        struct term *result = term_new_from_cstring("bad terms for unquote");
+        ok = 0;
+        return result;
     }
-    return term_new(q->atom, q->size);
+    if (q->atom[0] == l->atom[0] && q->atom[q->size-1] == r->atom[0]) {
+        ok = 1;
+        return term_new(q->atom + 1, q->size - 2);
+    } else {
+        struct term *result = term_new_from_cstring("term '");
+        result = term_concat(result, q);
+        result = term_concat(result, term_new_from_cstring(
+            "' is not quoted with '"
+        ));
+        result = term_concat(result, l);
+        result = term_concat(result, term_new_from_cstring("' and '"));
+        result = term_concat(result, r);
+        result = term_concat(result, &APOS);
+        ok = 0;
+        return result;
+    }
 }
 
 struct term *tamsin_mkterm_r(struct term *t, const struct term *list) {

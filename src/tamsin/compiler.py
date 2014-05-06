@@ -239,8 +239,9 @@ class Compiler(object):
                     self.emit('tamsin_startswith(scanner, term_flatten(temp)->atom);')
                 elif name == 'unquote':
                     self.emit_term(args[0], "temp")
-                    self.emit('result = tamsin_unquote(temp);')
-                    self.emit('ok = 1;')
+                    self.emit_term(args[1], "lquote")
+                    self.emit_term(args[2], "rquote")
+                    self.emit('result = tamsin_unquote(temp, lquote, rquote);')
                 elif name == 'mkterm':
                     self.emit_term(args[0], "temp_atom")
                     self.emit_term(args[1], "temp_list")

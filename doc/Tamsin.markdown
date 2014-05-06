@@ -965,12 +965,18 @@ Here's `$:mkterm`, which takes an atom and a list and creates a term.
     | main = $:mkterm(atom, list(a, list(b, list(c, nil)))).
     = atom(a, b, c)
 
-Here's `$:unquote`, which takes a term which begins and ends with a
-quote symbol (TODO: should be the given quote symbol) and returns
-the contents.
+Here's `$:unquote`, which takes three terms, X, L and R, where L and R
+must be one-character atoms.  If X begins with L and ends with R then
+the contents in-between will be returned as an atom.  Otherwise fails.
 
-    | main = $:unquote('"hello"').
+    | main = $:unquote('"hello"', '"', '"').
     = hello
+
+    | main = $:unquote('(hello)', '(', ')').
+    = hello
+
+    | main = $:unquote('(hello)', '(', '"').
+    ? term '(hello)' is not quoted with '(' and '"'
 
 `:foo` always means production `foo` in the current module.
 

@@ -7,12 +7,8 @@ TODO
             prod = expr.
         }
 
-*   module-level updatable variables.
 *   including files, library files should be **handled by the implementation**
 *   document, too, the implementation-dependent nature of input and output
-*   EOF and nil are the same?  it would make sense... call it `end`?
-*   regex-like shortcuts: `\w` for "word", `\s` for "whitespace", etc.
-*   `$.unquote` should take left and right quotes to expect
 *   define a stringify-repr operation on terms
 *   stronger tests for scanner, parser: dump all falderal testbodies to files
 *   `emit` alongside `print`.
@@ -21,6 +17,9 @@ TODO
 
 ### lower-priority/experimental ###
 
+*   regex-like shortcuts: `\w` for "word", `\s` for "whitespace", etc.
+*   EOF and nil are the same?  it would make sense... call it `end`?
+*   module-level updatable variables.
 *   tests for failing when utf8 scanner hits badly-encoded utf8
 *   numeric values... somehow.  number('65') = #65.  decode(ascii, 'A') = #65.
 *   tell/rewind the implicit buffer -- for VM's etc

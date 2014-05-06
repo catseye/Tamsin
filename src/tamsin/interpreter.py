@@ -168,13 +168,15 @@ class Interpreter(EventProducer):
                 else:
                     return (False, Atom("expected '%s, found '%s'" %
                                         (bindings['X'], self.scanner.peek())))
-            elif name == '$.unquote':  # TODO this is definitely a bodge
+            elif name == '$.unquote':
                 x = str(bindings['X'])
-                if (x.startswith(('"', "'"))):
+                if (x.startswith((str(bindings['L']),)) and
+                    x.endswith((str(bindings['R']),))):
                     return (True, Atom(x[1:-1]))
                 else:
-                    return (True, bindings['X'])
-            elif name == '$.mkterm':  # TODO another categorical bodge
+                    return (False, Atom("term '%s' is not quoted with '%s' and '%s'" %
+                                        (bindings['X'], bindings['L'], bindings['R'])))
+            elif name == '$.mkterm':
                 t = bindings['T']
                 l = bindings['L']
                 contents = []
