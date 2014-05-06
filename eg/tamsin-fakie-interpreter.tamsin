@@ -4,7 +4,7 @@
 # Note that this may contain support for some features which are not in
 # the current released or pre-released version.
 
-main = (grammar using scanner) → AST & desugar(AST) → AST & interpret(AST, AST).
+main = (grammar using scanner) → AST & interpret(AST, nil, AST).
 
 grammar    = {"@" & pragma & "."} &
              LM ← nil &
@@ -130,64 +130,63 @@ skippable = {whitespace | comment}.
 whitespace = " " | "\t" | "\r" | "\n".
 comment = "#" & {!"\n" & any} & "\n".
 
-
-
-desugar_all(list(H,T)) =
-    desugar(H) → DH &
-    desugar_all(T) → DT &
-    return list(DH, DT).
-desugar_all(nil) = 'nil'.
-
-
-desugar(program(L)) = desugar_all(L) → DL & return program(DL).
-desugar(module(N, L)) = desugar_all(L) → DL & return module(N, DL).
-desugar(production(N, F, E)) = desugar(E) → DE & return production(N, F, DE).
-desugar(or(L, R)) = desugar(L) → DL & desugar(R) → DR & return or(DL, DR).
-desugar(and(L, R)) = desugar(L) → DL & desugar(R) → DR & return and(DL, DR).
-desugar(not(X)) = desugar(X) → DX & return not(DX).
-desugar(while(X)) = desugar(X) → DX & return while(DX).
-desugar(concat(L, R)) = desugar(L) → DL & desugar(R) → DR & return concat(DL, DR).
-desugar(using(R, P)) = desugar(R) → DR & return using(DR, P).
-
-desugar(send(R, V)) = desugar(R) → DR & return send(DR, V).
-desugar(set(V, T)) = desugar(T) → DT & return set(V, DT).
-
-desugar(fold(R, I)) =
-    desugar(R) → DR &
-    SET ← set('_1', I) &
-    SEND ← send(DR, '_2') &
-    CAT ← '_1' + '_2' &
-    ACC ← set('_1', CAT) &
-    RET ← call(prodref('$', 'return'), list('_1', nil)) &
-    return and(and(SET, while(and(SEND, ACC))), RET).
-
-desugar(Else) = Else.
-
-
-
-
-interpret(PROGRAM, program(L)) =
+interpret(PROGRAM, STORE, program(L)) =
     find_main_module_prods(L) → MMP &
-    find_prod_expr(main, MMP) → Main &
-    interpret(PROGRAM, Main).
+    find_prod(main, MMP) → Main &
+    interpret(PROGRAM, STORE, Main).
 
-interpret(program(L), call(prodref(M, N), A)) =
+interpret(PROGRAM, STORE, production(N, F, E)) =
+    interpret(PROGRAM, STORE, E).
+
+interpret(program(L), STORE, call(prodref('$', 'return'), list(X, nil))) =
+    return X.
+
+interpret(program(L), STORE, call(prodref(M, N), A)) =
     find_main_module_prods(L) → MMP &
-    find_prod_expr(N, MMP) → E &
-    interpret(program(L), E).
+    find_prod(N, MMP) → P &
+    interpret(program(L), STORE, P).
 
-interpret(PROGRAM, or(L, R)) =
-    interpret(PROGRAM, L) | interpret(PROGRAM, R).
+interpret(PROGRAM, STORE, or(L, R)) =
+    interpret(PROGRAM, STORE, L) | interpret(PROGRAM, STORE, R).
 
-interpret(PROGRAM, and(L, R)) =
-    interpret(PROGRAM, L) & interpret(PROGRAM, R).
+interpret(PROGRAM, STORE, and(L, R)) =
+    interpret(PROGRAM, STORE, L) & interpret(PROGRAM, STORE, R).
+
+interpret(PROGRAM, STORE, not(X)) =
+    !interpret(PROGRAM, STORE, X).
+
+interpret(PROGRAM, STORE, while(X)) =
+    {interpret(PROGRAM, STORE, X)}.
+
+interpret(PROGRAM, STORE, concat(L, R)) =
+    return L+R.
+
+#interpret(PROGRAM, STORE, using(R, P)) =
+#    interpret(PROGRAM, R) using P.
+
+interpret(PROGRAM, STORE, concat(L, R)) =
+     return L+R.
+
+#interpret(PROGRAM, STORE, send(R, V)) =
+#     interpret(PROGRAM, STORE, R) → Result &
+#     V ← Result.
+
+#interpret(PROGRAM, STORE, set(V, T)) =
+#     V ← T.
+
+
 
 find_main_module_prods(list(module(main, Ps),T)) = Ps.
 find_main_module_prods(list(H,T)) = find_main_module_prods(T).
 find_main_module_prods(nil) = fail 'no main module'.
 
-find_prod_expr(N1, list(production(N2, F, E),T)) =
-    $:equal(N1, N2) & E | find_prod_expr(N1, T).
-find_prod_expr(N, list(H,T)) = find_prod_expr(N, T).
-find_prod_expr(N, nil) = fail 'no ' + N + ' production'.
+find_prod(N1, list(production(N2, F, E),T)) =
+    $:equal(N1, N2) & return production(N2, F, E) | find_prod(N1, T).
+find_prod(N, list(H,T)) = find_prod(N, T).
+find_prod(N, nil) = fail 'no ' + N + ' production'.
 
+
+fetch(K1, list(pair(K2, V), T)) = $:equal(K1, K2) & V | fetch(K1, T).
+fetch(K, nil)                   = fail K + ' not found'.
+
+store(K, V, A)                  = return list(pair(K, V), A).
