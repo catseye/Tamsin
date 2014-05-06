@@ -1088,7 +1088,11 @@ This includes bytes that would be special in UTF-8.
     
     | main = "\x00" → N using $:byte & return '\x01' + N + '\xff'.
     + 00
-    = 0100ff
+    = 0100ff0a
+
+    | main = ("\x07" & ("\xf0" | "\xfa")/'' → N & "\x07") using $:byte & N.
+    + 07f0fafaf0f007
+    = f0fafaf0f00a
 
     -> Tests for functionality "Intepret Tamsin program"
 

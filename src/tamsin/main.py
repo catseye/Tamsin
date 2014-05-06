@@ -34,9 +34,9 @@ def run(ast, listeners=None):
     )
     (succeeded, result) = interpreter.interpret_program(ast)
     if not succeeded:
-        sys.stderr.write(unicode(result).encode('UTF-8') + "\n")
+        sys.stderr.write(str(result) + "\n")
         sys.exit(1)
-    print unicode(result).encode('UTF-8')
+    print str(result)
 
 
 def main(args, tamsin_dir='.'):
@@ -51,7 +51,7 @@ def main(args, tamsin_dir='.'):
         while tok is not EOF:
             tok = scanner.consume_any()
             if tok is not EOF:
-                print tok.encode('UTF-8')
+                print tok
         print
     elif args[0] == 'parse':
         with codecs.open(args[1], 'r', 'UTF-8') as f:

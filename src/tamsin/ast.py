@@ -12,9 +12,9 @@ from tamsin.term import Variable
 
 def format_list(l):
     if len(l) == 0:
-        return u'nil'
+        return 'nil'
     else:
-        return u'list(%s, %s)' % (l[0], format_list(l[1:]))
+        return 'list(%s, %s)' % (l[0], format_list(l[1:]))
 
 
 class AST(object):
@@ -34,18 +34,18 @@ class Program(AST):
             return self.prodmap[name]
         elif mod == '$':
             formals = {
-                'expect': [Variable(u'X')],
-                'fail': [Variable(u'X')],
-                'print': [Variable(u'X')],
-                'return': [Variable(u'X')],
-                'startswith': [Variable(u'X')],
-                'unquote': [Variable(u'X')],
-                'mkterm': [Variable(u'T'), Variable(u'L')],
+                'expect': [Variable('X')],
+                'fail': [Variable('X')],
+                'print': [Variable('X')],
+                'return': [Variable('X')],
+                'startswith': [Variable('X')],
+                'unquote': [Variable('X')],
+                'mkterm': [Variable('T'), Variable('L')],
             }.get(name, [])
             return [Production('$.%s' % name, 0, formals, [], None)]
     
     def __repr__(self):
-        return u"Program(%r, %r)" % (self.prodmap, self.prodlist)
+        return "Program(%r, %r)" % (self.prodmap, self.prodlist)
 
     def __unicode__(self):
         return u"program(%s)" % format_list(self.prodlist)

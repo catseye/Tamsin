@@ -22,8 +22,8 @@ elif [ x$1 = xscanner ]; then
     echo "Testing scanner in Tamsin..."
     for EG in eg/*.tamsin; do
         echo $EG
-        bin/tamsin scan <$EG > 1.txt
-        bin/tamsin eg/tamsin-scanner.tamsin <$EG > 2.txt
+        bin/tamsin scan <$EG > 1.txt || exit 1
+        bin/tamsin eg/tamsin-scanner.tamsin <$EG > 2.txt || exit 1
         diff -ru 1.txt 2.txt || exit 1
     done
 elif [ x$1 = xparser ]; then   # just check that tamsin-parser accepts it

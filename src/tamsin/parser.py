@@ -120,14 +120,16 @@ class Parser(EventProducer):
         lhs = self.expr5()
         if self.consume('/'):
             t = self.term()
-            sett = Set(Variable(u'_1'), t)
-            sendd = Send(lhs, Variable(u'_2'))
-            accc = Set(Variable(u'_1'), Concat(Variable(u'_1'), Variable(u'_2')))
+            sett = Set(Variable('_1'), t)
+            sendd = Send(lhs, Variable('_2'))
+            accc = Set(Variable('_1'), Concat(Variable('_1'), Variable('_2')))
             if self.consume('/'):
                 atom = self.term()
                 assert isinstance(atom, Atom)
-                accc = Set(Variable(u'_1'), Constructor(atom.text, [Variable(u'_2'), Variable(u'_1')]))
-            returnn = Call(Prodref('$', 'return'), [Variable(u'_1')], None)
+                accc = Set(Variable('_1'),
+                           Constructor(atom.text,
+                                       [Variable('_2'), Variable('_1')]))
+            returnn = Call(Prodref('$', 'return'), [Variable('_1')], None)
             lhs = And(And(sett, While(And(sendd, accc))), returnn)
         return lhs
 
@@ -140,14 +142,14 @@ class Parser(EventProducer):
             e = self.expr0()
             self.expect(']')
             return Or(e,
-                Call(Prodref('$', 'return'), [Atom(u'nil')], None)
+                Call(Prodref('$', 'return'), [Atom('nil')], None)
             )
         elif self.consume('{'):
             e = self.expr0()
             self.expect('}')
             return While(e)
         elif self.peek()[0] == '"':
-            s = unicode(self.consume_any()[1:-1])
+            s = self.consume_any()[1:-1]
             return Call(Prodref('$', 'expect'), [Atom(s)], None)
         elif self.consume(u'«') or self.consume('<<'):
             t = self.texpr()
@@ -217,7 +219,7 @@ class Parser(EventProducer):
     def variable(self):
         if self.peek()[0].isupper():
             var = self.consume_any()
-            return Variable(var.decode('UTF-8'))
+            return Variable(var)
         else:
             self.error('variable')
 
@@ -246,8 +248,8 @@ class Parser(EventProducer):
                 while self.consume(','):
                     subs.append(self.term())
                 self.expect(')')
-                return Constructor(unicode(atom), subs)
+                return Constructor(atom, subs)
             else:
-                return Atom(unicode(atom))
+                return Atom(atom)
         else:
             self.error('term')

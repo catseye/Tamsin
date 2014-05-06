@@ -3,6 +3,8 @@
 # Copyright (c)2014 Chris Pressey, Cat's Eye Technologies.
 # Distributed under a BSD-style license; see LICENSE for more information.
 
+import sys
+
 from tamsin.ast import (
     Production, And, Or, Not, While, Call, Send, Set, Using, Prodref, Concat
 )
@@ -123,12 +125,12 @@ class Interpreter(EventProducer):
             if name == '$.expect':
                 upcoming_token = self.scanner.peek()
                 term = bindings['X']
-                token = unicode(term)
+                token = str(term)
                 if self.scanner.consume(token):
                     return (True, term)
                 else:
                     self.event('fail_term', ast.name, self.scanner)
-                    s = (u"expected '%s' found '%s' (at '%s')" %
+                    s = ("expected '%s' found '%s' (at '%s')" %
                          (token, upcoming_token,
                           self.scanner.report_buffer(self.scanner.position, 20)))
                     return (False, Atom(s))
@@ -138,11 +140,11 @@ class Interpreter(EventProducer):
                 if self.scanner.peek() is EOF:
                     return (True, EOF)
                 else:
-                    return (False, Atom(u"expected EOF found '%s'" %
+                    return (False, Atom("expected EOF found '%s'" %
                             self.scanner.peek()))
             elif name == '$.any':
                 if self.scanner.peek() is EOF:
-                    return (False, Atom(u"expected any token, found EOF"))
+                    return (False, Atom("expected any token, found EOF"))
                 else:
                     return (True, Atom(self.scanner.consume_any()))
             elif name == '$.alnum':
@@ -150,25 +152,25 @@ class Interpreter(EventProducer):
                     self.scanner.peek()[0].isalnum()):
                     return (True, Atom(self.scanner.consume_any()))
                 else:
-                    return (False, Atom(u"expected alphanumeric, found '%s'" %
+                    return (False, Atom("expected alphanumeric, found '%s'" %
                                         self.scanner.peek()))
             elif name == '$.upper':
                 if (self.scanner.peek() is not EOF and
                     self.scanner.peek()[0].isupper()):
                     return (True, Atom(self.scanner.consume_any()))
                 else:
-                    return (False, Atom(u"expected uppercase alphabetic, found '%s'" %
+                    return (False, Atom("expected uppercase alphabetic, found '%s'" %
                                         self.scanner.peek()))
             elif name == '$.startswith':
                 if (self.scanner.peek() is not EOF and
                     self.scanner.peek()[0].startswith(unicode(bindings['X']))):
                     return (True, Atom(self.scanner.consume_any()))
                 else:
-                    return (False, Atom(u"expected '%s, found '%s'" %
+                    return (False, Atom("expected '%s, found '%s'" %
                                         (bindings['X'], self.scanner.peek())))
             elif name == '$.unquote':  # TODO this is definitely a bodge
-                x = unicode(bindings['X'])
-                if (x.startswith((u'"', u"'"))):
+                x = str(bindings['X'])
+                if (x.startswith(('"', "'"))):
                     return (True, Atom(x[1:-1]))
                 else:
                     return (True, bindings['X'])
@@ -185,7 +187,8 @@ class Interpreter(EventProducer):
                     return (True, t)
             elif name == '$.print':
                 val = bindings['X']
-                print unicode(val).encode('UTF-8')
+                sys.stdout.write(str(val))
+                sys.stdout.write("\n")
                 return (True, val)
             elif name == '$.fail':
                 return (False, bindings['X'])
@@ -305,9 +308,9 @@ class Interpreter(EventProducer):
                         (repr(expr), self.scanner.peek()))
                 )
             else:
-                return (True, Atom(u'nil'))
+                return (True, Atom('nil'))
         elif isinstance(ast, While):
-            result = Atom(u'nil')
+            result = Atom('nil')
             self.event('begin_while')
             succeeded = True
             successful_result = result
@@ -324,9 +327,9 @@ class Interpreter(EventProducer):
             return (True, successful_result)
         elif isinstance(ast, Concat):
             (success, lhs) = self.interpret(ast.lhs)
-            lhs = unicode(lhs.expand(self.context))
+            lhs = str(lhs.expand(self.context))
             (success, rhs) = self.interpret(ast.rhs)
-            rhs = unicode(rhs.expand(self.context))
+            rhs = str(rhs.expand(self.context))
             return (True, Atom(lhs + rhs))
         elif isinstance(ast, Term):
             return (True, ast)
