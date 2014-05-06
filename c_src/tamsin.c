@@ -39,18 +39,19 @@ void tamsin_any(struct scanner *s) {
     }
 }
 
-void tamsin_expect(struct scanner *s, const char *token) {
-    struct term *t = scan(s);
-    if (t != &tamsin_EOF && !strcmp(t->atom, token)) {
+void tamsin_expect(struct scanner *s, const struct term *expected) {
+    struct term *scanned = scan(s);
+    if (scanned != &tamsin_EOF && scanned->size == expected->size &&
+        !memcmp(scanned->atom, expected->atom, expected->size)) {
         commit(s);
-        result = t;
+        result = scanned;
         ok = 1;
     } else {
         unscan(s);
         result = term_new_from_cstring("expected '");
-        result = term_concat(result, term_new_from_cstring(token));
+        result = term_concat(result, expected);
         result = term_concat(result, term_new_from_cstring("' found '"));
-        result = term_concat(result, t);
+        result = term_concat(result, scanned);
         result = term_concat(result, &APOS);
         ok = 0;
     }

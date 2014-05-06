@@ -216,7 +216,7 @@ class Compiler(object):
             if prodmod == '$':
                 if name == 'expect':
                     self.emit_term(args[0], "temp")
-                    self.emit('tamsin_expect(scanner, term_flatten(temp)->atom);')
+                    self.emit('tamsin_expect(scanner, temp);')
                 elif name == 'return':
                     self.emit_term(args[0], "temp")
                     self.emit("result = temp;")
@@ -224,7 +224,8 @@ class Compiler(object):
                 elif name == 'print':
                     self.emit_term(args[0], "temp")
                     self.emit("result = temp;")
-                    self.emit(r'fprintf(stdout, "%s\n", term_flatten(result)->atom);')
+                    self.emit("fwrite(result->atom, 1, result->size, stdout);")
+                    self.emit(r'fwrite("\n", 1, 1, stdout);')
                     self.emit("ok = 1;")
                 elif name == 'eof':
                     self.emit('tamsin_eof(scanner);')

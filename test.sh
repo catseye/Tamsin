@@ -14,6 +14,11 @@ if [ x$1 = x ]; then
    exit $?
 fi
 
+if [ x$2 != x -a -e $2 ]; then
+    echo "(Testing on file $2 only)"
+    FILES=$2
+fi
+
 if [ x$1 = xcompiler ]; then
     echo "Testing compiler..."
     ./build.sh || exit 1
@@ -56,7 +61,4 @@ elif [ x$1 = xcompiledast ]; then   # check that tamsin-ast output looks like bi
 elif [ x$1 = xinterpreter ]; then
     echo "Testing Python interpreter..."
     falderal $VERBOSE --substring-error fixture/tamsin.py.markdown $FILES
-elif [ -e $1 ]; then
-    echo "Testing file with interpreter..."
-    falderal $VERBOSE --substring-error fixture/tamsin.py.markdown $1
 fi

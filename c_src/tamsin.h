@@ -107,7 +107,7 @@ void scanner_utf8_engine(void);
 
 void tamsin_eof(struct scanner *);
 void tamsin_any(struct scanner *);
-void tamsin_expect(struct scanner *, const char *);
+void tamsin_expect(struct scanner *, const struct term *);
 void tamsin_alnum(struct scanner *);
 void tamsin_upper(struct scanner *);
 void tamsin_startswith(struct scanner *, const char *);
