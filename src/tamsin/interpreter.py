@@ -6,7 +6,8 @@
 import sys
 
 from tamsin.ast import (
-    Production, And, Or, Not, While, Call, Send, Set, Using, Prodref, Concat
+    Module, Production, And, Or, Not, While, Call, Send, Set, Using,
+    Prodref, Concat
 )
 from tamsin.term import Term, EOF, Atom, Constructor, Variable
 from tamsin.event import EventProducer
@@ -59,7 +60,6 @@ class Interpreter(EventProducer):
         self.program = program
         self.scanner = scanner
         self.context = Context(listeners=self.listeners)
-        self.prodmap = program.prodmap
 
     def __repr__(self):
         return "Interpreter(%r, %r, %r)" % (
@@ -111,7 +111,7 @@ class Interpreter(EventProducer):
     ### interpreter proper ---------------------------------- ###
 
     def interpret_program(self, program):
-        prods = program.find_productions(Prodref('', 'main'))
+        prods = program.find_productions(Prodref('main', 'main'))
         return self.interpret(prods[0])
 
     def interpret(self, ast, bindings=None):

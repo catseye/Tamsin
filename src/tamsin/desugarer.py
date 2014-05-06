@@ -4,8 +4,8 @@
 # Distributed under a BSD-style license; see LICENSE for more information.
 
 from tamsin.ast import (
-    Program, Production, And, Or, Not, While, Call, Send, Set, Variable, Using,
-    Concat, Fold, Prodref
+    Program, Module, Production, And, Or, Not, While, Call, Send, Set,
+    Variable, Using, Concat, Fold, Prodref
 )
 from tamsin.term import Term, Atom, Constructor
 from tamsin.event import EventProducer
@@ -25,8 +25,11 @@ class Desugarer(EventProducer):
     def desugar(self, ast):
         if isinstance(ast, Program):
             return Program(
-                ast.modmap, ast.modlist,
-                ast.prodmap, [self.desugar(p) for p in ast.prodlist]
+                ast.modmap, [self.desugar(m) for m in ast.modlist]
+            )
+        elif isinstance(ast, Module):
+            return Module(
+                ast.name, ast.prodmap, [self.desugar(p) for p in ast.prodlist]
             )
         elif isinstance(ast, Production):
             return Production(ast.name, 0, ast.formals, [],

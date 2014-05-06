@@ -22,31 +22,17 @@ class AST(object):
         raise NotImplementedError(repr(self))
 
 
-class Module(AST):
-    def __init__(self, name, prodlist):
-        self.name = name
-        self.prodlist = prodlist
-    
-    def __repr__(self):
-        return "Module(%r, %r)" % (self.name, self.prodlist)
-
-    def __str__(self):
-        return "module(%s, %s)" % (self.name, format_list(self.prodlist))
-
-
 class Program(AST):
-    def __init__(self, modmap, modlist, prodmap, prodlist):
-        self.modmap = prodmap
-        self.modlist = prodlist
-        self.prodmap = prodmap
-        self.prodlist = prodlist
+    def __init__(self, modmap, modlist):
+        self.modmap = modmap
+        self.modlist = modlist
 
     def find_productions(self, prodref):
         mod = prodref.module
         name = prodref.name
         if mod == '':
-            return self.prodmap[name]
-        elif mod == '$':
+            mod = 'main'
+        if mod == '$':
             formals = {
                 'expect': [Variable('X')],
                 'fail': [Variable('X')],
@@ -57,14 +43,30 @@ class Program(AST):
                 'mkterm': [Variable('T'), Variable('L')],
             }.get(name, [])
             return [Production('$.%s' % name, 0, formals, [], None)]
+        else:
+            return self.modmap[mod].prodmap[name]
+
     
     def __repr__(self):
         return "Program(%r, %r, %r, %r)" % (
-            self.modmap, self.modlist, self.prodmap, self.prodlist
+            self.modmap, self.modlist
         )
 
     def __str__(self):
-        return "program(%s)" % format_list(self.prodlist)
+        return "program(%s)" % format_list(self.modlist)
+
+
+class Module(AST):
+    def __init__(self, name, prodmap, prodlist):
+        self.name = name
+        self.prodmap = prodmap
+        self.prodlist = prodlist
+    
+    def __repr__(self):
+        return "Module(%r, %r, %r)" % (self.name, self.prodmap, self.prodlist)
+
+    def __str__(self):
+        return "module(%s, %s)" % (self.name, format_list(self.prodlist))
 
 
 class Production(AST):

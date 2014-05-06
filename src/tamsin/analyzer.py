@@ -4,8 +4,8 @@
 # Distributed under a BSD-style license; see LICENSE for more information.
 
 from tamsin.ast import (
-    Program, Production, And, Or, Not, While, Call, Send, Set, Variable, Using,
-    Concat, Prodref
+    Program, Production, Module, And, Or, Not, While, Call, Send, Set,
+    Variable, Using, Concat, Prodref
 )
 from tamsin.term import Term, Atom, Constructor
 from tamsin.event import EventProducer
@@ -28,19 +28,28 @@ class Analyzer(EventProducer):
         self.listeners = listeners
         self.program = program
         self.prodnames = set()
-        self.prodmap = {}
+        self.modnames = set()
 
     def analyze(self, ast):
         if isinstance(ast, Program):
+            for mod in ast.modlist:
+                self.modnames.add(mod.name)
+            modmap = {}
+            for mod in ast.modlist:
+                mod = self.analyze(mod)
+                modmap[mod.name] = mod
+            if 'main' not in modmap['main'].prodmap:
+                raise ValueError("no 'main' production defined")
+            return Program(modmap, ast.modlist)
+        elif isinstance(ast, Module):
             for prod in ast.prodlist:
                 self.prodnames.add(prod.name)
+            prodmap = {}
             for prod in ast.prodlist:
                 prod = self.analyze(prod)
-                prod.rank = len(self.prodmap.setdefault(prod.name, []))
-                self.prodmap[prod.name].append(prod)
-            if 'main' not in self.prodmap:
-                raise ValueError("no 'main' production defined")
-            return Program(ast.modmap, ast.modlist, self.prodmap, ast.prodlist)
+                prod.rank = len(prodmap.setdefault(prod.name, []))
+                prodmap[prod.name].append(prod)
+            return Module(ast.name, prodmap, ast.prodlist)
         elif isinstance(ast, Production):
             locals_ = set()
             body = self.analyze(ast.body)

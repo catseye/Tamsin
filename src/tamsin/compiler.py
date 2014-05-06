@@ -8,7 +8,7 @@
 # Does not support `using` or `@` at the moment.
 
 from tamsin.ast import (
-    Production, And, Or, Not, While, Call, Send, Set, Concat, Using
+    Production, Module, And, Or, Not, While, Call, Send, Set, Concat, Using
 )
 from tamsin.term import Atom, Constructor, Variable
 
@@ -77,6 +77,7 @@ class Compiler(object):
         self.indent_ = 0
         self.current_prod_name = None   # this is without the 0, 1, 2...
         self.current_prod = None
+        self.currmod = None
 
     def indent(self):
         self.indent_ += 1
@@ -91,18 +92,22 @@ class Compiler(object):
     def compile(self):
         self.emit(PRELUDE)
 
-        for key in self.program.prodmap:
-            for prod in self.program.prodmap[key]:
-                self.emit("void program_%s%s(%s);" % (
-                    prod.name, prod.rank,
-                    ', '.join(["struct term *" % f for f in prod.formals])
-                ))
+        for mod_name in self.program.modmap:
+            for prod_name in self.program.modmap[mod_name].prodmap:
+                for prod in self.program.modmap[mod_name].prodmap[prod_name]:
+                    self.emit("void program_%s%s(%s);" % (
+                        prod.name, prod.rank,
+                        ', '.join(["struct term *" % f for f in prod.formals])
+                    ))
         self.emit("")
-        for key in self.program.prodmap:
-            self.current_prod_name = key
-            for prod in self.program.prodmap[key]:
-                self.compile_r(prod)
-            self.current_prod_name = None
+        for mod_name in self.program.modmap:
+            self.currmod = self.program.modmap[mod_name]
+            for prod_name in self.program.modmap[mod_name].prodmap:
+                self.current_prod_name = prod_name
+                for prod in self.program.modmap[mod_name].prodmap[prod_name]:
+                    self.compile_r(prod)
+                self.current_prod_name = None
+            self.currmod = None
 
         self.emit(POSTLUDE)
 
@@ -139,7 +144,7 @@ class Compiler(object):
                 self.indent()
                 
                 next = None
-                myprods = self.program.prodmap[self.current_prod_name]
+                myprods = self.currmod.prodmap[self.current_prod_name]
                 if ast.rank + 1 < len(myprods):
                     next = myprods[ast.rank + 1]
                 

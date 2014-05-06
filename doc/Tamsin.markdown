@@ -1010,13 +1010,43 @@ Here is the syntax for defining a module:
     + x
     = x
 
-        | blah {
-        |   expr = "y".
-        | }
-        | main = blah:expr.
-        | expr = "x"
-        + y
-        = y
+    | blah {
+    |   expr = "y".
+    | }
+    | main = blah:expr.
+    | expr = "x".
+    + y
+    = y
+
+    | blah {
+    |   expr = blah:goo.
+    |   goo = "y".
+    | }
+    | main = blah:expr & blah:goo & "@".
+    | expr = "x".
+    + yy@
+    = @
+
+`:foo` (and indeed `foo`) should refer to the production `foo` in the
+same module as the production where it's called from, but this doesn't work yet.
+
+      | blah {
+      |   expr = :goo.
+      |   goo = "y".
+      | }
+      | main = blah:expr.
+      | goo = "x".
+      + y
+      = y
+      
+      | blah {
+      |   expr = goo.
+      |   goo = "y".
+      | }
+      | main = blah:expr.
+      | goo = "x".
+      + y
+      = y
 
 Evaluation
 ----------
