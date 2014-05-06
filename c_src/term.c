@@ -11,32 +11,35 @@
  * buffer overflows.
  */
 
-struct term *term_new(const char *atom) {
+struct term *term_new(const char *atom, size_t size) {
     struct term *t;
 
     t = malloc(sizeof(struct term));
-    t->atom = strdup(atom);
+    t->atom = malloc(size);
+    memcpy(t->atom, atom, size);
+    t->size = size;
     t->storing = NULL;
     t->subterms = NULL;
 }
 
-struct term tamsin_EOF = {"EOF", NULL, NULL};
+struct term tamsin_EOF = {"EOF", 3, NULL, NULL};
 
 struct term *term_new_from_char(char c) {
     char s[2];
 
     s[0] = c;
     s[1] = '\0';
-    return term_new(s);
+
+    return term_new(s, 1);
+}
+
+struct term *term_new_from_cstring(const char *atom) {
+    return term_new(atom, strlen(atom));
 }
 
 struct term *term_new_variable(const char *name, struct term *v) {
-    struct term *t;
-
-    t = malloc(sizeof(struct term));
-    t->atom = strdup(name);
+    struct term *t = term_new(name, strlen(name));
     t->storing = v;
-    t->subterms = NULL;
 }
 
 void term_add_subterm(struct term *term, struct term *subterm) {
@@ -81,19 +84,19 @@ struct term *term_concat(const struct term *lhs, const struct term *rhs) {
         rhs = rhs->storing;
     }
 
-    new_size = strlen(lhs->atom) + strlen(rhs->atom);
-    new_atom = malloc(new_size + 1);
-    strcpy(new_atom, lhs->atom);
-    strcat(new_atom, rhs->atom);
-    t = term_new(new_atom);
+    new_size = lhs->size + rhs->size;
+    new_atom = malloc(new_size);
+    memcpy(new_atom, lhs->atom, lhs->size);
+    memcpy(new_atom + lhs->size, rhs->atom, rhs->size);
+    t = term_new(new_atom, new_size);
     free(new_atom);
 
     return t;
 }
 
-const struct term BRA = { "(", NULL, NULL };
-const struct term KET = { ")", NULL, NULL };
-const struct term COMMA = { ", ", NULL, NULL };
+const struct term BRA = { "(", 1, NULL, NULL };
+const struct term KET = { ")", 1, NULL, NULL };
+const struct term COMMA = { ", ", 2, NULL, NULL };
 
 struct term *term_flatten(struct term *t) {
     struct term_list *tl;
@@ -104,7 +107,8 @@ struct term *term_flatten(struct term *t) {
         return t;
     } else {                           /* it's a constructor */
         struct term *n;
-        n = term_concat(term_new(t->atom), &BRA);
+        /* XXX why do we clone t here? */
+        n = term_concat(term_new(t->atom, t->size), &BRA);
 
         for (tl = t->subterms; tl != NULL; tl = tl->next) {
             n = term_concat(n, term_flatten(tl->term));

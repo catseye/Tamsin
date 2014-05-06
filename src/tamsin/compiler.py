@@ -41,21 +41,22 @@ int main(int argc, char **argv) {
     } else {
         input = fopen(filename, "r");
     }
-    
+
     assert(input != NULL);
     while (!feof(input)) {
         int num_read = fread(buffer, 1, 8192, input);
         buffer[num_read] = '\0';
+        /* TODO: 8-bit clean please */
         if (bufterm == NULL) {
-            bufterm = term_new(buffer);
+            bufterm = term_new_from_cstring(buffer);
         } else {
-            bufterm = term_concat(bufterm, term_new(buffer));
+            bufterm = term_concat(bufterm, term_new_from_cstring(buffer));
         }
     }
 
     scanner = scanner_new(bufterm->atom);
     ok = 0;
-    result = term_new("nil");
+    result = term_new_from_cstring("nil");
 
     program_main0();
 
@@ -146,7 +147,7 @@ class Compiler(object):
                     args = ', '.join(["i%s" % i for i in xrange(0, len(formals))])
                     self.emit("program_%s%s(%s);" % (name, next.rank, args))
                 else:
-                    self.emit('result = term_new'
+                    self.emit('result = term_new_from_cstring'
                               '("No \'%s\' production matched arguments");' %
                               self.current_prod_name)
                     self.emit("ok = 0;")
@@ -297,12 +298,12 @@ class Compiler(object):
             self.emit("if (ok) {")
             self.indent()
             self.emit("ok = 0;")
-            self.emit(r'result = term_new("expected anything except");')
+            self.emit(r'result = term_new_from_cstring("expected anything except");')
             self.outdent()
             self.emit("} else {")
             self.indent()
             self.emit("ok = 1;")
-            self.emit(r'result = term_new("nil");')
+            self.emit(r'result = term_new_from_cstring("nil");')
             self.outdent()
             self.emit("}")
             self.outdent()
@@ -349,15 +350,15 @@ class Compiler(object):
         elif isinstance(term, Variable):
             if pattern:
                 self.emit('struct term *%s = term_new_variable("%s", %s);' %
-                    (name, term.name, 'term_new("nil_%s")' % term.name))
+                    (name, term.name, 'term_new_from_cstring("nil_%s")' % term.name))
             else:
                 self.emit('struct term *%s = %s;' % (name, term.name))
         elif isinstance(term, Atom):
-            self.emit('struct term *%s = term_new("%s");' %
+            self.emit('struct term *%s = term_new_from_cstring("%s");' %
                 (name, escaped(term.text))
             )
         elif isinstance(term, Constructor):
-            self.emit('struct term *%s = term_new("%s");' %
+            self.emit('struct term *%s = term_new_from_cstring("%s");' %
                 (name, escaped(term.tag))
             )
             i = 0

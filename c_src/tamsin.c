@@ -3,9 +3,14 @@
  * Distributed under a BSD-style license; see LICENSE for more information.
  */
 
+/*
+ * TODO: less term_new_from_cstring, please -- not for tokens etc.
+ */
 #include "tamsin.h"
 
 #include <ctype.h>
+
+struct term APOS = {"'", 1, NULL, NULL};
 
 void tamsin_eof(struct scanner *s) {
     struct term *t = scan(s);
@@ -14,9 +19,9 @@ void tamsin_eof(struct scanner *s) {
         result = t;
         ok = 1;
     } else {
-        result = term_new("expected EOF found '");
+        result = term_new_from_cstring("expected EOF found '");
         result = term_concat(result, t);
-        result = term_concat(result, term_new("'"));
+        result = term_concat(result, &APOS);
         ok = 0;
     }
 }
@@ -25,7 +30,7 @@ void tamsin_any(struct scanner *s) {
     struct term *t = scan(s);
     if (t == &tamsin_EOF) {
         unscan(s);
-        result = term_new("expected any token, found EOF");
+        result = term_new_from_cstring("expected any token, found EOF");
         ok = 0;
     } else {
         commit(s);
@@ -42,11 +47,11 @@ void tamsin_expect(struct scanner *s, const char *token) {
         ok = 1;
     } else {
         unscan(s);
-        result = term_new("expected '");
-        result = term_concat(result, term_new(token));
-        result = term_concat(result, term_new("' found '"));
+        result = term_new_from_cstring("expected '");
+        result = term_concat(result, term_new_from_cstring(token));
+        result = term_concat(result, term_new_from_cstring("' found '"));
         result = term_concat(result, t);
-        result = term_concat(result, term_new("'"));
+        result = term_concat(result, &APOS);
         ok = 0;
     }
 }
@@ -59,9 +64,9 @@ void tamsin_alnum(struct scanner *s) {
         ok = 1;
     } else {
         unscan(s);
-        result = term_new("expected alphanumeric, found '");
+        result = term_new_from_cstring("expected alphanumeric, found '");
         result = term_concat(result, t);
-        result = term_concat(result, term_new("'"));
+        result = term_concat(result, &APOS);
         ok = 0;
     }
 }
@@ -74,9 +79,9 @@ void tamsin_upper(struct scanner *s) {
         ok = 1;
     } else {
         unscan(s);
-        result = term_new("expected uppercase alphabetic, found '");
+        result = term_new_from_cstring("expected uppercase alphabetic, found '");
         result = term_concat(result, t);
-        result = term_concat(result, term_new("'"));
+        result = term_concat(result, &APOS);
         ok = 0;
     }
 }
@@ -89,11 +94,11 @@ void tamsin_startswith(struct scanner *s, const char *str) {
         ok = 1;
     } else {
         unscan(s);
-        result = term_new("expected '");
+        result = term_new_from_cstring("expected '");
         result = term_concat(result, term_new_from_char(str[0]));
-        result = term_concat(result, term_new("found '"));
+        result = term_concat(result, term_new_from_cstring("found '"));
         result = term_concat(result, t);
-        result = term_concat(result, term_new("'"));
+        result = term_concat(result, &APOS);
         ok = 0;
     }
 }
@@ -102,12 +107,13 @@ struct term *tamsin_unquote(const struct term *q) {
     if (q->atom[0] == '"' || q->atom[0] == '\'') {
         char *s = strdup(q->atom);
         s[strlen(s)-1] = '\0';
-        return term_new(s+1);
+        return term_new_from_cstring(s+1);
     }
-    return term_new(q->atom);
+    return term_new(q->atom, q->size);
 }
 
 struct term *tamsin_mkterm_r(struct term *t, const struct term *list) {
+    /* XXX NO strcmp PLEASE */
     if (!strcmp(list->atom, "list") && list->subterms != NULL) {
         tamsin_mkterm_r(t, list->subterms->next->term);
         term_add_subterm(t, list->subterms->term);
@@ -115,7 +121,7 @@ struct term *tamsin_mkterm_r(struct term *t, const struct term *list) {
 }
 
 struct term *tamsin_mkterm(const struct term *atom, const struct term *list) {
-    struct term *t = term_new(atom->atom);
+    struct term *t = term_new(atom->atom, atom->size);
     tamsin_mkterm_r(t, list);
     return t;
 }

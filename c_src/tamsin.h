@@ -26,6 +26,7 @@
  */
 struct term {
     char *atom;
+    size_t size;
     struct term *storing;
     struct term_list *subterms;
 };
@@ -42,8 +43,9 @@ struct term_list {
  * Subterms may be added afterwards to turn it into a "constructor" term.
  * Segfaults if there is insufficient memory to allocate the term.
  */
-struct term *term_new(const char *);
+struct term *term_new(const char *, size_t);
 
+struct term *term_new_from_cstring(const char *);
 struct term *term_new_from_char(char c);
 
 struct term *term_new_variable(const char *, struct term *);
