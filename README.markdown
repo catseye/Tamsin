@@ -101,12 +101,13 @@ This repository contains the reference implementation of Tamsin, called
 `tamsin`, written in Python 2.7.  It can both interpret a Tamsin program and
 compile a program written in Tamsin to C.  The distribution also contains an
 [implementation of the Tamsin scanner and parser written in Tamsin itself](https://github.com/catseye/Tamsin/blob/master/eg/tamsin-parser.tamsin)
+as well as an [interpreter for a tiny subset of Tamsin written in Tamsin](https://github.com/catseye/Tamsin/blob/master/eg/tamsin-micro-interpreter.tamsin).
 (although we're still a ways from a fully bootrapped implementation.)
 
 While the interpreter is fine for prototyping, note that some informal
 benchmarking revealed the compiled C programs to be about 30x faster.  **Note**
-however that while the compiler passes all the tests, it currently fails to
-correctly compile the Tamsin parser written in Tamsin, so it should still be
+however that while the compiler passes all the tests, it is still largely
+unproven (e.g. its UTF-8 support is not RFC 3629-compliant), so it should be
 considered a **proof of concept**.
 
 To start using `tamsin`,
@@ -157,7 +158,7 @@ Related work
 *   [CoCo/R](http://www.scifac.ru.ac.za/coco/) (parser generation)
 *   [Parsec](http://www.haskell.org/haskellwiki/Parsec) (parser combination)
 *   [Perl](http://perl.com/) (rubbish listing)
-*   [Erlang](http://erlang.org/) (pattern-matching)
+*   [Prolog](https://en.wikipedia.org/wiki/Prolog) (pattern-matching)
 *   [K](https://github.com/kevinlawler/kona) (similar feel; Tamsin
     is a _vertical language_)
 *   [Cat's Eye Technologies](http://catseye.tc)' esoteric and experimental
