@@ -12,6 +12,7 @@ from tamsin.event import DebugEventListener
 from tamsin.scanner import EOF, Scanner, UTF8ScannerEngine, TamsinScannerEngine
 from tamsin.parser import Parser
 from tamsin.interpreter import Interpreter
+from tamsin.desugarer import Desugarer
 from tamsin.analyzer import Analyzer
 from tamsin.compiler import Compiler
 
@@ -21,6 +22,8 @@ def parse_and_check(filename, scanner_engine=None):
         contents = f.read()
         parser = Parser(contents, scanner_engine=scanner_engine)
         ast = parser.grammar()
+        desugarer = Desugarer(ast)
+        ast = desugarer.desugar(ast)
         analyzer = Analyzer(ast)
         ast = analyzer.analyze(ast)
         return ast
@@ -56,8 +59,16 @@ def main(args, tamsin_dir='.'):
     elif args[0] == 'parse':
         with open(args[1], 'r') as f:
             contents = f.read()
-            parser = Parser(contents)
-            ast = parser.grammar()
+        parser = Parser(contents)
+        ast = parser.grammar()
+        print str(ast)
+    elif args[0] == 'desugar':
+        with open(args[1], 'r') as f:
+            contents = f.read()
+        parser = Parser(contents)
+        ast = parser.grammar()
+        desugarer = Desugarer(ast)
+        ast = desugarer.desugar(ast)
         print str(ast)
     elif args[0] == 'analyze':
         ast = parse_and_check(args[1])

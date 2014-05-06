@@ -141,7 +141,7 @@ Design Goals
 *   Keep the language simple (grammar should fit on a page.)
 *   Recognize that the preceding two goals are in tension.
 *   Have a relatively simple reference implementation (currently less than
-    2500 lines of code, including everything — debugging and the C runtime
+    3000 lines of code, including everything — debugging and the C runtime
     used by the compiler.)
 
 License
@@ -163,3 +163,4 @@ Related work
     *   [Squishy2K](http://catseye.tc/node/Squishy2K)
     *   [Arboretuum](http://catseye.tc/node/Arboretuum)
     *   [Treacle](http://catseye.tc/node/Treacle)
+    

@@ -1,0 +1,151 @@
+# Desugarer for Tamsin AST, written in Tamsin.
+# Distributed under a BSD-style license; see LICENSE.
+
+# Note that this contains support for some features which are not in 0.1.
+
+main = (grammar using scanner) → AST & desugar(AST).
+
+grammar    = {"@" & pragma & "."} &
+             L ← nil &
+             production → P & "." &
+             L ← list(P, L) &
+             {
+                 production → P & "." &
+                 L ← list(P, L)
+             } &
+             eof &
+             reverse(L, nil) → L &
+             return program(L).
+production = word → N &
+             F ← nil &
+             [formals → F] &
+             "=" &
+             expr0 → E &
+             return production(N, F, E).
+formals    = L ← nil &
+             "(" &
+             term → T & L ← list(T, L) &
+             {"," & term → T & L ← list(T, L)} &
+             ")" &
+             reverse(L, nil) → L &
+             return L
+             | "[" & expr0 & "]".
+expr0      = expr1 → L & {("|" | "||") & expr1 → R & L ← or(L, R)} & L.
+expr1      = expr2 → L & {("&" | "&&") & expr2 → R & L ← and(L, R)} & L.
+expr2      = expr3 → L & ["using" & prodref → P & L ← using(L, P)] & L.
+expr3      = expr4 → L & [("→" | "->") & variable → V & L ← send(L, V)] & L.
+expr4      = expr5 → L & ("/" & texpr → T & return fold(L, T) | return L).
+expr5      = "(" & expr0 → E & ")" & E
+           | "[" & expr0 → E & "]" & return or(E, call(prodref('$', return), list(nil, nil)))
+           | "{" & expr0 → E & "}" & return while(E)
+           | "!" & expr5 → E & return not(E)
+           | "set" & variable → V & "=" & texpr → T & return set(V, T)
+           | "return" & texpr → T & return call(prodref('$', return), list(T, nil))
+           | "fail" & texpr → T & return call(prodref('$', fail), list(T, nil))
+           | "print" & texpr → T & return call(prodref('$', print), list(T, nil))
+           | "any" & return call(prodref('$', any), nil)
+           | "eof" & return call(prodref('$', 'eof'), nil)
+           | terminal
+           | variable → V & 
+             (("←" | "<-") & texpr → T & return set(V, T)
+             | return call(prodref('$', return), list(V, nil)))
+           | sq_string → T &
+             $:unquote(T) → T &
+             return call(prodref('$', return), list(T, nil))
+           | prodref → P &
+             L ← nil &
+             ["(" &
+              texpr → T & L ← list(T, L) &
+              {"," & texpr → T & L ← list(T, L)} &
+              ")"] &
+             reverse(L, nil) → L &
+             return call(P, L).
+
+texpr      = term → T & {"+" & term → S & T ← T + S} & T.
+term       = atom → A & L ← nil & ["(" &
+                                    term → T & L ← list(T, L) &
+                                      {"," & term → T & L ← list(T, L)} &
+                                    ")"] &
+                                    reverse(L, nil) → L &
+                                    $:mkterm(A, L)
+           | variable.
+atom       = word
+           | sq_string → T &
+             $:unquote(T).
+
+terminal   = terminal0 → T & return call(prodref('$', expect), list(T, nil)).
+terminal0  = dq_string → T & $:unquote(T) → T & T
+           | ("«" | "<<") & texpr → T & ("»" | ">>") & T.
+
+prodref    = M ← '' & [modref → M & ":"] & word → P & return prodref(M, P).
+modref     = "$".
+pragma     = "alias" & word & word & "=" & prodref
+           | "unalias" & word.
+
+word = $:alnum.
+variable = $:upper.
+sq_string = $:startswith('\'').
+dq_string = $:startswith('"').
+
+reverse(list(H, T), A) = reverse(T, list(H, A)).
+reverse(nil, A) = A.
+
+scanner = scan using $:utf8.
+scan = skippable & (symbol | str('\'') | str('"') | sc_word).
+symbol = "&" & "&" & '&&'
+       | "|" & "|" & '||'
+       | "-" & ">" & '->'
+       | "<" & "-" & '<-'
+       | "<" & "<" & '<<'
+       | ">" & ">" & '>>'
+       | "=" | "(" | ")" | "[" | "]" | "{" | "}" | "!" | "|" | "&" | ":"
+       | "/" | "," | "." | "@" | "+" | "$" | "→" | "←" | "«" | "»".
+str(Q) = «Q» → T & {(escape | !«Q» & any) → S & T ← T + S} & «Q» &
+         return T + Q.
+escape = "\\" & "n" & '\n'
+       | "\\" & "r" & '\r'
+       | "\\" & "t" & '\t'
+       | "\\" & "\\" & '\\'
+       | "\\" & "'" & '\''
+       | "\\" & "\"" & '"'.
+sc_word = $:alnum → T & { ($:alnum | "_") → S & T ← T + S } & T.
+skippable = {whitespace | comment}.
+whitespace = " " | "\t" | "\r" | "\n".
+comment = "#" & {!"\n" & any} & "\n".
+
+
+
+desugar_all(list(H,T)) =
+    desugar(H) → DH &
+    desugar_all(T) → DT &
+    return list(DH, DT).
+desugar_all(nil) = 'nil'.
+
+
+desugar(program(L)) = desugar_all(L) → DL & return program(DL).
+desugar(production(N, F, E)) = desugar(E) → DE & return production(N, F, DE).
+desugar(or(L, R)) = desugar(L) → DL & desugar(R) → DR & return or(DL, DR).
+desugar(and(L, R)) = desugar(L) → DL & desugar(R) → DR & return and(DL, DR).
+desugar(not(X)) = desugar(X) → DX & return not(DX).
+desugar(while(X)) = desugar(X) → DX & return while(DX).
+desugar(concat(L, R)) = desugar(L) → DL & desugar(R) → DR & return concat(DL, DR).
+desugar(using(R, P)) = desugar(R) → DR & return using(DR, P).
+
+desugar(send(R, V)) = desugar(R) → DR & return send(DR, V).
+desugar(set(V, T)) = desugar(T) → DT & return set(V, DT).
+
+desugar(fold(R, I)) = desugar(R) → DR & return fold(DR, I).
+
+# set_ = Set(Variable('_1'), ast.initial)
+# send_ = Send(self.desugar(ast.rule), Variable('_2'))
+# acc_ = Set(Variable('_1'), Concat(Variable('_1'), Variable('_2')))
+# if ast.constratom is not None:
+#     assert isinstance(ast.constratom, Atom)
+#     acc_ = Set(Variable('_1'),
+#                Constructor(ast.constratom.text,
+#                            [Variable('_2'), Variable('_1')]))
+# return_ = Call(Prodref('$', 'return'), [Variable('_1')], None)
+# return And(And(set_, While(And(send_, acc_))), return_)
+
+desugar(Else) = Else.
+

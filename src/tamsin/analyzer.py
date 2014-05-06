@@ -5,19 +5,18 @@
 
 from tamsin.ast import (
     Program, Production, And, Or, Not, While, Call, Send, Set, Variable, Using,
-    Concat, Fold, Prodref
+    Concat, Prodref
 )
 from tamsin.term import Term, Atom, Constructor
 from tamsin.event import EventProducer
 
 
 class Analyzer(EventProducer):
-    """The Analyzer takes an AST, walks it, and returns a new AST.
+    """The Analyzer takes a desugared AST, walks it, and returns a new AST.
     It is responsible for:
     
     * Looking for undefined nonterminals and raising an error if such found.
       (this includes 'main')
-    * Desugaring Fold() nodes.
     * Finding the set of local variable names used in each production and
       sticking that in the locals_ field of the new Production node.
     * Creating a map from production name -> list of productions and
@@ -73,17 +72,6 @@ class Analyzer(EventProducer):
             return Concat(self.analyze(ast.lhs), self.analyze(ast.rhs))
         elif isinstance(ast, Term):
             return ast
-        elif isinstance(ast, Fold):
-            set_ = Set(Variable('_1'), ast.initial)
-            send_ = Send(ast.rule, Variable('_2'))
-            acc_ = Set(Variable('_1'), Concat(Variable('_1'), Variable('_2')))
-            if ast.constratom is not None:
-                assert isinstance(ast.constratom, Atom)
-                acc_ = Set(Variable('_1'),
-                           Constructor(ast.constratom.text,
-                                       [Variable('_2'), Variable('_1')]))
-            return_ = Call(Prodref('$', 'return'), [Variable('_1')], None)
-            return And(And(set_, While(And(send_, acc_))), return_)
         else:
             raise NotImplementedError(repr(ast))
 
