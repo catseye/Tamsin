@@ -5,11 +5,12 @@
 
 #include "tamsin.h"
 
-struct scanner *scanner_new(const char *buffer) {
+struct scanner *scanner_new(const char *buffer, size_t size) {
     struct scanner *scanner;
 
     scanner = malloc(sizeof(struct scanner));
     scanner->buffer = buffer;
+    scanner->size = size;
     scanner->position = 0;
     scanner->reset_position = 0;
     scanner->engines = NULL;
@@ -24,16 +25,30 @@ void scanner_utf8_engine(void) {
 }
 
 struct term *scan(struct scanner *s) {
-    if (s->engines == NULL ||
-        s->engines->production == &scanner_byte_engine ||
-        s->engines->production == &scanner_utf8_engine) {
+    if (s->position >= s->size) {
+        return &tamsin_EOF;
+    }
+    if (s->engines == NULL || s->engines->production == &scanner_utf8_engine) {
         char c = s->buffer[s->position];
-        if (c == '\0') {
-            return &tamsin_EOF;
-        } else {
-            s->position++;
-            return term_new_from_char(c);
+        int len = 1;
+        struct term *t;
+
+        if ((c & 0b11100000) == 0b11000000) {
+            len = 2;
+        } else if ((c & 0b11110000) == 0b11100000) {
+            len = 3;
+        } else if ((c & 0b11111000) == 0b11110000) {
+            len = 4;
         }
+
+        t = term_new(s->buffer + s->position, len);
+        s->position += len;
+        return t;
+    } else if (s->engines->production == &scanner_byte_engine) {
+        char c = s->buffer[s->position];
+
+        s->position++;
+        return term_new_from_char(c);
     } else {
         //fprintf(stderr, "calling s->engines here\n");
         struct term *save_result = result;

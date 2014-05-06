@@ -88,12 +88,13 @@ struct engine {
 
 struct scanner {
     const char *buffer;
+    size_t size;
     int position;
     int reset_position;
     struct engine *engines;
 };
 
-struct scanner *scanner_new(const char *);
+struct scanner *scanner_new(const char *, size_t);
 struct term *scan(struct scanner *);
 void unscan(struct scanner *);
 void commit(struct scanner *);

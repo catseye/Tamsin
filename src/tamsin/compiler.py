@@ -45,16 +45,14 @@ int main(int argc, char **argv) {
     assert(input != NULL);
     while (!feof(input)) {
         int num_read = fread(buffer, 1, 8192, input);
-        buffer[num_read] = '\0';
-        /* TODO: 8-bit clean please */
         if (bufterm == NULL) {
-            bufterm = term_new_from_cstring(buffer);
+            bufterm = term_new(buffer, num_read);
         } else {
-            bufterm = term_concat(bufterm, term_new_from_cstring(buffer));
+            bufterm = term_concat(bufterm, term_new(buffer, num_read));
         }
     }
 
-    scanner = scanner_new(bufterm->atom);
+    scanner = scanner_new(bufterm->atom, bufterm->size);
     ok = 0;
     result = term_new_from_cstring("nil");
 
@@ -354,12 +352,14 @@ class Compiler(object):
             else:
                 self.emit('struct term *%s = %s;' % (name, term.name))
         elif isinstance(term, Atom):
-            self.emit('struct term *%s = term_new_from_cstring("%s");' %
-                (name, escaped(term.text))
+            escaped_text = escaped(term.text)
+            self.emit('struct term *%s = term_new("%s", %s);' %
+                (name, escaped_text, len(escaped_text))
             )
         elif isinstance(term, Constructor):
-            self.emit('struct term *%s = term_new_from_cstring("%s");' %
-                (name, escaped(term.tag))
+            escaped_tag = escaped(term.tag)
+            self.emit('struct term *%s = term_new("%s", %s);' %
+                (name, escaped_tag, len(escaped_tag))
             )
             i = 0
             # TODO: reversed() is provisional
@@ -373,11 +373,17 @@ class Compiler(object):
 
 
 def escaped(s):
-    escaped_name = s
-    escaped_name = escaped_name.replace("\\", r"\\")
-    escaped_name = escaped_name.replace("\n", r"\n")
-    escaped_name = escaped_name.replace("\r", r"\r")
-    escaped_name = escaped_name.replace("\t", r"\t")
-    escaped_name = escaped_name.replace('"', r'\"')
-    return escaped_name
-
+    a = ''
+    i = 0
+    while i < len(s):
+        c = s[i]
+        if ord(c) < 32 or ord(c) > 126:
+            a += "\\x%02x" % ord(c)
+        elif c == "\\":
+            a += r"\\"
+        elif c == '"':
+            a += r'\"'
+        else:
+            a += c
+        i += 1
+    return a

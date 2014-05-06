@@ -72,11 +72,12 @@ class Scanner(EventProducer):
         k = ord(self.buffer[self.position])
         if k & 0b11100000 == 0b11000000:
             return 2
-        if k & 0b11110000 == 0b11100000:
+        elif k & 0b11110000 == 0b11100000:
             return 3
-        if k & 0b11111000 == 0b11110000:
+        elif k & 0b11111000 == 0b11110000:
             return 4
-        return 0
+        else:
+            return 0
         
     def chop(self, amount):
         """Returns amount characters from the buffer and advances the
