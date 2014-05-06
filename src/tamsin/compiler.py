@@ -58,11 +58,14 @@ int main(int argc, char **argv) {
 
     program_main0();
 
+    result = term_flatten(result);
     if (ok) {
-        fprintf(stdout, "%s\n", term_flatten(result)->atom);
+        fwrite(result->atom, 1, result->size, stdout);
+        fwrite("\n", 1, 1, stdout);
         exit(0);
     } else {
-        fprintf(stderr, "%s\n", term_flatten(result)->atom);
+        fwrite(result->atom, 1, result->size, stderr);
+        fwrite("\n", 1, 1, stderr);
         exit(1);
     }
 }
@@ -352,14 +355,12 @@ class Compiler(object):
             else:
                 self.emit('struct term *%s = %s;' % (name, term.name))
         elif isinstance(term, Atom):
-            escaped_text = escaped(term.text)
             self.emit('struct term *%s = term_new("%s", %s);' %
-                (name, escaped_text, len(escaped_text))
+                (name, escaped(term.text), len(term.text))
             )
         elif isinstance(term, Constructor):
-            escaped_tag = escaped(term.tag)
             self.emit('struct term *%s = term_new("%s", %s);' %
-                (name, escaped_tag, len(escaped_tag))
+                (name, escaped(term.tag), len(term.tag))
             )
             i = 0
             # TODO: reversed() is provisional

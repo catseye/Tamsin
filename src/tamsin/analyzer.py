@@ -80,7 +80,10 @@ class Analyzer(EventProducer):
             self.collect_locals(ast.rule, locals_)
         elif isinstance(ast, Call):
             pass
-        elif isinstance(ast, Send) or isinstance(ast, Set):
+        elif isinstance(ast, Send):
+            self.collect_locals(ast.rule, locals_)
+            locals_.add(ast.variable.name)
+        elif isinstance(ast, Set):
             locals_.add(ast.variable.name)
         elif isinstance(ast, Not) or isinstance(ast, While):
             self.collect_locals(ast.rule, locals_)

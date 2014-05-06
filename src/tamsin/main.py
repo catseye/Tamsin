@@ -59,9 +59,11 @@ def main(args, tamsin_dir='.'):
             parser = Parser(contents)
             ast = parser.grammar()
         print str(ast)
+    elif args[0] == 'analyze':
+        ast = parse_and_check(args[1])
+        print repr(ast)
     elif args[0] == 'compile':
         ast = parse_and_check(args[1])
-        #print >>sys.stderr, repr(ast)
         compiler = Compiler(ast, sys.stdout)
         compiler.compile()
     elif args[0] == 'loadngo':
