@@ -1,12 +1,6 @@
 TODO
 ----
 
-*   module syntax:
-    
-        module {
-            prod = expr.
-        }
-
 *   including files, library files should be **handled by the implementation**
 *   document, too, the implementation-dependent nature of input and output
 *   define a stringify-repr operation on terms

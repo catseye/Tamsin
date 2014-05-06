@@ -231,6 +231,10 @@ class Interpreter(EventProducer):
             args = ast.args
             ibuf = ast.ibuf
             prods = self.program.find_productions(prodref)
+            if prods is None:
+                print repr(prodref)
+                sys.exit(0)
+                #raise NotImplementedError(repr(prodref))
             self.event('call_candidates', prods)
             args = [self.interpret(x)[1] for x in args]
             args = [x.expand(self.context) for x in args]

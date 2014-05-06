@@ -4,8 +4,8 @@
 # Distributed under a BSD-style license; see LICENSE for more information.
 
 from tamsin.ast import (
-    Program, Production, And, Or, Not, While, Call, Send, Set, Concat, Using,
-    Prodref, Fold
+    Module, Program, Production, And, Or, Not, While, Call, Prodref,
+    Send, Set, Concat, Using, Fold
 )
 from tamsin.term import (
     Atom, Constructor, Variable, EOF
@@ -52,9 +52,13 @@ class Parser(EventProducer):
         while self.consume('@'):
             self.pragma()
             self.expect('.')
-        prods = [self.production()]
+        prods = []
         while self.peek() is not EOF:
-            prods.append(self.production())
+            prod_or_mod = self.prod_or_mod()
+            if isinstance(prod_or_mod, Production):
+                prods.append(prod_or_mod)
+            else:
+                print repr(prod_or_mod)
         return Program({}, prods)
 
     def pragma(self):
@@ -70,8 +74,20 @@ class Parser(EventProducer):
         else:
             self.error('pragma')
 
-    def production(self):
+    def prod_or_mod(self):
         name = self.consume_any()
+        if self.consume("{"):
+            prods = []
+            while self.peek() is not EOF and self.peek() != "}":
+                prods.append(self.production())
+            self.expect("}")
+            return Module(name, prods)
+        else:
+            return self.production(name)
+        
+    def production(self, name=None):
+        if name is None:
+            name = self.consume_any()        
         formals = []
         if self.consume('('):
             if self.peek() != ')':
@@ -85,8 +101,7 @@ class Parser(EventProducer):
         self.expect('=')
         body = self.expr0()
         self.expect('.')
-        ast = Production(name, 0, formals, (), body)
-        return ast
+        return Production(name, 0, formals, (), body)
 
     def expr0(self):
         lhs = self.expr1()
@@ -171,10 +186,14 @@ class Parser(EventProducer):
             if self.peek()[0].isupper() or self.peek()[0] == "'":
                 t = self.texpr()
                 return Call(Prodref('$', 'return'), [t], None)
+            prohibit_aliases = False
+            if self.peek() == ':':
+                # bleah
+                prohibit_aliases = True
             prodref = self.prodref()
             args = []
             name = prodref.name
-            if prodref.module == '' and name in self.aliases:
+            if not prohibit_aliases and prodref.module == '' and name in self.aliases:
                 arity = self.aliases[name][0]
                 prodref = self.aliases[name][1]
                 i = 0
@@ -195,14 +214,15 @@ class Parser(EventProducer):
             return Call(prodref, args, ibuf)
 
     def prodref(self):
-        module = ''
         if self.consume('$'):
             module = '$'
             self.expect(':')
             name = self.consume_any()
         elif self.consume(':'):
+            module = ''
             name = self.consume_any()
         else:
+            module = ''
             name = self.consume_any()
             if self.consume(':'):
                 module = name

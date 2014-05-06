@@ -906,8 +906,7 @@ Modules
 -------
 
 This section needs to be written.  Basically, a module is a set of
-productions inside a namespace.  In the future you may be able to write
-and import modules, but for now, there is one built-in module called `$`
+productions inside a namespace.  There is one built-in module called `$`
 and it is always in scope.
 
 The module `$` contains a number of built-in productions which would not
@@ -989,15 +988,26 @@ the contents in-between will be returned as an atom.  Otherwise fails.
 So, you can name your own productions the same as built-in keywords, as
 long as you call them with `:foo`.
 
-     | main = :set.
-     | set = :return.
-     | return = :fail.
-     | fail = :print.
-     | print = :any.
-     | any = :eof.
-     | eof = "x".
-     + x
-     = x
+    | main = :set.
+    | set = :return.
+    | return = :fail.
+    | fail = :print.
+    | print = :any.
+    | any = :eof.
+    | eof = "x".
+    + x
+    = x
+
+### Defining a Module ###
+
+Here is the syntax for defining a module:
+
+        | module {
+        |   expr = "x".
+        | }
+        | main = module:expr.
+        + x
+        = x
 
 Evaluation
 ----------

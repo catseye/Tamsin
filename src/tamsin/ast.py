@@ -22,6 +22,18 @@ class AST(object):
         raise NotImplementedError(repr(self))
 
 
+class Module(AST):
+    def __init__(self, name, prodlist):
+        self.name = name
+        self.prodlist = prodlist
+    
+    def __repr__(self):
+        return "Module(%r, %r)" % (self.name, self.prodlist)
+
+    def __str__(self):
+        return "module(%s, %s)" % (self.name, format_list(self.prodlist))
+
+
 class Program(AST):
     def __init__(self, prodmap, prodlist):
         self.prodmap = prodmap
