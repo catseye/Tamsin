@@ -410,8 +410,10 @@ def escaped(s):
     i = 0
     while i < len(s):
         c = s[i]
+        # gcc appears to have some issues with \xXX... perhaps it
+        # consumes greater or fewer than two hex digits...?
         if ord(c) < 32 or ord(c) > 126:
-            a += "\\x%02x" % ord(c)
+            a += "\\%03o" % ord(c)
         elif c == "\\":
             a += r"\\"
         elif c == '"':

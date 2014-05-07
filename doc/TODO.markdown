@@ -1,8 +1,6 @@
 TODO
 ----
 
-*   `$:repr` in libtamsin
-*   `$:reverse` in libtamsin
 *   `$:deep_reverse`
 *   use Tamsin repr in error messages
 *   use Tamsin repr in `tamsin parse` and in `tamsin-parser.tamsin`

@@ -198,6 +198,8 @@ int escapes_needed(const char *text, size_t size) {
     return needed;
 }
 
+const char *HEX = "0123456789abcdef";
+
 struct term *term_escape_atom(const struct term *t) {
     int needed = escapes_needed(t->atom, t->size);
 
@@ -210,8 +212,8 @@ struct term *term_escape_atom(const struct term *t) {
             if (t->atom[i] < 32 || t->atom[i] > 126) {
                 buffer[j++] = '\\';
                 buffer[j++] = 'x';
-                buffer[j++] = '0';
-                buffer[j++] = '0';
+                buffer[j++] = HEX[(t->atom[i] >> 4) & 0x0f];
+                buffer[j++] = HEX[t->atom[i] & 0x0f];
             } else if (t->atom[i] == '\'' || t->atom[i] == '\\') {
                 buffer[j++] = '\\';
                 buffer[j++] = t->atom[i];
