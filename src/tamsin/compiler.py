@@ -264,9 +264,8 @@ class Compiler(object):
                     self.emit_term(args[1], "tempr")
                     self.emit('result = tamsin_equal(templ, tempr);')
                 elif name == 'repr':
-                    # a partial solution
                     self.emit_term(args[0], "temp")
-                    self.emit('result = term_flatten(temp);')
+                    self.emit('result = term_repr(temp);')
                     self.emit('ok = 1;')
                 elif name == 'reverse':
                     self.emit_term(args[0], "templist")

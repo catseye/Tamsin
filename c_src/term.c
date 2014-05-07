@@ -151,7 +151,7 @@ const struct term COMMA = { ", ", 2, NULL, NULL };
 struct term *term_flatten(const struct term *t) {
     struct term_list *tl;
 
-    if (t->storing != NULL) {          /* it's an variable; get its value */
+    if (t->storing != NULL) {          /* it's a variable; get its value */
         return term_flatten(t->storing);
     } else if (t->subterms == NULL) {  /* it's an atom */
         return term_new(t->atom, t->size);
@@ -175,6 +175,53 @@ void term_fput(const struct term *t, FILE *f) {
     struct term *flat = term_flatten(t);
 
     fwrite(flat->atom, 1, flat->size, f);
+}
+
+int is_printable_bare(const char *text, size_t size) {
+    int i;
+
+    for (i = 0; i < size; i++) {
+        if (text[i] < 32 || text[i] > 126 ||
+            text[i] == '\'' || text[i] == '\\') {
+            return 0;
+        }
+    }
+    
+    return 1;
+}
+
+struct term *term_escape(const struct term *t) {
+    return term_new(t->atom, t->size); /* NOT TRUE */
+}
+
+struct term *term_repr(const struct term *t) {
+    struct term_list *tl;
+
+    if (t->storing != NULL) {          /* it's a variable; get its value */
+        return term_repr(t->storing);
+    } else if (t->subterms == NULL) {  /* it's an atom */
+        if (is_printable_bare(t->atom, t->size)) {
+            return term_new(t->atom, t->size);
+        } else {
+            struct term *r = term_new("'", 1);
+            r = term_concat(r, term_escape(t));
+            r = term_concat(r, term_new("'", 1));
+            return r;
+        }
+    } else {                           /* it's a constructor */
+        struct term *n;
+        /* we clone t here to get an atom from its tag */
+        n = term_concat(term_new(t->atom, t->size), &BRA);
+
+        for (tl = t->subterms; tl != NULL; tl = tl->next) {
+            n = term_concat(n, term_repr(tl->term));
+            if (tl->next != NULL) {
+                n = term_concat(n, &COMMA);
+            }
+        }
+        n = term_concat(n, &KET);
+        return n;
+    }
 }
 
 int term_match(struct term *pattern, struct term *ground)

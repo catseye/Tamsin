@@ -80,12 +80,20 @@ struct term *term_find_variable(const struct term *, const char *);
 struct term *term_concat(const struct term *, const struct term *);
 
 /*
- * Given a possibly non-"atom" term, return a "atom" term consisting of
+ * Given a possibly non-atom term, return an atom consisting of
  * contents of the given term flattened into an atom.
  *
  * The returned term is always newly allocated.
  */
 struct term *term_flatten(const struct term *);
+
+/*
+ * Given a possibly non-atom term, return an atom consisting of
+ * contents of the given term reprified into an atom.
+ *
+ * The returned term is always newly allocated.
+ */
+struct term *term_repr(const struct term *);
 
 void term_fput(const struct term *, FILE *);
 int term_match(struct term *, struct term *);
