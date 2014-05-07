@@ -558,7 +558,7 @@ But it must be quoted, or Tamsin'll think it's a production.
 
     | main = S ← blerf & "x" & frelb.
     + x
-    ? no 'frelb' production defined
+    ? no 'main:frelb' production defined
 
 ### Aside: ← vs. → ###
 
@@ -1047,26 +1047,60 @@ Here is the syntax for defining a module:
     + yy@
     = @
 
-`:foo` (and indeed `foo`) should refer to the production `foo` in the
-same module as the production where it's called from, but this doesn't work yet.
+`:foo` (and indeed `foo`) refers to the production `foo` in the
+same module as the production where it's called from.
 
-      | blah {
-      |   expr = :goo.
-      |   goo = "y".
-      | }
-      | main = blah:expr.
-      | goo = "x".
-      + y
-      = y
-      
-      | blah {
-      |   expr = goo.
-      |   goo = "y".
-      | }
-      | main = blah:expr.
-      | goo = "x".
-      + y
-      = y
+    | blah {
+    |   expr = :goo.
+    |   goo = "y".
+    | }
+    | main = blah:expr.
+    | goo = "x".
+    + y
+    = y
+    
+    | foo {
+    |   expr = goo.
+    |   goo = "6".
+    | }
+    | bar {
+    |   expr = goo.
+    |   goo = "4".
+    | }
+    | main = foo:goo & bar:goo.
+    + 64
+    = 4
+
+Can't call a production or a module that doesn't exist.
+
+    | foo {
+    |   expr = goo.
+    |   goo = "6".
+    | }
+    | main = foo:zoo.
+    ? no 'foo:zoo' production defined
+    
+    | foo {
+    |   expr = goo.
+    |   goo = "6".
+    | }
+    | main = zoo.
+    ? no 'main:zoo' production defined
+    
+    | foo {
+    |   expr = goo.
+    |   goo = "6".
+    | }
+    | main = boo:zoo.
+    ? no 'boo' module defined
+
+You can have a Tamsin program that is all modules and no productions, but
+you can't run it.
+
+    | foo {
+    |   main = "6".
+    | }
+    ? no 'main:main' production defined
 
 Evaluation
 ----------

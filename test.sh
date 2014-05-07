@@ -7,11 +7,12 @@ FILES="
 if [ x$1 = x ]; then
    $0 interpreter &&
    $0 compiler &&
-   $0 scanner &&
-   $0 parser &&
-   $0 ast &&
+   #$0 scanner &&
+   #$0 parser &&
+   #$0 ast &&
    $0 compiledast &&
    $0 compileddesugarer &&
+   $0 micro &&
    echo "All tests passed!"
    exit $?
 fi
@@ -90,8 +91,7 @@ elif [ x$1 = xmicro ]; then
     echo "Testing Micro-Tamsin interpreter..."
     FILES="doc/Micro-Tamsin.markdown"
     falderal $VERBOSE --substring-error fixture/micro-tamsin.markdown $FILES
-elif [ x$1 = xinterpreter ]; then
+elif [ x$1 = xinterpreter -o x$1 = xi ]; then
     echo "Testing Python interpreter..."
     falderal $VERBOSE --substring-error fixture/tamsin.py.markdown $FILES
 fi
-    

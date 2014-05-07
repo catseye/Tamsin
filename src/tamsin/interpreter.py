@@ -234,7 +234,7 @@ class Interpreter(EventProducer):
                 return self.interpret(ast.rhs)
         elif isinstance(ast, Call):
             prodref = ast.prodref
-            #prodmod = prodref[1]
+            module = prodref.module
             name = prodref.name
             args = ast.args
             ibuf = ast.ibuf

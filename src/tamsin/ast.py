@@ -30,8 +30,7 @@ class Program(AST):
     def find_productions(self, prodref):
         mod = prodref.module
         name = prodref.name
-        if mod == '':
-            mod = 'main'
+        assert mod != ''
         if mod == '$':
             formals = {
                 'equal': [Variable('L'), Variable('R')],
@@ -45,11 +44,16 @@ class Program(AST):
             }.get(name, [])
             return [Production('$.%s' % name, 0, formals, [], None)]
         else:
-            return self.modmap[mod].prodmap[name]
+            if mod not in self.modmap:
+                raise KeyError("no '%s' module defined" % mod)
+            prodmap = self.modmap[mod].prodmap
+            if name not in prodmap:
+                raise KeyError("no '%s:%s' production defined" % (mod, name))
+            return prodmap[name]
 
     
     def __repr__(self):
-        return "Program(%r, %r, %r, %r)" % (
+        return "Program(%r, %r)" % (
             self.modmap, self.modlist
         )
 
