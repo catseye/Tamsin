@@ -190,5 +190,8 @@ class Variable(Term):
     def __repr__(self):
         return "Variable(%r)" % (self.name)
 
+    def repr(self):
+        return self.name
+
     def match(self, value):
         return {self.name: value}

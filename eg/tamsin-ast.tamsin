@@ -4,7 +4,7 @@
 # Note that this may contain support for some features which are not in
 # the current released or pre-released version.
 
-main = grammar using scanner.
+main = (grammar using scanner) → P & $:repr(P).
 
 grammar    = {"@" & pragma & "."} &
              LM ← nil &

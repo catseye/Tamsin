@@ -6,6 +6,9 @@ Tamsin Release History
 
 ### language ###
 
+*   (Partially) defined what it means to `reprify` a term.
+*   Clarified some matters as implementation-defined.
+
 ### modules ###
 
 *   `$:equal` now does deep equality of arbitrary ground terms.
@@ -16,6 +19,7 @@ Tamsin Release History
 
 *   Virtually full support for user-defined modules.  (Not external ones
     yet though.)
+*   `tamsin parse` and `tamsin-parser.tamsin` output reprified terms.
 
 0.2
 ---

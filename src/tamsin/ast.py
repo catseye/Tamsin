@@ -4,17 +4,20 @@
 # Distributed under a BSD-style license; see LICENSE for more information.
 
 # Note that __str__ and __repr__ perform very different tasks:
-# __str__ : make a string that looks like a Tamsin term
+# __str__ : make a string that looks like a Tamsin term (reprify)
 # __repr__ : make a string that is valid Python code for constructing the AST
 
-from tamsin.term import Variable
+from tamsin.term import Term, Variable
 
 
 def format_list(l):
     if len(l) == 0:
         return 'nil'
     else:
-        return 'list(%s, %s)' % (l[0], format_list(l[1:]))
+        s = l[0]
+        if isinstance(l[0], Term):
+            s = l[0].repr()
+        return 'list(%s, %s)' % (s, format_list(l[1:]))
 
 
 class AST(object):
@@ -137,6 +140,7 @@ class And(AST):
             self.rhs
         )
 
+
 class Or(AST):
     def __init__(self, lhs, rhs):
         self.lhs = lhs
@@ -253,10 +257,13 @@ class Concat(AST):
         )
 
     def __str__(self):
-        return "%s%s" % (
-            self.lhs,
-            self.rhs
-        )
+        lhs = self.lhs
+        if isinstance(lhs, Term):
+            lhs = lhs.repr()
+        rhs = self.rhs
+        if isinstance(rhs, Term):
+            rhs = rhs.repr()
+        return "%s%s" % (lhs, rhs)
 
 
 class Using(AST):
@@ -294,5 +301,5 @@ class Fold(AST):
     def __str__(self):
         return "fold(%s, %s)" % (
             self.rule,
-            self.initial
+            self.initial.repr()
         )
