@@ -160,3 +160,29 @@ struct term *tamsin_mkterm(const struct term *atom, const struct term *list) {
     tamsin_mkterm_r(t, list);
     return t;
 }
+
+struct term *tamsin_reverse(const struct term *list, struct term *sentinel) {
+    struct term *result = sentinel;
+    struct term *head = list;  /* save */
+
+    while (list->subterms != NULL && term_atoms_equal(list, head)) {
+        struct term *new = term_new(head->atom, head->size);
+        term_add_subterm(new, result);
+        term_add_subterm(new, list->subterms->term);  /* TODO: copy? */
+        result = new;
+        if (list->subterms->next == NULL) {
+            break; /* TODO: test case for this!  list(a, list(b)) */
+        }
+        list = list->subterms->next->term;
+    }
+
+    if (term_match(l, sentinel)) {
+        return result;
+        ok = 1;
+    } else {
+        struct term *result = term_new_from_cstring("malformed list ");
+        result = term_concat(result, term_flatten(head));
+        ok = 0;
+        return result;
+    }
+}

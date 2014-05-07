@@ -24,6 +24,15 @@ void scanner_byte_engine(void) {
 void scanner_utf8_engine(void) {
 }
 
+#define UTF_8_LEN_2_MASK  0xe0    /* 0b11100000 */
+#define UTF_8_LEN_2_BITS  0xc0    /* 0b11000000 */
+
+#define UTF_8_LEN_3_MASK  0xf0    /* 0b11110000 */
+#define UTF_8_LEN_3_BITS  0xe0    /* 0b11100000 */
+
+#define UTF_8_LEN_4_MASK  0xf8    /* 0b11111000 */
+#define UTF_8_LEN_4_BITS  0xf0    /* 0b11110000 */
+
 struct term *scan(struct scanner *s) {
     if (s->position >= s->size) {
         return &tamsin_EOF;
@@ -33,11 +42,11 @@ struct term *scan(struct scanner *s) {
         int len = 1;
         struct term *t;
 
-        if ((c & 0b11100000) == 0b11000000) {
+        if ((c & UTF_8_LEN_2_MASK) == UTF_8_LEN_2_BITS) {
             len = 2;
-        } else if ((c & 0b11110000) == 0b11100000) {
+        } else if ((c & UTF_8_LEN_3_MASK) == UTF_8_LEN_3_BITS) {
             len = 3;
-        } else if ((c & 0b11111000) == 0b11110000) {
+        } else if ((c & UTF_8_LEN_4_MASK) == UTF_8_LEN_4_BITS) {
             len = 4;
         }
 
@@ -90,7 +99,7 @@ void scanner_push_engine(struct scanner *s, void (*production)(void)) {
 }
 
 void scanner_pop_engine(struct scanner *s) {
-    struct engine *e = s->engines;
+    /* struct engine *e = s->engines; */
 
     s->engines = s->engines->next;
     /* engine_free(e); */

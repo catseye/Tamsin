@@ -126,6 +126,7 @@ struct term *tamsin_unquote(const struct term *,
                             const struct term *, const struct term *);
 struct term *tamsin_mkterm(const struct term *, const struct term *);
 struct term *tamsin_equal(struct term *, struct term *);
+struct term *tamsin_reverse(const struct term *, struct term *);
 
 
 /* --------------------------------------------------------------- */
