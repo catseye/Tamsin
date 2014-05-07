@@ -127,9 +127,7 @@ class Interpreter(EventProducer):
                     return (False, Atom("expected '%s, found '%s'" %
                                         (bindings['X'], self.scanner.peek())))
             elif name == '$.equal':
-                if (isinstance(bindings['L'], Atom) and
-                    isinstance(bindings['R'], Atom) and
-                    bindings['L'].text == bindings['R'].text):
+                if bindings['L'].equal(bindings['R']):
                     return (True, bindings['L'])
                 else:
                     return (False, Atom("term '%s' does not equal '%s'" %

@@ -70,6 +70,9 @@ class Term(object):
     def match(self, value):
         raise NotImplementedError
 
+    def equal(self, value):
+        raise NotImplementedError
+        
 
 class EOF(Term):
     def __str__(self):
@@ -83,6 +86,10 @@ class EOF(Term):
 
     def match(self, value):
         return {} if value is self else False
+
+    def equal(self, value):
+        raise value is self
+
 
 EOF = EOF()  # unique
 
@@ -108,6 +115,9 @@ class Atom(Term):
             return {}
         else:
             return False
+
+    def equal(self, value):
+        return isinstance(value, Atom) and self.text == value.text
 
 
 class Constructor(Term):
@@ -139,10 +149,10 @@ class Constructor(Term):
     def match(self, value):
         if not isinstance(value, Constructor):
             return False
-        i = 0
         if self.tag != value.tag:
             return False
         bindings = {}
+        i = 0
         while i < len(self.contents):
             b = self.contents[i].match(value.contents[i])
             if b == False:
@@ -150,6 +160,20 @@ class Constructor(Term):
             bindings.update(b)
             i += 1
         return bindings
+
+    def equal(self, value):
+        if not isinstance(value, Constructor):
+            return False
+        if self.tag != value.tag:
+            return False
+        if len(self.contents) != len(value.contents):
+            return False
+        i = 0
+        while i < len(self.contents):
+            if not self.contents[i].equal(value.contents[i]):
+                return False
+            i += 1
+        return True
 
 
 class Variable(Term):
