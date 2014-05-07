@@ -119,6 +119,11 @@ class Atom(Term):
     def equal(self, value):
         return isinstance(value, Atom) and self.text == value.text
 
+    def reversed(self, sentinel):
+        if self.equal(sentinel):
+            return self
+        raise ValueError("malformed list")
+
 
 class Constructor(Term):
     def __init__(self, tag, contents):
@@ -174,6 +179,17 @@ class Constructor(Term):
                 return False
             i += 1
         return True
+
+    def reversed(self, sentinel):
+        acc = sentinel
+        l = self
+        tag = self.tag
+        while isinstance(l, Constructor) and l.tag == tag:
+            acc = Constructor(tag, [l.contents[0], acc])
+            l = l.contents[1]
+        if not l.equal(sentinel):
+            raise ValueError("malformed list")
+        return acc
 
 
 class Variable(Term):

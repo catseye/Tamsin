@@ -41,6 +41,7 @@ class Program(AST):
                 'print': [Variable('X')],
                 'repr': [Variable('X')],
                 'return': [Variable('X')],
+                'reverse': [Variable('X'), Variable('E')],
                 'startswith': [Variable('X')],
                 'unquote': [Variable('X'), Variable('L'), Variable('R')],
             }.get(name, [])

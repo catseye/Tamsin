@@ -151,6 +151,8 @@ class Interpreter(EventProducer):
                     return (True, Constructor(t.text, contents))
                 else:
                     return (True, t)
+            elif name == '$.reverse':
+                return (True, bindings['X'].reversed(bindings['E']))
             elif name == '$.print':
                 val = bindings['X']
                 sys.stdout.write(str(val))

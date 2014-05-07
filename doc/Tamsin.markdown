@@ -1081,15 +1081,48 @@ result of reprifying that term (see section on Terms, above.)
     | main = $:repr(a(b(c('qu\'are\\')))).
     = a(b(c('qu\'are\\')))
 
-Here's `$:reverse`, which takes an atom X, an atom E, and a term of the form
+Here's `$:reverse`, which takes a term E, and a term of the form
 `X(a, X(b, ... X(z, E)) ... )`, and returns a term of the form
-`X(z, X(y, ... X(a, E)) ... )`.  X is often `cons` or `pair` or `list`
-and E is often `nil`.
+`X(z, X(y, ... X(a, E)) ... )`.  The constructor tag X is often `cons`
+or `pair` or `list` and E is often `nil`.
 
-    | main = $:reverse(list, nil, list(a, list(b, list(c, nil)))).
-    = list(c, list(b, list(a, nil))).
+    | main = $:reverse(list(a, list(b, list(c, nil))), nil).
+    = list(c, list(b, list(a, nil)))
 
-X must be an atom and E should probably be an atom.
+E need not be an atom.
+
+    | main = $:reverse(list(a, list(b, list(c, hello(world)))), hello(world)).
+    = list(c, list(b, list(a, hello(world))))
+
+If the tail of the list isn't E, an error occurs.
+
+    | main = $:reverse(list(a, list(b, list(c, hello(world)))), nil).
+    ? malformed list
+
+The constructor tag can be anything.
+
+    | main = $:reverse(foo(a, foo(b, foo(c, nil))), nil).
+    = foo(c, foo(b, foo(a, nil)))
+
+But if there is a different constructor somewhere in the list, well,
+
+    | main = $:reverse(foo(a, fooz(b, foo(c, nil))), nil).
+    ? malformed list
+
+You can reverse an empty list.
+
+    | main = $:reverse(nil, nil).
+    = nil
+
+But of course,
+
+    | main = $:reverse(nil, zilch).
+    ? malformed list
+
+This is a shallow reverse.  Embedded lists are not reversed.
+
+    | main = $:reverse(list(a, list(list(1, list(2, nil)), list(c, nil))), nil).
+    = list(c, list(list(1, list(2, nil)), list(a, nil)))
 
 ### Back to Modules in General ###
 
@@ -1777,3 +1810,4 @@ Appendix C. System Module
 *   `$:startswith(X)` — consumes token if it starts with first character of X
 *   `$:unquote(X,L,R)` — consumes nothing; returns X without quotes if X is quoted
 *   `$:utf8` — UTF-8-encoded Unicode character scanner production
+    
