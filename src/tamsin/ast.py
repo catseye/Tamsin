@@ -39,6 +39,7 @@ class Program(AST):
                 'fail': [Variable('X')],
                 'mkterm': [Variable('T'), Variable('L')],
                 'print': [Variable('X')],
+                'repr': [Variable('X')],
                 'return': [Variable('X')],
                 'startswith': [Variable('X')],
                 'unquote': [Variable('X'), Variable('L'), Variable('R')],

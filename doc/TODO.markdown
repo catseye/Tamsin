@@ -53,6 +53,17 @@ TODO
 *   use `←` instead of `@`, why not?
 *   `;` = `&`?
 *   be generous and allow `"xyz"` in term context position?
+*   denotational semantics sugar!  something like...
+    
+        ⟦add α β⟧ = $:add(⟦α⟧, ⟦β⟧).
+    
+    and/or
+
+        ⟦add α β⟧(σ) = $:add(⟦α⟧(σ), ⟦β⟧(σ)).
+        ⟦var α⟧(σ) = fetch(σ, α).
+
+    of course, DS is a bit fast-and-loose about actual parsing...
+    but the syntax looks mighty fine.
 
 ### wild ideas ###    
 

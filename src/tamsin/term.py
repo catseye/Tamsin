@@ -3,9 +3,31 @@
 # Copyright (c)2014 Chris Pressey, Cat's Eye Technologies.
 # Distributed under a BSD-style license; see LICENSE for more information.
 
-# Note that __str__ and __repr__ perform very different tasks:
-# __str__ : make a string that looks like a Tamsin term
+# Note that __str__ and __repr__ and repr perform very different tasks:
+# __str__ : flattening operation on Tamsin terms
+# repr: reprifying operation on Tamsin terms
 # __repr__ : make a string that is valid Python code for constructing the Term
+
+
+import string
+
+PRINTABLE = (' !"#$%&()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_'
+             '`abcdefghijklmnopqrstuvwxyz{|}~')
+
+def repr_escape(t):
+    if all(c in PRINTABLE for c in t):
+        return t
+    s = ''
+    for c in t:
+        if c == "'":
+            s += r"\'"
+        elif c == "\\":
+            s += r"\\"
+        elif ord(c) > 31 and ord(c) < 127:
+            s += c
+        else:
+            s += r"\x%02x" % ord(c)
+    return "'%s'" % s
 
 
 class Term(object):
@@ -24,6 +46,9 @@ class Term(object):
         raise NotImplementedError
 
     def __repr__(self):
+        raise NotImplementedError
+
+    def repr(self):
         raise NotImplementedError
 
     @classmethod
@@ -53,6 +78,9 @@ class EOF(Term):
     def __repr__(self):
         return "EOF"
 
+    def repr(self):
+        return str(self)
+
     def match(self, value):
         return {} if value is self else False
 
@@ -69,6 +97,9 @@ class Atom(Term):
 
     def __repr__(self):
         return "Atom(%r)" % (self.text)
+
+    def repr(self):
+        return repr_escape(self.text)
 
     def match(self, value):
         if not isinstance(value, Atom):
@@ -99,6 +130,11 @@ class Constructor(Term):
 
     def __repr__(self):
         return "Constructor(%r, %r)" % (self.tag, self.contents)
+
+    def repr(self):
+        return "%s(%s)" % (
+            repr_escape(self.tag), ', '.join([x.repr() for x in self.contents])
+        )
 
     def match(self, value):
         if not isinstance(value, Constructor):

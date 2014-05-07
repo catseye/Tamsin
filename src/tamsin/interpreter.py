@@ -162,6 +162,10 @@ class Interpreter(EventProducer):
                 val = bindings['X']
                 sys.stdout.write(str(val))
                 return (True, val)
+            elif name == '$.repr':
+                val = bindings['X']
+                val = Atom(val.repr())
+                return (True, val)
             elif name == '$.fail':
                 return (False, bindings['X'])
             elif name.startswith('$.'):

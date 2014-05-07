@@ -390,7 +390,8 @@ newline.)
         "'" · T′ · "'"
     
     where T′ is T with all non-printable and non-ASCII bytes replaced by
-    their associated `\xXX` escape sequences (for example, newline is `\x0a`);
+    their associated `\xXX` escape sequences (for example, newline is `\x0a`),
+    and with `\` replaced by `\\` and `'` replaced by `\'`;
 
 *   repr(T) when T is a constructor S(T1,...Tn) whose text of
     S consists only of printable ASCII characters, results in
@@ -1069,31 +1070,16 @@ result of reprifying that term (see section on Terms, above.)
     = 016fooZZ
 
     | main = $:repr('016\n016').
-    = '016\n016'
+    = '016\x0a016'
 
     | main = $:repr(hello(there, world)).
     = hello(there, world)
 
     | main = V ← '♡' & $:repr('□'(there, V)).
-    = '□'(there, '♡')
+    = '\xe2\x96\xa1'(there, '\xe2\x99\xa1')
 
-Here's `$:repr`, which takes a term and results in an atom which is the
-result of reprifying that term (see section on Terms, above.)
-
-    | main = $:repr(hello).
-    = hello
-
-    | main = $:repr('016fooZZ').
-    = 016fooZZ
-
-    | main = $:repr('016\n016').
-    = '016\n016'
-
-    | main = $:repr(hello(there, world)).
-    = hello(there, world)
-
-    | main = V ← '♡' & $:repr('□'(there, V)).
-    = '□'(there, '♡')
+    | main = $:repr(a(b(c('qu\'are\\')))).
+    = a(b(c('qu\'are\\')))
 
 Here's `$:reverse`, which takes an atom X, an atom E, and a term of the form
 `X(a, X(b, ... X(z, E)) ... )`, and returns a term of the form
