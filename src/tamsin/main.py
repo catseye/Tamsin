@@ -74,7 +74,15 @@ def main(args, tamsin_dir='.'):
         ast = parse_and_check(args[1])
         print repr(ast)
     elif args[0] == 'compile':
-        ast = parse_and_check(args[1])
+        ast = None
+        for arg in args[1:]:
+            next_ast = parse_and_check(arg, analyze=False)
+            if ast is None:
+                ast = next_ast
+            else:
+                ast.incorporate(next_ast)
+        analyzer = Analyzer(ast)
+        ast = analyzer.analyze(ast)
         compiler = Compiler(ast, sys.stdout)
         compiler.compile()
     elif args[0] == 'loadngo':

@@ -2,127 +2,17 @@
 # (see doc/Micro-Tamsin.markdown.)
 # Distributed under a BSD-style license; see LICENSE.
 
+# REQUIRES lib/tamsin_scanner.tamsin
+
+# NOTE we can't use the parser module, as we have odd requirements --
+# we need our input before eof, but the parser module expects eof at the end.
+# (we should deal with that more intelligently in the future)
+
 # Note that this may contain support for some features which are not in
 # the current released or pre-released version.
 
-main = (grammar using scanner) → AST &
-       interpret(AST, AST).
-
-grammar    = {"@" & pragma & "."} &
-             LM ← nil &
-             LP ← nil &
-             {
-                 module → M & LM ← list(M, LM)
-                 | production → P & "." & LP ← list(P, LP)
-             } &
-             "/" &
-             reverse(LP, nil) → LP &
-             LM ← list(module(main, LP), LM) &
-             reverse(LM, nil) → LM &
-             return program(LM).
-module     = word → N &
-             "{" &
-             LP ← nil &
-             {production → P & "." & LP ← list(P, LP)} &
-             "}" &
-             reverse(LP, nil) → LP &
-             return module(N, LP).
-production = word → N &
-             F ← nil &
-             [formals → F] &
-             "=" &
-             expr0 → E &
-             return production(N, F, E).
-formals    = L ← nil &
-             "(" &
-             term → T & L ← list(T, L) &
-             {"," & term → T & L ← list(T, L)} &
-             ")" &
-             reverse(L, nil) → L &
-             return L
-             | "[" & expr0 & "]".
-expr0      = expr1 → L & {("|" | "||") & expr1 → R & L ← or(L, R)} & L.
-expr1      = expr2 → L & {("&" | "&&") & expr2 → R & L ← and(L, R)} & L.
-expr2      = expr3 → L & ["using" & prodref → P & L ← using(L, P)] & L.
-expr3      = expr4 → L & [("→" | "->") & variable → V & L ← send(L, V)] & L.
-expr4      = expr5 → L & ("/" & texpr → T & return fold(L, T) | return L).
-expr5      = "(" & expr0 → E & ")" & E
-           | "[" & expr0 → E & "]" & return or(E, call(prodref('$', return), list(nil, nil)))
-           | "{" & expr0 → E & "}" & return while(E)
-           | "!" & expr5 → E & return not(E)
-           | "set" & variable → V & "=" & texpr → T & return set(V, T)
-           | "return" & texpr → T & return call(prodref('$', return), list(T, nil))
-           | "fail" & texpr → T & return call(prodref('$', fail), list(T, nil))
-           | "print" & texpr → T & return call(prodref('$', print), list(T, nil))
-           | "any" & return call(prodref('$', any), nil)
-           | "eof" & return call(prodref('$', 'eof'), nil)
-           | terminal
-           | variable → V & 
-             (("←" | "<-") & texpr → T & return set(V, T)
-             | return call(prodref('$', return), list(V, nil)))
-           | sq_string → T &
-             $:unquote(T, '\'', '\'') → T &
-             return call(prodref('$', return), list(T, nil))
-           | prodref → P &
-             L ← nil &
-             ["(" &
-              texpr → T & L ← list(T, L) &
-              {"," & texpr → T & L ← list(T, L)} &
-              ")"] &
-             reverse(L, nil) → L &
-             return call(P, L).
-
-texpr      = term → T & {"+" & term → S & T ← T + S} & T.
-term       = atom → A & L ← nil & ["(" &
-                                    term → T & L ← list(T, L) &
-                                      {"," & term → T & L ← list(T, L)} &
-                                    ")"] &
-                                    reverse(L, nil) → L &
-                                    $:mkterm(A, L)
-           | variable.
-atom       = word
-           | sq_string → T &
-             $:unquote(T, '\'', '\'').
-
-terminal   = terminal0 → T & return call(prodref('$', expect), list(T, nil)).
-terminal0  = dq_string → T & $:unquote(T, '"', '"') → T & T
-           | ("«" | "<<") & texpr → T & ("»" | ">>") & T.
-
-prodref    = M ← '' & [modref → M & ":"] & word → P & return prodref(M, P).
-modref     = "$".
-pragma     = "alias" & word & word & "=" & prodref
-           | "unalias" & word.
-
-word = $:alnum.
-variable = $:upper.
-sq_string = $:startswith('\'').
-dq_string = $:startswith('"').
-
-reverse(list(H, T), A) = reverse(T, list(H, A)).
-reverse(nil, A) = A.
-
-scanner = scan using $:utf8.
-scan = skippable & (symbol | str('\'') | str('"') | sc_word).
-symbol = "&" & "&" & '&&'
-       | "|" & "|" & '||'
-       | "-" & ">" & '->'
-       | "<" & "-" & '<-'
-       | "<" & "<" & '<<'
-       | ">" & ">" & '>>'
-       | "=" | "(" | ")" | "[" | "]" | "{" | "}" | "!" | "|" | "&" | ":"
-       | "/" | "," | "." | "@" | "+" | "$" | "→" | "←" | "«" | "»".
-str(Q) = «Q» → T & {(escape | !«Q» & any) → S & T ← T + S} & «Q» &
-         return T + Q.
-escape = "\\" & "n" & '\n'
-       | "\\" & "r" & '\r'
-       | "\\" & "t" & '\t'
-       | "\\" & "\\" & '\\'
-       | "\\" & "'" & '\''
-       | "\\" & "\"" & '"'.
-sc_word = $:alnum → T & { ($:alnum | "_") → S & T ← T + S } & T.
-skippable = {whitespace | comment}.
-whitespace = " " | "\t" | "\r" | "\n".
-comment = "#" & {!"\n" & any} & "\n".
+# main = tamsin_parser:parse → AST & interpret(AST, AST).
+main = parse → AST & interpret(AST, AST).
 
 interpret(PROGRAM, program(L)) =
     find_main_module_prods(L) → MMP &
@@ -152,3 +42,109 @@ find_prod(N1, list(production(N2, F, E),T)) =
     $:equal(N1, N2) & return production(N2, F, E) | find_prod(N1, T).
 find_prod(N, list(H,T)) = find_prod(N, T).
 find_prod(N, nil) = fail 'no ' + N + ' production'.
+
+# tamsin-parser.tamsin doesn't understand modules yet...
+# tamsin_parser {
+
+  parse    = grammar using tamsin_scanner:scanner.
+  grammar  = {"@" & pragma & "."} &
+             LM ← nil &
+             LP ← nil &
+             {
+                 production → P & "." & LP ← list(P, LP)
+                 | module → M & LM ← list(M, LM)
+             } &
+             "/" &
+             reverse(LP, nil) → LP &
+             #
+             # If we leave this line like this:
+             # MM ← module(main, LP) &
+             # we have *some* sort of problem in the desugarer, which
+             # *might* have to do with a conflict between uses of the
+             # list constructor.  or might not...
+             # ...so we include in directly in the next constructor
+             #
+             LM ← list(module(main, LP), LM) &
+             reverse(LM, nil) → LM &
+             return program(LM).
+  module   = word → N &
+             LP ← nil &
+             "{" &
+             {production → P & "." & LP ← list(P, LP)} &
+             "}" &
+             reverse(LP, nil) → LP &
+             return module(N, LP).
+  production = word → N &
+             F ← nil &
+             [formals → F] &
+             "=" &
+             expr0 → E &
+             return production(N, F, E).
+  formals  = L ← nil &
+             "(" &
+             term → T & L ← list(T, L) &
+             {"," & term → T & L ← list(T, L)} &
+             ")" &
+             reverse(L, nil) → L &
+             return L
+             | "[" & expr0 & "]".
+  expr0    = expr1 → L & {("|" | "||") & expr1 → R & L ← or(L, R)} & L.
+  expr1    = expr2 → L & {("&" | "&&") & expr2 → R & L ← and(L, R)} & L.
+  expr2    = expr3 → L & ["using" & prodref → P & L ← using(L, P)] & L.
+  expr3    = expr4 → L & [("→" | "->") & variable → V & L ← send(L, V)] & L.
+  expr4    = expr5 → L & ("/" & texpr → T & return fold(L, T) | return L).
+  expr5    = "(" & expr0 → E & ")" & E
+           | "[" & expr0 → E & "]" & return or(E, call(prodref('$', return), list(nil, nil)))
+           | "{" & expr0 → E & "}" & return while(E)
+           | "!" & expr5 → E & return not(E)
+           | "set" & variable → V & "=" & texpr → T & return set(V, T)
+           | "return" & texpr → T & return call(prodref('$', return), list(T, nil))
+           | "fail" & texpr → T & return call(prodref('$', fail), list(T, nil))
+           | "print" & texpr → T & return call(prodref('$', print), list(T, nil))
+           | "any" & return call(prodref('$', any), nil)
+           | "eof" & return call(prodref('$', 'eof'), nil)
+           | terminal
+           | variable → V & 
+             (("←" | "<-") & texpr → T & return set(V, T)
+             | return call(prodref('$', return), list(V, nil)))
+           | sq_string → T &
+             $:unquote(T, '\'', '\'') → T &
+             return call(prodref('$', return), list(T, nil))
+           | prodref → P &
+             L ← nil &
+             ["(" &
+              texpr → T & L ← list(T, L) &
+              {"," & texpr → T & L ← list(T, L)} &
+              ")"] &
+             reverse(L, nil) → L &
+             return call(P, L).
+
+  texpr    = term → T & {"+" & term → S & T ← T + S} & T.
+  term     = atom → A & L ← nil & ["(" &
+                                    term → T & L ← list(T, L) &
+                                      {"," & term → T & L ← list(T, L)} &
+                                    ")"] &
+                                    reverse(L, nil) → L &
+                                    $:mkterm(A, L)
+           | variable.
+  atom     = word
+           | sq_string → T &
+             $:unquote(T, '\'', '\'').
+
+  terminal = terminal0 → T & return call(prodref('$', expect), list(T, nil)).
+  terminal0 = dq_string → T & $:unquote(T, '"', '"') → T & T
+           | ("«" | "<<") & texpr → T & ("»" | ">>") & T.
+
+  prodref  = M ← '' & [modref → M & ":"] & word → P & return prodref(M, P).
+  modref   = "$" | word.
+  pragma   = "alias" & word & word & "=" & prodref
+           | "unalias" & word.
+
+  word = $:alnum.
+  variable = $:upper.
+  sq_string = $:startswith('\'').
+  dq_string = $:startswith('"').
+
+  reverse(list(H, T), A) = reverse(T, list(H, A)).
+  reverse(nil, A) = A.
+# }

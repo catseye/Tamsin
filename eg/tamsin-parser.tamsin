@@ -1,9 +1,21 @@
-# Parser for Tamsin AST, written in Tamsin.
+# Syntax-correctness parser for Tamsin, written in Tamsin.
 # Distributed under a BSD-style license; see LICENSE.
 
-# Note that this contains support for some features which are not in 0.1.
+# REQUIRES lib/tamsin_scanner.tamsin
 
-main = grammar using scanner.
+# Note that this does not produce any data as a result beyond "yes, it
+# parsed" or "no, there was a syntax error".  This exists to provide a
+# clean, readable grammar.  For actual use, see lib/tamsin_parser.tamsin,
+# which parses a Tamsin program to an AST.
+
+# If there is any discrepancy between the language this grammar accepts,
+# and the language lib/tamsin_parser.tamsin accepts, lib/tamsin_parser.tamsin
+# takes precedence.
+
+# Note that this may contain support for some features which are not in
+# the current released or pre-released version.
+
+main = grammar using tamsin_scanner:scanner.
 
 grammar    = {"@" & pragma & "."} &
              production & "." &
@@ -34,7 +46,7 @@ atom       = word | sq_string.
 terminal   = dq_string
            | ("«" | "<<") & texpr & ("»" | ">>").
 prodref    = [modref & ":"] & word.
-modref     = "$".
+modref     = "$" | word.
 pragma     = "alias" & word & word & "=" & prodref
            | "unalias" & word.
 
@@ -42,26 +54,3 @@ word = $:alnum.
 variable = $:upper.
 sq_string = $:startswith('\'').
 dq_string = $:startswith('"').
-
-scanner = scan using $:utf8.
-scan = skippable & (symbol | str('\'') | str('"') | sc_word).
-symbol = "&" & "&" & '&&'
-       | "|" & "|" & '||'
-       | "-" & ">" & '->'
-       | "<" & "-" & '<-'
-       | "<" & "<" & '<<'
-       | ">" & ">" & '>>'
-       | "=" | "(" | ")" | "[" | "]" | "{" | "}" | "!" | "|" | "&" | ":"
-       | "/" | "," | "." | "@" | "+" | "$" | "→" | "←" | "«" | "»".
-str(Q) = «Q» → T & {(escape | !«Q» & any) → S & T ← T + S} & «Q» &
-         return T + Q.
-escape = "\\" & "n" & '\n'
-       | "\\" & "r" & '\r'
-       | "\\" & "t" & '\t'
-       | "\\" & "\\" & '\\'
-       | "\\" & "'" & '\''
-       | "\\" & "\"" & '"'.
-sc_word = $:alnum → T & { ($:alnum | "_") → S & T ← T + S } & T.
-skippable = {whitespace | comment}.
-whitespace = " " | "\t" | "\r" | "\n".
-comment = "#" & {!"\n" & any} & "\n".
