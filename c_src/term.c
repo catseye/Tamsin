@@ -197,3 +197,25 @@ int term_match(struct term *pattern, struct term *ground)
     DEBUG(f, "subterms match, YES\n");
     return 1;
 }
+
+struct term *term_reverse(const struct term *list, struct term *sentinel) {
+    struct term *result = sentinel;
+    struct term *head = list;  /* save */
+
+    while (list->subterms != NULL && term_atoms_equal(list, head)) {
+        struct term *new = term_new(head->atom, head->size);
+        term_add_subterm(new, result);
+        term_add_subterm(new, list->subterms->term);  /* TODO: copy? */
+        result = new;
+        if (list->subterms->next == NULL) {
+            break; /* TODO: test case for this!  list(a, list(b)) */
+        }
+        list = list->subterms->next->term;
+    }
+    
+    /*
+        if l.match(sentinel) == False:
+            raise ValueError("malformed list %s" % l.repr())
+        return acc
+    */
+}
