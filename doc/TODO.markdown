@@ -1,43 +1,51 @@
 TODO
 ----
 
-*   including files, library files should be **handled by the implementation**
-*   document, too, the implementation-dependent nature of input and output
-*   define a stringify-repr operation on terms
-*   stronger tests for scanner, parser: dump all falderal testbodies to files
-*   option for ref interp to not output result (or by default, don't)
-*   "mini" interpreter that handles variables (ouch)
+*   `$:repr` and tests for it, and use it in error messages?
+*   `$:reverse` as a builtin
+*   `$:equal` should be proper equality of terms
+
+### vm support ###
+
+*   `$:add`, `$:sub`, `$:mul`, `$:div`, `$:rem`, for atoms which look like
+    integers: `["-"] & {$:digit}`.
+*   `$:tell` and `$:seek` the implicit buffer -- for VM's etc -- although
+    note, this may have scary consequences when combined with backtracking
+*   non-backtracking versions of `|` and `{}`?  `~|` and `~{}`
+*   `$.alpha`
+*   `$.digit`
 
 ### lower-priority ###
 
-*   `$:reverse` as a builtin
-*   `$:equal` should be proper equality of terms
+*   stronger tests for scanner, parser: dump all falderal testbodies to files
+*   option for ref interp to not output result (or by default, don't)
+*   "mini" interpreter that handles variables (ouch)
+*   SOME WAY TO DISTINGUISH PRODUCTIONS WHICH MAY CONSUME INPUT AND
+    PRODUCTIONS WHICH NEVER CONSUME INPUT (in the `$` module, and generally).
+*   actual numeric values, rather than atoms-which-contain-only-digits
 *   error reporting: line number
 *   error handling: skip to next sentinel and report more errors
 *   module-level updatable variables.
 *   tests for failing when utf8 scanner hits badly-encoded utf8
-*   numeric values... somehow.  number('65') = #65.  decode(ascii, 'A') = #65.
-*   `$:tell` and `$:seek` the implicit buffer -- for VM's etc -- although
-    note, this may have scary consequences when combined with backtracking
 *   `using` production x: x's scanner defaults to utf8, not x
 *   figure out good way to do aliases with the Tamsin-parser-in-Tamsin
     (dynamic grammar is really more of a Zz thing...)
 *   should be able to import ("open") other modules into your own namespace.
 *   meta-circular implementation of compiler!
+*   `@` a la Haskell in pattern-match:
+    *   `walk(T@tree(L,R)) = ...`
 *   pattern match in send:
-    *   `fields → F@fields(H,T) & H`
+    *   `fields → fields(H,T) & H`
 *   maps, implemented as hash tables.
     *   `Table ← {} & fields → F@fields(H,T) & Table[H] ← T`
 *   on that topic — production values and/or lambda productions...
 *   pretty-print AST for error messages
-*   `$.alpha`
-*   `$.digit`
 *   don't consume stdin until asked to scan.
 *   full term expressions -- maybe
-*   non-backtracking versions of `|` and `{}`?  `|!` and `{}!`
 
 ### wild ideas ###    
 
+*   lowercase greek letters are variables too!
 *   regex-like shortcuts: `\w` for "word", `\s` for "whitespace", etc.
 *   EOF and nil are the same?  it would make sense... call it `end`?
 *   productions with names with arbitrary characters in them.

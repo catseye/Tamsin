@@ -366,7 +366,7 @@ Ground terms support an operation called _flattening_ (also sometimes called
 stringification).
 
 *   flatten(T) when T is an atom, results in that atom;
-*   flatten(T) when T is a constructor results in
+*   flatten(T) when T is a constructor S(T1,...Tn) results in an atom comprising
     
         S · "(" · flatten(T1) · "," · ... · "," · flatten(Tn) · ")"
     
@@ -374,6 +374,36 @@ stringification).
 *   flatten(EOF) is not defined.
 
 The result of flattening is always an atom.
+
+Ground terms also support an operation called _repring_ (also sometimes called
+"readable stringification").  It is very similar to flattening, but results
+in an atom, the contents of which is always a legal syntactic atom in term
+context in a Tamsin program.  (Flattening a term does not always guarantee
+this because, for example, flattening `'\n'` results in an actual newline.)
+
+*   repr(T) when T is an atom whose text consists only of printable ASCII
+    characters, results in T;
+
+*   repr(T) when T is any other atom results in an atom comprising
+    
+        "'" · T′ · "'"
+    
+    where T′ is T with all non-printable and non-ASCII bytes replaced by
+    their associated `\xXX` escape sequences (for example, newline is `\x0a`);
+
+*   repr(T) when T is a constructor S(T1,...Tn) whose text of
+    S consists only of printable ASCII characters, results in
+
+        S · "(" · repr(T1) · "," · ... · "," · repr(Tn) · ")"
+
+*   repr(T) when T is a any other constructor S(T1,...Tn) results in
+    
+        "'" · S′ · "'" · "(" · repr(T1) · ", " · ... · ", " · repr(Tn) · ")"
+    
+    where `·` is string concatenation and S′ is defined the same way as T′ is
+    for atoms;
+    
+*   repr(EOF) is `EOF`.
 
 The input to a Tamsin production is, in fact, an atom (although it's hardly
 atomic; "atom" is sort of a quaint moniker for the role these objects play.)
@@ -1593,6 +1623,33 @@ its own scanner.  It switches back to the production scanner when done.
     | subprogram = "stu" & "uuu".
     + abc    stu   uuu bac
     = bac
+
+Implementation-Defined Matters
+------------------------------
+
+This specification intentionally leaves some things undefined.  The reference
+implementation chooses to do these things a certain way, but this choice
+should not be regarded as normative.  Other implementations may do them a
+different way, and still claim to be implementations of the Tamsin language.
+
+These things are:
+    
+*   where the input to the implicit buffer that the `main` production works
+    on comes from
+*   where the final result of evaluating a Tamsin program goes to
+*   what external modules are available to the program
+*   how and when external modules are loaded
+*   how external modules are stored externally and located for loading
+
+The reference interpreter `tamsin` chooses the following:
+
+*   input comes from Python's idea of standard input
+*   the final result is `print`ed to Python's idea of standard output
+*   external modules... are not yet supported
+
+This all implies that some external modules are optional, and that a good
+chunk of `$` may in fact be optional, and those productions might be moved
+to a different module, or `$` itself may in fact be optional.
 
 Appendix A. Grammar
 -------------------
