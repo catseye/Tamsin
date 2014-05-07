@@ -26,6 +26,25 @@ class Term(object):
     def __repr__(self):
         raise NotImplementedError
 
+    @classmethod
+    def match_all(_class, patterns, values):
+        """Returns a dict of bindings if all values match all patterns,
+        or False if there was a mismatch.
+
+        """
+        i = 0
+        bindings = {}
+        while i < len(patterns):
+            sub = patterns[i].match(values[i])
+            if sub == False:
+                return False
+            bindings.update(sub)
+            i += 1
+        return bindings
+
+    def match(self, value):
+        raise NotImplementedError
+
 
 class EOF(Term):
     def __str__(self):
@@ -33,6 +52,9 @@ class EOF(Term):
 
     def __repr__(self):
         return "EOF"
+
+    def match(self, value):
+        return {} if value is self else False
 
 EOF = EOF()  # unique
 
@@ -47,6 +69,14 @@ class Atom(Term):
 
     def __repr__(self):
         return "Atom(%r)" % (self.text)
+
+    def match(self, value):
+        if not isinstance(value, Atom):
+            return False
+        if self.text == value.text:
+            return {}
+        else:
+            return False
 
 
 class Constructor(Term):
@@ -70,6 +100,21 @@ class Constructor(Term):
     def __repr__(self):
         return "Constructor(%r, %r)" % (self.tag, self.contents)
 
+    def match(self, value):
+        if not isinstance(value, Constructor):
+            return False
+        i = 0
+        if self.tag != value.tag:
+            return False
+        bindings = {}
+        while i < len(self.contents):
+            b = self.contents[i].match(value.contents[i])
+            if b == False:
+                return False
+            bindings.update(b)
+            i += 1
+        return bindings
+
 
 class Variable(Term):
     def __init__(self, name):
@@ -88,3 +133,6 @@ class Variable(Term):
 
     def __repr__(self):
         return "Variable(%r)" % (self.name)
+
+    def match(self, value):
+        return {self.name: value}

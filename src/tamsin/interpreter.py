@@ -66,48 +66,6 @@ class Interpreter(EventProducer):
             self.program, self.scanner, self.context
         )
 
-    ### term matching ---------------------------------------- ###
-    
-    def match_all(self, patterns, values):
-        """Returns a dict of bindings if all values match all patterns,
-        or False if there was a mismatch.
-
-        """
-        i = 0
-        bindings = {}
-        while i < len(patterns):
-            sub = self.match_terms(patterns[i], values[i])
-            if sub == False:
-                return False
-            bindings.update(sub)
-            i += 1
-        return bindings
-    
-    def match_terms(self, pattern, value):
-        """Returns a dict of bindings if the values matches the pattern,
-        or False if there was a mismatch.
-
-        """
-        if isinstance(pattern, Variable):
-            # TODO: check existing binding!  oh well, assume unique for now.
-            return {pattern.name: value}
-        elif isinstance(pattern, Atom) and isinstance(value, Atom):
-            return {} if pattern.text == value.text else False
-        elif isinstance(pattern, Atom) or isinstance(value, Atom):
-            return False
-        elif isinstance(pattern, Constructor):
-            i = 0
-            if pattern.tag != value.tag:
-                return False
-            bindings = {}
-            while i < len(pattern.contents):
-                b = self.match_terms(pattern.contents[i], value.contents[i])
-                if b == False:
-                    return False
-                bindings.update(b)
-                i += 1
-            return bindings
-
     ### interpreter proper ---------------------------------- ###
 
     def interpret_program(self, program):
@@ -250,7 +208,7 @@ class Interpreter(EventProducer):
                 formals = prod.formals
                 self.event('call_args', formals, args)
                 if isinstance(formals, list):
-                    bindings = self.match_all(formals, args)
+                    bindings = Term.match_all(formals, args)
                     self.event('call_bindings', bindings)
                     if bindings != False:
                         if ibuf is not None:
