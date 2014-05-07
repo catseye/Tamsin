@@ -3,7 +3,6 @@
 # Copyright (c)2014 Chris Pressey, Cat's Eye Technologies.
 # Distributed under a BSD-style license; see LICENSE for more information.
 
-import codecs
 import os
 import subprocess
 import sys

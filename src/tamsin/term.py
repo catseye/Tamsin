@@ -9,10 +9,9 @@
 # __repr__ : make a string that is valid Python code for constructing the Term
 
 
-import string
-
 PRINTABLE = (' !"#$%&()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_'
              '`abcdefghijklmnopqrstuvwxyz{|}~')
+
 
 def repr_escape(t):
     if all(c in PRINTABLE for c in t):
@@ -69,9 +68,6 @@ class Term(object):
 
     def match(self, value):
         raise NotImplementedError
-
-    def equal(self, value):
-        raise NotImplementedError
         
 
 class EOF(Term):
@@ -86,9 +82,6 @@ class EOF(Term):
 
     def match(self, value):
         return {} if value is self else False
-
-    def equal(self, value):
-        raise value is self
 
 
 EOF = EOF()  # unique
@@ -116,11 +109,8 @@ class Atom(Term):
         else:
             return False
 
-    def equal(self, value):
-        return isinstance(value, Atom) and self.text == value.text
-
     def reversed(self, sentinel):
-        if self.equal(sentinel):
+        if self.match(sentinel) != False:
             return self
         raise ValueError("malformed list")
 
@@ -156,6 +146,8 @@ class Constructor(Term):
             return False
         if self.tag != value.tag:
             return False
+        if len(self.contents) != len(value.contents):
+            return False
         bindings = {}
         i = 0
         while i < len(self.contents):
@@ -166,20 +158,6 @@ class Constructor(Term):
             i += 1
         return bindings
 
-    def equal(self, value):
-        if not isinstance(value, Constructor):
-            return False
-        if self.tag != value.tag:
-            return False
-        if len(self.contents) != len(value.contents):
-            return False
-        i = 0
-        while i < len(self.contents):
-            if not self.contents[i].equal(value.contents[i]):
-                return False
-            i += 1
-        return True
-
     def reversed(self, sentinel):
         acc = sentinel
         l = self
@@ -187,8 +165,8 @@ class Constructor(Term):
         while isinstance(l, Constructor) and l.tag == tag:
             acc = Constructor(tag, [l.contents[0], acc])
             l = l.contents[1]
-        if not l.equal(sentinel):
-            raise ValueError("malformed list")
+        if l.match(sentinel) == False:
+            raise ValueError("malformed list %s" % l.repr())
         return acc
 
 

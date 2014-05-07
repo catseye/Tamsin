@@ -1,10 +1,16 @@
 TODO
 ----
 
-*   `$:repr` and tests for it, and use it in error messages?
-*   `$:reverse` as a builtin
-*   `$:equal` should be proper equality of terms
+*   `$:repr` in libtamsin
+*   `$:reverse` in libtamsin
+*   `$:deep_reverse`
+*   use Tamsin repr in error messages
+*   use Tamsin repr in `tamsin parse` and in `tamsin-parser.tamsin`
+
+### more tests ###
+
 *   tests that `'V'` is not a variable and that `'EOF'` is not EOF
+*   tests for failing when utf8 scanner hits badly-encoded utf8
 
 ### vm support ###
 
@@ -18,6 +24,8 @@ TODO
 
 ### lower-priority ###
 
+*   make it possible to recover from more errors using `|` (don't throw
+    exceptions so often)
 *   fold: often you want to construct terms "the other way" or to "join"
     a string with delimiters; can we handle those cases too?
 *   stronger tests for scanner, parser: dump all falderal testbodies to files
@@ -29,7 +37,6 @@ TODO
 *   error reporting: line number
 *   error handling: skip to next sentinel and report more errors
 *   module-level updatable variables.
-*   tests for failing when utf8 scanner hits badly-encoded utf8
 *   `using` production x: x's scanner defaults to utf8, not x
 *   figure out good way to do aliases with the Tamsin-parser-in-Tamsin
     (dynamic grammar is really more of a Zz thing...)

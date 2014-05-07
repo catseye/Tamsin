@@ -125,7 +125,7 @@ void tamsin_startswith(struct scanner *, const char *);
 struct term *tamsin_unquote(const struct term *,
                             const struct term *, const struct term *);
 struct term *tamsin_mkterm(const struct term *, const struct term *);
-struct term *tamsin_equal(struct term *, const struct term *);
+struct term *tamsin_equal(struct term *, struct term *);
 
 
 /* --------------------------------------------------------------- */

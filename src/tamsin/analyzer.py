@@ -7,7 +7,7 @@ from tamsin.ast import (
     Program, Production, Module, And, Or, Not, While, Call, Send, Set,
     Variable, Using, Concat, Prodref
 )
-from tamsin.term import Term, Atom, Constructor
+from tamsin.term import Term
 from tamsin.event import EventProducer
 
 

@@ -407,6 +407,9 @@ newline.)
     
 *   repr(EOF) is `EOF`.
 
+Note that in the above, "printable" means ASCII characters between 32 ` `
+(space) and 126 `~`.  It is not dependent on locale.
+
 The input to a Tamsin production is, in fact, an atom (although it's hardly
 atomic; "atom" is sort of a quaint moniker for the role these objects play.)
 

@@ -128,23 +128,24 @@ struct term *tamsin_unquote(const struct term *q,
     }
 }
 
-struct term *tamsin_equal(struct term *l, const struct term *r) {
-    struct term *result;
-
-    if (term_atoms_equal(l, r)) {
+struct term *tamsin_equal(struct term *l, struct term *r) {
+    if (term_match(l, r)) {
         ok = 1;
         return l;
+    } else {
+        struct term *result;
+        
+        result = term_new_from_cstring("term '");
+        result = term_concat(result, term_flatten(l));
+        result = term_concat(result, term_new_from_cstring(
+            "' does not equal '"
+        ));
+        result = term_concat(result, term_flatten(r));
+        result = term_concat(result, &APOS);
+        ok = 0;
+   
+        return result;
     }
-    result = term_new_from_cstring("term '");
-    result = term_concat(result, l);
-    result = term_concat(result, term_new_from_cstring(
-        "' does not equal '"
-    ));
-    result = term_concat(result, r);
-    result = term_concat(result, &APOS);
-    ok = 0;
-
-    return result;
 }
 
 struct term *tamsin_mkterm_r(struct term *t, const struct term *list) {

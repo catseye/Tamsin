@@ -6,10 +6,10 @@
 import sys
 
 from tamsin.ast import (
-    Module, Production, And, Or, Not, While, Call, Send, Set, Using,
+    Production, And, Or, Not, While, Call, Send, Set, Using,
     Prodref, Concat
 )
-from tamsin.term import Term, EOF, Atom, Constructor, Variable
+from tamsin.term import Term, EOF, Atom, Constructor
 from tamsin.event import EventProducer
 from tamsin.scanner import (
     ByteScannerEngine, UTF8ScannerEngine, ProductionScannerEngine
@@ -127,7 +127,7 @@ class Interpreter(EventProducer):
                     return (False, Atom("expected '%s, found '%s'" %
                                         (bindings['X'], self.scanner.peek())))
             elif name == '$.equal':
-                if bindings['L'].equal(bindings['R']):
+                if bindings['L'].match(bindings['R']) != False:
                     return (True, bindings['L'])
                 else:
                     return (False, Atom("term '%s' does not equal '%s'" %
@@ -200,15 +200,12 @@ class Interpreter(EventProducer):
                 return self.interpret(ast.rhs)
         elif isinstance(ast, Call):
             prodref = ast.prodref
-            module = prodref.module
             name = prodref.name
             args = ast.args
             ibuf = ast.ibuf
             prods = self.program.find_productions(prodref)
             if prods is None:
-                print repr(prodref)
-                sys.exit(0)
-                #raise NotImplementedError(repr(prodref))
+                raise ValueError("internal error: unresolved: " + repr(prodref))
             self.event('call_candidates', prods)
             args = [self.interpret(x)[1] for x in args]
             args = [x.expand(self.context) for x in args]
