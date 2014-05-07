@@ -33,6 +33,7 @@ class Program(AST):
         assert mod != ''
         if mod == '$':
             formals = {
+                'emit': [Variable('X')],
                 'equal': [Variable('L'), Variable('R')],
                 'expect': [Variable('X')],
                 'fail': [Variable('X')],

@@ -5,22 +5,20 @@ TODO
 *   document, too, the implementation-dependent nature of input and output
 *   define a stringify-repr operation on terms
 *   stronger tests for scanner, parser: dump all falderal testbodies to files
-*   `emit` alongside `print`.
-*   `emit` must be 8-bit clean, i.e. can emit `\x00`
-*   tests for `emit`
 *   option for ref interp to not output result (or by default, don't)
 *   "mini" interpreter that handles variables (ouch)
 
 ### lower-priority ###
 
-*   $:reverse as a builtin
-*   $:equal should be proper equality of terms
+*   `$:reverse` as a builtin
+*   `$:equal` should be proper equality of terms
 *   error reporting: line number
 *   error handling: skip to next sentinel and report more errors
 *   module-level updatable variables.
 *   tests for failing when utf8 scanner hits badly-encoded utf8
 *   numeric values... somehow.  number('65') = #65.  decode(ascii, 'A') = #65.
-*   tell/rewind the implicit buffer -- for VM's etc
+*   `$:tell` and `$:seek` the implicit buffer -- for VM's etc -- although
+    note, this may have scary consequences when combined with backtracking
 *   `using` production x: x's scanner defaults to utf8, not x
 *   figure out good way to do aliases with the Tamsin-parser-in-Tamsin
     (dynamic grammar is really more of a Zz thing...)

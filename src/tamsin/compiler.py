@@ -238,6 +238,11 @@ class Compiler(object):
                     self.emit("term_fput(result, stdout);")
                     self.emit(r'fwrite("\n", 1, 1, stdout);')
                     self.emit("ok = 1;")
+                elif name == 'emit':
+                    self.emit_term(args[0], "temp")
+                    self.emit("result = temp;")
+                    self.emit("term_fput(result, stdout);")
+                    self.emit("ok = 1;")
                 elif name == 'eof':
                     self.emit('tamsin_eof(scanner);')
                 elif name == 'any':

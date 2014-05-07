@@ -158,6 +158,10 @@ class Interpreter(EventProducer):
                 sys.stdout.write(str(val))
                 sys.stdout.write("\n")
                 return (True, val)
+            elif name == '$.emit':
+                val = bindings['X']
+                sys.stdout.write(str(val))
+                return (True, val)
             elif name == '$.fail':
                 return (False, bindings['X'])
             elif name.startswith('$.'):

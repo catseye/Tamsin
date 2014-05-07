@@ -995,6 +995,23 @@ that atom.  Otherwise fails.
     | main = $:equal('hi', 'lo').
     ? term 'hi' does not equal 'lo'
 
+Here's `$:emit`, which takes an atom and outputs it.  Unlike `print`, which
+is meant for debugging, `$:emit` does not append a newline, and is 8-bit-clean.
+
+    | main = $:emit('`') & $:emit('wo') & ''.
+    = `wo
+
+    -> Tests for functionality "Intepret Tamsin program (pre- & post-processed)"
+    
+`$:emit` is 8-bit-clean: if the atom contains unprintable characters,
+`$:emit` does not try to make them readable by UTF-8 or any other encoding.
+(`print` may or may not do this, depending on the implementation.)
+
+    | main = $:emit('\x00\x01\x02\xfd\xfe\xff') & ''.
+    = 000102fdfeff0a
+
+    -> Tests for functionality "Intepret Tamsin program"
+
 ### Back to Modules in General ###
 
 `:foo` always means production `foo` in the current module.
