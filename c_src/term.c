@@ -177,21 +177,58 @@ void term_fput(const struct term *t, FILE *f) {
     fwrite(flat->atom, 1, flat->size, f);
 }
 
-int is_printable_bare(const char *text, size_t size) {
+/*
+ * Returns the number of extra bytes we'll need to allocate to escape
+ * this string.  0 indicates it does not need to be escaped.
+ * control/high character = +3  (\xXX)
+ * apos or backslash      = +1  (\\, \')
+ */
+int escapes_needed(const char *text, size_t size) {
     int i;
+    int needed = 0;
 
     for (i = 0; i < size; i++) {
-        if (text[i] < 32 || text[i] > 126 ||
-            text[i] == '\'' || text[i] == '\\') {
-            return 0;
+        if (text[i] < 32 || text[i] > 126) {
+            needed += 3;
+        } else if (text[i] == '\'' || text[i] == '\\') {
+            needed += 1;
         }
     }
     
-    return 1;
+    return needed;
 }
 
-struct term *term_escape(const struct term *t) {
-    return term_new(t->atom, t->size); /* NOT TRUE */
+struct term *term_escape_atom(const struct term *t) {
+    int needed = escapes_needed(t->atom, t->size);
+
+    if (needed > 0) {
+        struct term *r;
+        char *buffer = malloc(t->size + needed);
+        int i, j = 0;
+
+        for (i = 0; i < t->size; i++) {
+            if (t->atom[i] < 32 || t->atom[i] > 126) {
+                buffer[j++] = '\\';
+                buffer[j++] = 'x';
+                buffer[j++] = '0';
+                buffer[j++] = '0';
+            } else if (t->atom[i] == '\'' || t->atom[i] == '\\') {
+                buffer[j++] = '\\';
+                buffer[j++] = t->atom[i];
+            } else {
+                buffer[j++] = t->atom[i];
+            }
+        }
+        assert(j == t->size + needed);
+
+        r  = term_new("'", 1);
+        r = term_concat(r, term_new(buffer, t->size + needed));
+        r = term_concat(r, term_new("'", 1));
+        free(buffer);
+        return r;
+    }
+
+    return term_new(t->atom, t->size);
 }
 
 struct term *term_repr(const struct term *t) {
@@ -200,18 +237,10 @@ struct term *term_repr(const struct term *t) {
     if (t->storing != NULL) {          /* it's a variable; get its value */
         return term_repr(t->storing);
     } else if (t->subterms == NULL) {  /* it's an atom */
-        if (is_printable_bare(t->atom, t->size)) {
-            return term_new(t->atom, t->size);
-        } else {
-            struct term *r = term_new("'", 1);
-            r = term_concat(r, term_escape(t));
-            r = term_concat(r, term_new("'", 1));
-            return r;
-        }
+        return term_escape_atom(t);
     } else {                           /* it's a constructor */
         struct term *n;
-        /* we clone t here to get an atom from its tag */
-        n = term_concat(term_new(t->atom, t->size), &BRA);
+        n = term_concat(term_escape_atom(t), &BRA);
 
         for (tl = t->subterms; tl != NULL; tl = tl->next) {
             n = term_concat(n, term_repr(tl->term));
