@@ -11,6 +11,8 @@
  * buffer overflows.
  */
 
+struct term tamsin_EOF = {"EOF", 3, NULL, NULL};
+
 struct term *term_new(const char *atom, size_t size) {
     struct term *t;
 
@@ -20,9 +22,40 @@ struct term *term_new(const char *atom, size_t size) {
     t->size = size;
     t->storing = NULL;
     t->subterms = NULL;
+
+    return t;
 }
 
-struct term tamsin_EOF = {"EOF", 3, NULL, NULL};
+void termlist_add_term(struct term_list **tl, struct term *term) {
+    struct term_list *new_tl;
+
+    new_tl = malloc(sizeof(struct term_list));
+    new_tl->term = term;
+    new_tl->next = *tl;
+    *tl = new_tl;
+}
+
+/*
+ * Must be a ground term.
+ */
+struct term *term_deep_copy(const struct term *term) {
+    struct term *new_term = term_new(term->atom, term->size);
+    struct term_list *new_tl = NULL, *tl;
+
+    assert(term->storing == NULL);
+
+    for (tl = term->subterms; tl != NULL; tl = tl->next) {
+        struct term *copy = term_deep_copy(tl->term);
+        termlist_add_term(&new_tl, copy);
+    }
+
+    for (tl = new_tl; tl != NULL; tl = tl->next) {
+        term_add_subterm(new_term, tl->term);
+    }
+
+    /* termlist_free(new_tl); */
+    return new_term;
+}
 
 struct term *term_new_from_char(char c) {
     char s[2];
@@ -39,7 +72,10 @@ struct term *term_new_from_cstring(const char *atom) {
 
 struct term *term_new_variable(const char *name, struct term *v) {
     struct term *t = term_new(name, strlen(name));
+
     t->storing = v;
+
+    return t;
 }
 
 void term_add_subterm(struct term *term, struct term *subterm) {
@@ -141,42 +177,20 @@ void term_fput(const struct term *t, FILE *f) {
     fwrite(flat->atom, 1, flat->size, f);
 }
 
-/*
-#define DEBUG(f, s)       fprintf(f, s)
-#define DEBUG_TERM(t, f)  term_fput(t, f)
-*/
-
-#define DEBUG(f, s)
-#define DEBUG_TERM(f, s)
-
 int term_match(struct term *pattern, struct term *ground)
 {
     struct term_list *tl1, *tl2;
-
-    FILE *f = stderr;
-    DEBUG(f, "<");
-    DEBUG_TERM(pattern, f);
-    DEBUG(f, "> ?= <");
-    DEBUG_TERM(ground, f);
-    DEBUG(f, ">...\n");
 
     assert(ground->storing == NULL);
 
     if (pattern->storing != NULL) {
         pattern->storing = ground;
-        DEBUG(f, "unified, YES\n");
         return 1;
     }
     if (!term_atoms_equal(pattern, ground)) {
-        DEBUG(f, "not same atom, <");
-        DEBUG_TERM(pattern, f);
-        DEBUG(f, "> vs <");
-        DEBUG_TERM(ground, f);
-        DEBUG(f, ">, NO\n");
         return 0;
     }
     if (pattern->subterms == NULL && ground->subterms == NULL) {
-        DEBUG(f, "same atom, YES\n");
         return 1;
     }
 
@@ -184,16 +198,13 @@ int term_match(struct term *pattern, struct term *ground)
     tl2 = ground->subterms;
     while (tl1 != NULL && tl2 != NULL) {
         if (!term_match(tl1->term, tl2->term)) {
-            DEBUG(f, "no submatch, NO\n");
             return 0;
         }
         tl1 = tl1->next;
         tl2 = tl2->next;
     }
     if (tl1 != NULL || tl2 != NULL) {
-        DEBUG(f, "not same # of subterms, NO\n");
         return 0;
     }
-    DEBUG(f, "subterms match, YES\n");
     return 1;
 }

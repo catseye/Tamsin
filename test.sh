@@ -87,7 +87,8 @@ elif [ x$1 = xmicro ]; then
     echo "Compiling Micro-Tamsin interpreter..."
     ./build.sh
     bin/tamsin compile eg/tamsin-micro-interpreter.tamsin > foo.c && \
-       gcc -g -Ic_src -Lc_src foo.c -o micro-tamsin -ltamsin || exit 1
+       gcc -g -ansi -Werror \
+           -Ic_src -Lc_src foo.c -o micro-tamsin -ltamsin || exit 1
     echo "Testing Micro-Tamsin interpreter..."
     FILES="doc/Micro-Tamsin.markdown"
     falderal $VERBOSE --substring-error fixture/micro-tamsin.markdown $FILES

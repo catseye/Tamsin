@@ -1102,6 +1102,11 @@ If the tail of the list isn't E, an error occurs.
     | main = $:reverse(list(a, list(b, list(c, hello(world)))), nil).
     ? malformed list
 
+If some list constructor doesn't have two children, an error occurs.
+
+    | main = $:reverse(list(a, list(b, list(nil))), nil).
+    ? malformed list
+
 The constructor tag can be anything.
 
     | main = $:reverse(foo(a, foo(b, foo(c, nil))), nil).

@@ -164,6 +164,8 @@ class Constructor(Term):
         tag = self.tag
         while isinstance(l, Constructor) and l.tag == tag:
             acc = Constructor(tag, [l.contents[0], acc])
+            if len(l.contents) < 2:
+                break
             l = l.contents[1]
         if l.match(sentinel) == False:
             raise ValueError("malformed list %s" % l.repr())

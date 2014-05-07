@@ -148,7 +148,7 @@ struct term *tamsin_equal(struct term *l, struct term *r) {
     }
 }
 
-struct term *tamsin_mkterm_r(struct term *t, const struct term *list) {
+void tamsin_mkterm_r(struct term *t, const struct term *list) {
     if (term_atom_cstring_equal(list, "list") && list->subterms != NULL) {
         tamsin_mkterm_r(t, list->subterms->next->term);
         term_add_subterm(t, list->subterms->term);
@@ -161,24 +161,28 @@ struct term *tamsin_mkterm(const struct term *atom, const struct term *list) {
     return t;
 }
 
-struct term *tamsin_reverse(const struct term *list, struct term *sentinel) {
+struct term *tamsin_reverse(struct term *list, struct term *sentinel) {
     struct term *result = sentinel;
-    struct term *head = list;  /* save */
+    const struct term *head = list;  /* save */
 
     while (list->subterms != NULL && term_atoms_equal(list, head)) {
         struct term *new = term_new(head->atom, head->size);
+        
+        /*term_fput(list, stderr);
+        fprintf(stderr, "\n");*/
+
         term_add_subterm(new, result);
-        term_add_subterm(new, list->subterms->term);  /* TODO: copy? */
+        term_add_subterm(new, list->subterms->term);
         result = new;
         if (list->subterms->next == NULL) {
-            break; /* TODO: test case for this!  list(a, list(b)) */
+            break;
         }
         list = list->subterms->next->term;
     }
 
-    if (term_match(l, sentinel)) {
-        return result;
+    if (term_match(list, sentinel)) {
         ok = 1;
+        return result;
     } else {
         struct term *result = term_new_from_cstring("malformed list ");
         result = term_concat(result, term_flatten(head));

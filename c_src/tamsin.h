@@ -50,10 +50,12 @@ struct term *term_new_from_char(char c);
 
 struct term *term_new_variable(const char *, struct term *);
 
+struct term *term_deep_copy(const struct term *);
+
 /*
  * Modifies the given term.
  */
-void add_subterm(struct term *, struct term *);
+void term_add_subterm(struct term *, struct term *);
 
 /*
  * Returns 1 if the atom portion of both terms is identical, otherwise 0.
@@ -126,7 +128,7 @@ struct term *tamsin_unquote(const struct term *,
                             const struct term *, const struct term *);
 struct term *tamsin_mkterm(const struct term *, const struct term *);
 struct term *tamsin_equal(struct term *, struct term *);
-struct term *tamsin_reverse(const struct term *, struct term *);
+struct term *tamsin_reverse(struct term *, struct term *);
 
 
 /* --------------------------------------------------------------- */

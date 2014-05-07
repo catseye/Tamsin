@@ -270,7 +270,7 @@ class Compiler(object):
                     self.emit('ok = 1;')
                 elif name == 'reverse':
                     self.emit_term(args[0], "templist")
-                    self.emit_term(args[0], "tempsentinel")
+                    self.emit_term(args[1], "tempsentinel")
                     self.emit('result = tamsin_reverse(templist, tempsentinel);')
                 elif name == 'mkterm':
                     self.emit_term(args[0], "temp_atom")
