@@ -375,11 +375,12 @@ stringification).
 
 The result of flattening is always an atom.
 
-Ground terms also support an operation called _repring_ (also sometimes called
-"readable stringification").  It is very similar to flattening, but results
-in an atom, the contents of which is always a legal syntactic atom in term
-context in a Tamsin program.  (Flattening a term does not always guarantee
-this because, for example, flattening `'\n'` results in an actual newline.)
+Ground terms also support an operation called _reprifying_ (also sometimes
+called "readable stringification").  It is very similar to flattening, but
+results in an atom, the contents of which is always a legal syntactic atom
+in term context in a Tamsin program.  (Flattening a term does not always
+guarantee this because, for example, flattening `'\n'` results in an actual
+newline.)
 
 *   repr(T) when T is an atom whose text consists only of printable ASCII
     characters, results in T;
@@ -1015,15 +1016,31 @@ the contents in-between will be returned as an atom.  Otherwise fails.
     | main = $:unquote('(hello)', '(', '"').
     ? term '(hello)' is not quoted with '(' and '"'
 
-Here's `$:equal`, which takes two terms, L and R, where L and R must be atoms.
-If L and R are the same atom (the strings are identical), succeeds and returns
-that atom.  Otherwise fails.
+Here's `$:equal`, which takes two terms, L and R.  If L and R are equal,
+succeeds and returns that term which they both are.  Otherwise fails.
+
+Two atoms are equal if their texts are identical.
 
     | main = $:equal('hi', 'hi').
     = hi
 
     | main = $:equal('hi', 'lo').
     ? term 'hi' does not equal 'lo'
+
+Two constructors are equal if their texts are identical, they have the
+same number of subterms, and all of their corresponding subterms are equal.
+
+    | main = $:equal(hi(there), hi(there)).
+    = hi(there)
+
+    | main = $:equal(hi(there), lo(there)).
+    ? term 'hi(there)' does not equal 'lo(there)'
+
+    | main = $:equal(hi(there), hi(here)).
+    ? term 'hi(there)' does not equal 'hi(here)'
+
+    | main = $:equal(hi(there), hi(there, there)).
+    ? term 'hi(there)' does not equal 'hi(there, there)'
 
 Here's `$:emit`, which takes an atom and outputs it.  Unlike `print`, which
 is meant for debugging, `$:emit` does not append a newline, and is 8-bit-clean.
@@ -1041,6 +1058,52 @@ is meant for debugging, `$:emit` does not append a newline, and is 8-bit-clean.
     = 000102fdfeff0a
 
     -> Tests for functionality "Intepret Tamsin program"
+
+Here's `$:repr`, which takes a term and results in an atom which is the
+result of reprifying that term (see section on Terms, above.)
+
+    | main = $:repr(hello).
+    = hello
+
+    | main = $:repr('016fooZZ').
+    = 016fooZZ
+
+    | main = $:repr('016\n016').
+    = '016\n016'
+
+    | main = $:repr(hello(there, world)).
+    = hello(there, world)
+
+    | main = V ← '♡' & $:repr('□'(there, V)).
+    = '□'(there, '♡')
+
+Here's `$:repr`, which takes a term and results in an atom which is the
+result of reprifying that term (see section on Terms, above.)
+
+    | main = $:repr(hello).
+    = hello
+
+    | main = $:repr('016fooZZ').
+    = 016fooZZ
+
+    | main = $:repr('016\n016').
+    = '016\n016'
+
+    | main = $:repr(hello(there, world)).
+    = hello(there, world)
+
+    | main = V ← '♡' & $:repr('□'(there, V)).
+    = '□'(there, '♡')
+
+Here's `$:reverse`, which takes an atom X, an atom E, and a term of the form
+`X(a, X(b, ... X(z, E)) ... )`, and returns a term of the form
+`X(z, X(y, ... X(a, E)) ... )`.  X is often `cons` or `pair` or `list`
+and E is often `nil`.
+
+    | main = $:reverse(list, nil, list(a, list(b, list(c, nil)))).
+    = list(c, list(b, list(a, nil))).
+
+X must be an atom and E should probably be an atom.
 
 ### Back to Modules in General ###
 
