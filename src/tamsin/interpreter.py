@@ -69,7 +69,12 @@ class Interpreter(EventProducer):
     ### interpreter proper ---------------------------------- ###
 
     def interpret_program(self, program):
+        # if 'main' not in modmap:
+        #     raise ValueError("no 'main' module defined")
+
         prods = program.find_productions(Prodref('main', 'main'))
+        if len(prods) == 0:
+            raise ValueError("no 'main:main' production defined")
         return self.interpret(prods[0])
 
     def interpret(self, ast, bindings=None):

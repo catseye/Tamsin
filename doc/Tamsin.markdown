@@ -1237,7 +1237,7 @@ you can't run it.
     | foo {
     |   main = "6".
     | }
-    ? no 'main:main' production defined
+    ? no 'main' module defined
 
 Evaluation
 ----------

@@ -16,15 +16,16 @@ from tamsin.analyzer import Analyzer
 from tamsin.compiler import Compiler
 
 
-def parse_and_check(filename, scanner_engine=None):
+def parse_and_check(filename, scanner_engine=None, analyze=True):
     with open(filename, 'r') as f:
         contents = f.read()
         parser = Parser(contents, scanner_engine=scanner_engine)
         ast = parser.grammar()
         desugarer = Desugarer(ast)
         ast = desugarer.desugar(ast)
-        analyzer = Analyzer(ast)
-        ast = analyzer.analyze(ast)
+        if analyze:
+            analyzer = Analyzer(ast)
+            ast = analyzer.analyze(ast)
         return ast
 
 
@@ -95,5 +96,13 @@ def main(args, tamsin_dir='.'):
         #subprocess.call(('rm', '-f', c_filename, exe_filename))
         sys.exit(exit_code)
     else:
-        ast = parse_and_check(args[0])
+        ast = None
+        for arg in args:
+            next_ast = parse_and_check(arg, analyze=False)
+            if ast is None:
+                ast = next_ast
+            else:
+                ast.incorporate(next_ast)
+        analyzer = Analyzer(ast)
+        ast = analyzer.analyze(ast)
         run(ast, listeners=listeners)

@@ -4,7 +4,7 @@
 # Note that this may contain support for some features which are not in
 # the current released or pre-released version.
 
-main = (grammar using scanner) → AST & desugar(AST).
+main = (grammar using scanner) → AST & desugar(AST) → AST & $:repr(AST).
 
 grammar    = {"@" & pragma & "."} &
              LM ← nil &
@@ -95,7 +95,7 @@ terminal0  = dq_string → T & $:unquote(T, '"', '"') → T & T
            | ("«" | "<<") & texpr → T & ("»" | ">>") & T.
 
 prodref    = M ← '' & [modref → M & ":"] & word → P & return prodref(M, P).
-modref     = "$".
+modref     = "$" | word.
 pragma     = "alias" & word & word & "=" & prodref
            | "unalias" & word.
 

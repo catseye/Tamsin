@@ -4,7 +4,6 @@ TODO
 *   `$:deep_reverse`
 *   use Tamsin repr in error messages
 *   definition of reprification needs work (e.g. `"` should repr to `'"'`)
-*   python impl should take >1 source file on cmdline (external modules)
 
 ### more tests ###
 

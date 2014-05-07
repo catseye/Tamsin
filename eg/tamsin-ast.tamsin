@@ -95,7 +95,7 @@ terminal0  = dq_string → T & $:unquote(T, '"', '"') → T & T
            | ("«" | "<<") & texpr → T & ("»" | ">>") & T.
 
 prodref    = M ← '' & [modref → M & ":"] & word → P & return prodref(M, P).
-modref     = "$".
+modref     = "$" | word.
 pragma     = "alias" & word & word & "=" & prodref
            | "unalias" & word.
 

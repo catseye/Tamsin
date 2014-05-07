@@ -8,7 +8,7 @@
 # Does not support `using` or `@` at the moment.
 
 from tamsin.ast import (
-    Production, And, Or, Not, While, Call, Send, Set, Concat, Using
+    Production, And, Or, Not, While, Call, Send, Set, Concat, Using, Prodref
 )
 from tamsin.term import Atom, Constructor, Variable
 
@@ -91,6 +91,10 @@ class Compiler(object):
 
     def compile(self):
         self.emit(PRELUDE)
+
+        prods = self.program.find_productions(Prodref('main', 'main'))
+        if len(prods) == 0:
+            raise ValueError("no 'main:main' production defined")
 
         for mod_name in self.program.modmap:
             for prod_name in self.program.modmap[mod_name].prodmap:

@@ -7,6 +7,8 @@
 # __str__ : make a string that looks like a Tamsin term (reprify)
 # __repr__ : make a string that is valid Python code for constructing the AST
 
+import sys
+
 from tamsin.term import Term, Variable
 
 
@@ -57,7 +59,23 @@ class Program(AST):
                 raise KeyError("no '%s:%s' production defined" % (mod, name))
             return prodmap[name]
 
-    
+    def incorporate(self, other):
+        """Add all Modules from other to self.  Changes self.
+
+        """
+        assert isinstance(other, Program)
+
+        #print repr(other.modmap.keys())
+        #print repr(self.modmap.keys())
+        for modname in other.modmap:
+            if modname in self.modmap:
+                raise KeyError("module '%s' already defined %r %r" %
+                    (modname, self.modmap.keys(), other.modmap.keys())
+                )
+                #print repr((modname, self.modmap.keys(), other.modmap.keys()))
+            self.modmap[modname] = other.modmap[modname]
+        self.modlist.extend(other.modlist)
+
     def __repr__(self):
         return "Program(%r, %r)" % (
             self.modmap, self.modlist

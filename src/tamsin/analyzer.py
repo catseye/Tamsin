@@ -25,7 +25,7 @@ class Analyzer(EventProducer):
       module.
 
     * Looking for undefined nonterminals and raising an error if such found.
-      (this includes 'main')  (this is done at the end by analyze_prodrefs)
+      (this is done at the end by analyze_prodrefs)
 
     TODO: it should also find any locals that are accessed before being set
     """
@@ -46,10 +46,6 @@ class Analyzer(EventProducer):
                 mod = self.analyze(mod)
                 modlist.append(mod)
                 modmap[mod.name] = mod
-            if 'main' not in modmap:
-                raise ValueError("no 'main' module defined")
-            if 'main' not in modmap['main'].prodmap:
-                raise ValueError("no 'main:main' production defined")
             self.program = Program(modmap, modlist)
             self.analyze_prodrefs(self.program)
             return self.program

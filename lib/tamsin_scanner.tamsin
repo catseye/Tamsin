@@ -1,0 +1,27 @@
+# Scanner for Tamsin tokens, written in Tamsin.
+# Distributed under a BSD-style license; see LICENSE.
+
+tamsin_scanner {
+  scanner = scan using $:utf8.
+  scan = skippable & (symbol | str('\'') | str('"') | word).
+  symbol = "&" & "&" & '&&'
+         | "|" & "|" & '||'
+         | "-" & ">" & '->'
+         | "<" & "-" & '<-'
+         | "<" & "<" & '<<'
+         | ">" & ">" & '>>'
+         | "=" | "(" | ")" | "[" | "]" | "{" | "}" | "!" | "|" | "&" | ":"
+         | "/" | "," | "." | "@" | "+" | "$" | "→" | "←" | "«" | "»".
+  str(Q) = «Q» → T & {(escape | !«Q» & any) → S & T ← T + S} & «Q» &
+           return T + Q.
+  escape = "\\" & "n" & '\n'
+         | "\\" & "r" & '\r'
+         | "\\" & "t" & '\t'
+         | "\\" & "\\" & '\\'
+         | "\\" & "'" & '\''
+         | "\\" & "\"" & '"'.
+  word = $:alnum → T & { ($:alnum | "_") → S & T ← T + S } & T.
+  skippable = {whitespace | comment}.
+  whitespace = " " | "\t" | "\r" | "\n".
+  comment = "#" & {!"\n" & any} & "\n".
+}

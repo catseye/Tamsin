@@ -17,9 +17,10 @@ Tamsin Release History
 
 ### implementations ###
 
-*   Virtually full support for user-defined modules.  (Not external ones
-    yet though.)
-*   `tamsin parse` and `tamsin-parser.tamsin` output reprified terms.
+*   Virtually full support for user-defined modules.
+*   `tamsin` can take more than one source file on command line; this
+    is how external modules are supported.
+*   `tamsin parse` and `tamsin-ast.tamsin` output reprified terms.
 
 0.2
 ---
