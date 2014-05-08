@@ -14,6 +14,8 @@ tamsin_scanner {
          | "/" | "," | "." | "@" | "+" | "$" | "→" | "←" | "«" | "»".
   str(Q) = «Q» → T & {(escape | !«Q» & any) → S & T ← T + S} & «Q» &
            return T + Q.
+  # TODO: don't unescape these here yet -- scanner should return what it sees
+  # TODO: when you do unescape them -- handle `\xXX` sequences too
   escape = "\\" & "n" & '\n'
          | "\\" & "r" & '\r'
          | "\\" & "t" & '\t'

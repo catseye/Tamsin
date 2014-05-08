@@ -411,6 +411,9 @@ newline.)
 Note that in the above, "printable" means ASCII characters between 32 ` `
 (space) and 126 `~`.  It is not dependent on locale.
 
+Also, `\xXX` escapes will always be output in lowercase, e.g. `\x0a`, not
+`\x0A`.
+
 The input to a Tamsin production is, in fact, an atom (although it's hardly
 atomic; "atom" is sort of a quaint moniker for the role these objects play.)
 
@@ -1090,6 +1093,9 @@ result of reprifying that term (see section on Terms, above.)
 
     | main = $:repr(a(b(c('qu\'are\\')))).
     = a(b(c('qu\'are\\')))
+
+    | main = $:repr('\x99').
+    = '\x99'
 
 Here's `$:reverse`, which takes a term E, and a term of the form
 `X(a, X(b, ... X(z, E)) ... )`, and returns a term of the form

@@ -196,15 +196,6 @@ CLOSE_QUOTE = {
     '\'': '\'',
 }
 
-ESCAPE_SEQUENCE = {
-    'r': "\r",
-    'n': "\n",
-    't': "\t",
-    "'": "'",
-    '"': '"',
-    '\\': '\\',
-}
-
 class TamsinScannerEngine(ScannerEngine):
     def scan_impl(self, scanner):
         while not scanner.is_at_eof() and scanner.startswith(('#', ' ', '\t', '\r', '\n')):
@@ -243,13 +234,8 @@ class TamsinScannerEngine(ScannerEngine):
                        not scanner.startswith((CLOSE_QUOTE[quote],))):
                     char = scanner.chop(1)
                     if char == '\\':
+                        token += char
                         char = scanner.chop(1)
-                        if char in ESCAPE_SEQUENCE:
-                            char = ESCAPE_SEQUENCE[char]
-                        elif char == 'x':
-                            char = chr(int(scanner.chop(2), 16))
-                        else:
-                            scanner.error('legal escape sequence')
                     token += char
                 scanner.chop(1)  # chop ending quote
                 # we add the specific close quote we expect, in case it was EOF

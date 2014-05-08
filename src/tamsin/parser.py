@@ -162,7 +162,7 @@ class Parser(EventProducer):
             self.expect('}')
             return While(e)
         elif self.peek()[0] == '"':
-            s = self.consume_any()[1:-1]
+            s = unescape(self.consume_any()[1:-1])
             return Call(Prodref('$', 'expect'), [Atom(s)], None)
         elif self.consume(u'«') or self.consume('<<'):
             t = self.texpr()
@@ -258,7 +258,7 @@ class Parser(EventProducer):
               self.peek()[0] == "'"):
             atom = self.consume_any()
             if atom[0] in ('\'',):
-                atom = atom[1:-1]
+                atom = unescape(atom[1:-1])
             subs = []
             if self.consume('('):
                 if self.peek() != ')':
@@ -271,3 +271,34 @@ class Parser(EventProducer):
                 return Atom(atom)
         else:
             self.error('term')
+
+ESCAPE_SEQUENCE = {
+    'r': "\r",
+    'n': "\n",
+    't': "\t",
+    "'": "'",
+    '"': '"',
+    '\\': '\\',
+}
+
+def unescape(s):
+    t = ''
+    i = 0
+    while i < len(s):
+       char = s[i]
+       if char == '\\':
+           i += 1
+           if i == len(s):
+               raise ValueError(s)
+           char = s[i]
+           if char in ESCAPE_SEQUENCE:
+               char = ESCAPE_SEQUENCE[char]
+           elif char == 'x':
+               k = s[i + 1] + s[i + 2]
+               i += 2
+               char = chr(int(k, 16))
+           else:
+               raise ValueError("bad escape")
+       t += char
+       i += 1
+    return t
