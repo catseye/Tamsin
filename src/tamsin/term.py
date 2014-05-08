@@ -9,12 +9,15 @@
 # __repr__ : make a string that is valid Python code for constructing the Term
 
 
+BAREWORD = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz'
 PRINTABLE = (' !"#$%&()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_'
              '`abcdefghijklmnopqrstuvwxyz{|}~')
 
 
 def repr_escape(t):
-    if all(c in PRINTABLE for c in t):
+    if len(t) == 0:
+        return "''"
+    if all(c in BAREWORD for c in t):
         return t
     s = ''
     for c in t:
