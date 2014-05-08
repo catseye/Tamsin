@@ -138,6 +138,10 @@ struct term *tamsin_mkterm(const struct term *, const struct term *);
 struct term *tamsin_equal(struct term *, struct term *);
 struct term *tamsin_reverse(struct term *, struct term *);
 
+int tamsin_isalpha(char);
+int tamsin_isupper(char);
+int tamsin_isdigit(char);
+int tamsin_isalnum(char);
 
 /* --------------------------------------------------------------- */
 /* global state: result of last action */

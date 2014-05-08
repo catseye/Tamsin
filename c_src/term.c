@@ -198,10 +198,29 @@ int escapes_needed(const char *text, size_t size) {
     return needed;
 }
 
+int all_bareword(const char *text, size_t size) {
+    int i;
+
+    for (i = 0; i < size; i++) {
+        if (tamsin_isalnum(text[i]) || text[i] == '_') {
+        } else {
+            return 0;
+        }
+    }
+    
+    return 1;
+}
+
 const char *HEX = "0123456789abcdef";
 
 struct term *term_escape_atom(const struct term *t) {
-    int needed = escapes_needed(t->atom, t->size);
+    int needed;
+    
+    if (t->size == 0) {
+        return term_new("''", 2);
+    }
+
+    needed = escapes_needed(t->atom, t->size);
 
     if (needed > 0) {
         struct term *r;
@@ -227,10 +246,19 @@ struct term *term_escape_atom(const struct term *t) {
         r = term_concat(r, term_new(buffer, t->size + needed));
         r = term_concat(r, term_new("'", 1));
         free(buffer);
+
+        return r;
+    } else if (all_bareword(t->atom, t->size)) {
+        return term_new(t->atom, t->size);
+    } else {
+        struct term *r;
+
+        r  = term_new("'", 1);
+        r = term_concat(r, t);
+        r = term_concat(r, term_new("'", 1));
+
         return r;
     }
-
-    return term_new(t->atom, t->size);
 }
 
 struct term *term_repr(const struct term *t) {

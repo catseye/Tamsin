@@ -3,14 +3,26 @@
  * Distributed under a BSD-style license; see LICENSE for more information.
  */
 
-/*
- * TODO: less term_new_from_cstring, please -- not for tokens etc.
- */
 #include "tamsin.h"
 
-#include <ctype.h>
-
 struct term APOS = {"'", 1, NULL, NULL};
+
+int tamsin_isupper(char c) {
+    return (c >= 'A' && c <= 'Z');
+}
+
+int tamsin_isalpha(char c) {
+    return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
+}
+
+int tamsin_isdigit(char c) {
+    return (c >= '0' && c <= '9');
+}
+
+int tamsin_isalnum(char c) {
+    return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
+           (c >= '0' && c <= '9');
+}
 
 void tamsin_eof(struct scanner *s) {
     struct term *t = scan(s);
@@ -58,7 +70,7 @@ void tamsin_expect(struct scanner *s, const struct term *expected) {
 
 void tamsin_alnum(struct scanner *s) {
     struct term *t = scan(s);
-    if (t != &tamsin_EOF && isalnum(t->atom[0])) {
+    if (t != &tamsin_EOF && tamsin_isalnum(t->atom[0])) {
         commit(s);
         result = t;
         ok = 1;
@@ -73,7 +85,7 @@ void tamsin_alnum(struct scanner *s) {
 
 void tamsin_upper(struct scanner *s) {
     struct term *t = scan(s);
-    if (t != &tamsin_EOF && isupper(t->atom[0])) {
+    if (t != &tamsin_EOF && tamsin_isupper(t->atom[0])) {
         commit(s);
         result = t;
         ok = 1;
