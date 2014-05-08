@@ -1,0 +1,18 @@
+# a sketch of what a Tamsin program to simulate a subset of the 6502
+# might look like.
+
+# note that the 6502 memory is in the IMPLICIT BUFFER.
+
+sim6502 = instr(0,0,0) using $:byte.
+
+instr(A,X,Y) =
+      "\xA9" & any → A               & instr(A,X,Y)    # LDA #
+    | "\xC8" & inc(Y) → Y            & instr(A,X,Y)    # INY
+    | "\x8A" & A ← X                 & instr(A,X,Y)    # TAX
+    | "\x4C" & word → W & $:seek(W)  & instr(A,X,Y)    # JMP
+    | etc.
+
+word =
+   any → Lo & any → Hi & return $:add($:ord(Lo), $:mul($:ord(Hi), 256)).
+
+etc.

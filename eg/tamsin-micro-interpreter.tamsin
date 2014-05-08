@@ -10,25 +10,25 @@
 
 main = tamsin_parser:parse → AST & {" " | "\n"} & "/" & interpret(AST, AST).
 
-interpret(PROGRAM, program(L)) =
-    find_main_module_prods(L) → MMP &
-    find_prod(main, MMP) → Main &
-    interpret(PROGRAM, Main).
+interpret(P, program(L)) =
+    find_main_module_prods(L) → MMPs &
+    find_prod(main, MMPs) → Main &
+    interpret(P, Main).
 
-interpret(PROGRAM, production(N, F, E)) = interpret(PROGRAM, E).
+interpret(P, production(N, F, E)) = interpret(P, E).
 interpret(program(L), call(prodref('$', 'return'), list(X, nil))) = return X.
 interpret(program(L), call(prodref('$', 'expect'), list(X, nil))) = «X».
 interpret(program(L), call(prodref('$', 'print'), list(X, nil))) = print X.
 
 interpret(program(L), call(prodref(M, N), A)) =
     find_main_module_prods(L) → MMP &
-    find_prod(N, MMP) → P &
-    interpret(program(L), P).
+    find_prod(N, MMP) → Prod &
+    interpret(program(L), Prod).
 
-interpret(PROGRAM, or(L, R)) = interpret(PROGRAM, L) | interpret(PROGRAM, R).
-interpret(PROGRAM, and(L, R)) = interpret(PROGRAM, L) & interpret(PROGRAM, R).
-interpret(PROGRAM, not(X)) = !interpret(PROGRAM, X).
-interpret(PROGRAM, while(X)) = {interpret(PROGRAM, X)}.
+interpret(P, or(L, R)) = interpret(P, L) | interpret(P, R).
+interpret(P, and(L, R)) = interpret(P, L) & interpret(P, R).
+interpret(P, not(X)) = !interpret(P, X).
+interpret(P, while(X)) = {interpret(P, X)}.
 
 find_main_module_prods(list(module(main, Ps),T)) = Ps.
 find_main_module_prods(list(H,T)) = find_main_module_prods(T).

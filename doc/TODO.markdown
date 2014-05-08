@@ -5,7 +5,7 @@ TODO
 *   use Tamsin repr in error messages
 *   definition of reprification needs work (e.g. `"` should repr to `'"'`)
 *   `$:substr` and/or `$:atom_to_list`
-*   implement a compiler (to C) for a subset of Tamsin, in Tamsin
+*   finish implementing compiler (to C) for a subset of Tamsin, in Tamsin
 *   `$:alpha`
 *   `$:digit`
 *   remove `$.alnum`
@@ -24,6 +24,8 @@ TODO
 
 ### lower-priority ###
 
+*   find different way to match variables in libtamsin, so that
+    struct term's can be const all the way down
 *   `$:format`
 *   analysis: always_succeeds(Rule)
 *   analysis: may_backtrack(Rule)
