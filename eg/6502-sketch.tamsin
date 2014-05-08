@@ -16,3 +16,24 @@ word =
    any → Lo & any → Hi & return $:add($:ord(Lo), $:mul($:ord(Hi), 256)).
 
 etc.
+
+
+# That's the recursive version; compiling it to C currently would not be
+# nice to the stack.  Here's an iterative version:
+
+
+sim6502 =
+    A ← 0 & X ← 0 & Y ← 0 &
+    !{instr(A,X,Y) → state(A,X,Y)} using $:byte.
+
+instr(A,X,Y) =
+       "\xA9" & any → A               & return! state(A,X,Y)    # LDA #
+    !| "\xC8" & inc(Y) → Y            & return! state(A,X,Y)    # INY
+    !| "\x8A" & A ← X                 & return! state(A,X,Y)    # TAX
+    !| "\x4C" & word → W & $:seek(W)  & return! state(A,X,Y)    # JMP
+    !| "\x00"                         & return! halted          # BRK
+    !| etc.
+
+
+# this uses ! (non-backtracking) and return! (immediate return from production)
+# (not sure about either of these...)
