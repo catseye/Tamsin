@@ -111,6 +111,7 @@ elif [ x$1 = xmicro ]; then
     echo "Compiling Micro-Tamsin interpreter..."
     ./build.sh
     bin/tamsin compile lib/tamsin_scanner.tamsin \
+                       lib/tamsin_parser.tamsin \
                        eg/tamsin-micro-interpreter.tamsin > foo.c && \
        gcc -g -ansi -Werror \
            -Ic_src -Lc_src foo.c -o micro-tamsin -ltamsin || exit 1

@@ -22,6 +22,8 @@ TODO
 
 ### lower-priority ###
 
+*   meta-circular implementation of compiler!
+*   `\s` for whitespace; escape for form feed
 *   make it possible to recover from more errors using `|` (don't throw
     exceptions so often)
 *   fold: often you want to construct terms "the other way" or to "join"
@@ -34,21 +36,22 @@ TODO
 *   actual numeric values, rather than atoms-which-contain-only-digits
 *   error reporting: line number
 *   error handling: skip to next sentinel and report more errors
-*   module-level updatable variables.
+*   module-level updatable variables.  or globals.  or "process dictionary"
+    `$:store()` and `$:fetch()`.  or database.
 *   `using` production x: x's scanner defaults to utf8, not x
 *   figure out good way to do aliases with the Tamsin-parser-in-Tamsin
     (dynamic grammar is really more of a Zz thing...)
 *   should be able to import ("open") other modules into your own namespace.
-*   meta-circular implementation of compiler!
 *   `@` a la Haskell in pattern-match:
     *   `walk(T@tree(L,R)) = ...`
-*   pattern match in send:
+*   pattern match in send: (can't go in set b/c it looks like a nonterminal)
     *   `fields → fields(H,T) & H`
 *   maps, implemented as hash tables.
     *   `Table ← {} & fields → F@fields(H,T) & Table[H] ← T`
 *   on that topic — production values and/or lambda productions...
 *   pretty-print AST for error messages
-*   don't consume stdin until asked to scan.
+*   don't consume stdin until asked to scan.  demand_buffer.  per-line loop.
+    or rather, per-inputconsumechunk
 *   full term expressions -- maybe
 
 ### symbol fun ###
@@ -56,7 +59,7 @@ TODO
 *   `~` (Lua) for not and `!` (Prolog) for non-backtracking?
 *   lowercase greek letters are variables too!
 *   use `←` instead of `@`, why not?
-*   `;` = `&`?
+*   `A;B` — like `&` except assert (statically) that `A` always succeeds?
 *   be generous and allow `"xyz"` in term context position?
 *   denotational semantics sugar!  something like...
     

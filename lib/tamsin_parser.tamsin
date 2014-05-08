@@ -15,7 +15,6 @@ tamsin_parser {
                  production → P & "." & LP ← list(P, LP)
                  | module → M & LM ← list(M, LM)
              } &
-             eof &
              reverse(LP, nil) → LP &
              #
              # If we leave this line like this:

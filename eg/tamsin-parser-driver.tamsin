@@ -1,4 +1,4 @@
 # REQUIRES lib/tamsin_scanner.tamsin
 # REQUIRES lib/tamsin_parser.tamsin
 
-main = tamsin_parser:parse → P & $:repr(P).
+main = tamsin_parser:parse → P & {" " | "\n"} & eof & $:repr(P).
