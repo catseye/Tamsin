@@ -1,0 +1,172 @@
+# Compiler for a subset of Tamsin, written in Tamsin.
+
+# Copyright (c)2014 Chris Pressey, Cat's Eye Technologies.
+# Distributed under a BSD-style license; see LICENSE.
+
+# NOTE, VERY INCOMPLETE: it could use:
+#   locals in production(), found by analysis phase
+#   database -- for indent/outdent (minor)
+#   $:format or similar, for emitting
+# ... the goal right now is just for THIS to compile.  not its output.
+
+# REQUIRES lib/tamsin_scanner.tamsin
+# REQUIRES lib/tamsin_parser.tamsin
+
+main = tamsin_parser:parse → AST & {" " | "\n"} & eof & compile(AST).
+
+prelude = '
+/*
+ * Generated code!  Edit at your own risk!
+ * Must be linked with -ltamsin to build.
+ */
+#include <tamsin.h>
+
+/* global scanner */
+
+struct scanner * scanner;
+
+/* global state: result of last action */
+
+int ok;
+struct term *result;
+'.
+
+postlude = '
+int main(int argc, char **argv) {
+    FILE *input = NULL;
+    char *filename = argv[1];
+    char *buffer = malloc(8193);
+    struct term *bufterm = NULL;
+
+    if (filename == NULL) {
+        input = stdin;
+    } else {
+        input = fopen(filename, "r");
+    }
+
+    assert(input != NULL);
+    while (!feof(input)) {
+        int num_read = fread(buffer, 1, 8192, input);
+        if (bufterm == NULL) {
+            bufterm = term_new(buffer, num_read);
+        } else {
+            bufterm = term_concat(bufterm, term_new(buffer, num_read));
+        }
+    }
+
+    scanner = scanner_new(bufterm->atom, bufterm->size);
+    ok = 0;
+    result = term_new_from_cstring("nil");
+
+    prod_main_main0();
+
+    if (ok) {
+        term_fput(result, stdout);
+        fwrite("\n", 1, 1, stdout);
+        exit(0);
+    } else {
+        term_fput(result, stderr);
+        fwrite("\n", 1, 1, stderr);
+        exit(1);
+    }
+}
+'.
+
+emit(X) = $:emit(X) & $:emit('\n').
+indent = 'ok'.
+outdent = 'ok'.
+
+compile(P) =
+    emit(prelude) &
+    find_main_module_prods(P) → MMPs &
+    emit_prototypes(MMPs) &
+    emit_functions(P, MMPs) &
+    emit(postlude).
+
+emit_prototypes(nil) = 'ok'.
+emit_prototypes(list(production(N, F, E), MMPs)) =
+    emit(N) &
+    emit_prototypes(MMPs).
+
+emit_functions(P, nil) = 'ok'.
+emit_functions(P, list(production(N, F, E), MMPs)) =
+    emit('void ') &
+    emit(N) &
+    emit('() {') &
+    indent &
+    compile_r(P, E) &
+    outdent &
+    emit('}') &    
+    emit_functions(P, MMPs).
+
+compile_r(P, production(N, F, E)) =
+    compile_r(P, E).
+
+compile_r(P, and(L, R)) =
+    compile_r(P, L) &
+    emit('if (ok) {') &
+    indent &
+    compile_r(P, R) &
+    outdent &
+    emit('}').
+
+compile_r(P, or(L, R)) =
+    emit('{') &
+    indent &
+    emit_decl_state &
+    emit_save_state &
+    compile_r(P, L) &
+    emit('if (!ok) {') &
+    indent &
+    emit_restore_state &
+    compile_r(P, R) &
+    outdent &
+    emit('}') &
+    outdent &
+    emit('}').
+compile_r(P, send(R, V)) =
+    compile_r(P, R) &
+    $:emit(V) &
+    emit(' = result;').
+compile_r(P, set(V, T)) =
+    emit_term(T, 'temp') &
+    emit('result = temp;') &
+    $:emit(V) &
+    emit(' = result;') &
+    emit('ok = 1;').
+compile_r(P, while(R)) =
+    emit('{') &
+    indent &
+    emit_decl_state &
+    emit_term(nil, 'successful_result') &
+    emit('ok = 1;') &
+    emit('while (ok) {') &
+    indent &
+    emit_save_state &
+    compile_r(P, R) &
+    emit('if (ok) {') &
+    indent &
+    emit('successful_result = result;') &
+    outdent &
+    emit('}') &
+    outdent &
+    emit('}') &     # endwhile
+    emit_restore_state &
+    emit('result = successful_result;') &
+    emit('ok = 1;') &
+    outdent &
+    emit('}').
+
+find_main_module_prods(list(module(main, Ps),T)) = Ps.
+find_main_module_prods(list(H,T)) = find_main_module_prods(T).
+find_main_module_prods(nil) = fail 'no main module'.
+
+find_prod(N1, list(production(N2, F, E),T)) =
+    $:equal(N1, N2) & return production(N2, F, E) | find_prod(N1, T).
+find_prod(N, list(H,T)) = find_prod(N, T).
+find_prod(N, nil) = fail 'no ' + N + ' production'.
+
+emit_decl_state = 'ok'.
+emit_save_state = 'ok'.
+emit_restore_state = 'ok'.
+emit_term(T, N) = emit(N) & emit('=') & emit(T).

@@ -16,17 +16,27 @@ from tamsin.analyzer import Analyzer
 from tamsin.compiler import Compiler
 
 
-def parse_and_check(filename, scanner_engine=None, analyze=True):
+def parse(filename, scanner_engine=None):
     with open(filename, 'r') as f:
         contents = f.read()
         parser = Parser(contents, scanner_engine=scanner_engine)
         ast = parser.grammar()
         desugarer = Desugarer(ast)
         ast = desugarer.desugar(ast)
-        if analyze:
-            analyzer = Analyzer(ast)
-            ast = analyzer.analyze(ast)
         return ast
+
+
+def parse_and_check_args(args):
+    ast = None
+    for arg in args:
+        next_ast = parse(arg)
+        if ast is None:
+            ast = next_ast
+        else:
+            ast.incorporate(next_ast)
+    analyzer = Analyzer(ast)
+    ast = analyzer.analyze(ast)
+    return ast
 
 
 def run(ast, listeners=None):
@@ -71,22 +81,14 @@ def main(args, tamsin_dir='.'):
         ast = desugarer.desugar(ast)
         print str(ast)
     elif args[0] == 'analyze':
-        ast = parse_and_check(args[1])
+        ast = parse_and_check_args(args[1:])
         print repr(ast)
     elif args[0] == 'compile':
-        ast = None
-        for arg in args[1:]:
-            next_ast = parse_and_check(arg, analyze=False)
-            if ast is None:
-                ast = next_ast
-            else:
-                ast.incorporate(next_ast)
-        analyzer = Analyzer(ast)
-        ast = analyzer.analyze(ast)
+        ast = parse_and_check_args(args[1:])
         compiler = Compiler(ast, sys.stdout)
         compiler.compile()
     elif args[0] == 'loadngo':
-        ast = parse_and_check(args[1])
+        ast = parse_and_check_args(args[1:])
         c_filename = 'foo.c'
         exe_filename = './foo'
         with open(c_filename, 'w') as f:
@@ -104,13 +106,5 @@ def main(args, tamsin_dir='.'):
         #subprocess.call(('rm', '-f', c_filename, exe_filename))
         sys.exit(exit_code)
     else:
-        ast = None
-        for arg in args:
-            next_ast = parse_and_check(arg, analyze=False)
-            if ast is None:
-                ast = next_ast
-            else:
-                ast.incorporate(next_ast)
-        analyzer = Analyzer(ast)
-        ast = analyzer.analyze(ast)
+        ast = parse_and_check_args(args)
         run(ast, listeners=listeners)

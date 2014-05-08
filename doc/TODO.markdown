@@ -4,30 +4,38 @@ TODO
 *   `$:deep_reverse`
 *   use Tamsin repr in error messages
 *   definition of reprification needs work (e.g. `"` should repr to `'"'`)
-
-### more tests ###
-
-*   tests that `'V'` is not a variable and that `'EOF'` is not EOF
-*   tests for failing when utf8 scanner hits badly-encoded utf8
-
-### vm support ###
-
+*   `$:substr` and/or `$:atom_to_list`
+*   implement a compiler (to C) for a subset of Tamsin, in Tamsin
+*   `$:alpha`
+*   `$:digit`
+*   remove `$.alnum`
 *   `$:add`, `$:sub`, `$:mul`, `$:div`, `$:rem`, for atoms which look like
     integers: `["-"] & {$:digit}`.
 *   `$:tell` and `$:seek` the implicit buffer -- for VM's etc -- although
     note, this may have scary consequences when combined with backtracking
-*   non-backtracking versions of `|` and `{}`?  `~|` and `~{}`
-*   `$.alpha`
-*   `$.digit`
+*   non-backtracking versions of `|` and `{}`:  `|!` and `{}!`
+
+### testing ###
+
+*   clean up test script -- shell functions.  clean up temp files.
+*   tests that `'V'` is not a variable and that `'EOF'` is not EOF
+*   tests for failing when utf8 scanner hits badly-encoded utf8
+*   test that `$:alpha` and `$:digit` are not locale-dependent (hard)
 
 ### lower-priority ###
 
-*   meta-circular implementation of compiler!
+*   `$:format`
+*   analysis: always_succeeds(Rule)
+*   analysis: may_backtrack(Rule)
 *   `\s` for whitespace; escape for form feed
 *   make it possible to recover from more errors using `|` (don't throw
     exceptions so often)
 *   fold: often you want to construct terms "the other way" or to "join"
     a string with delimiters; can we handle those cases too?
+    *   actual production values would be really nice; then we could
+        `$:fold(production, nil, cons)`
+        or even
+        `$:fold(^($:alnum & " "), '', ^L+','+R)`
 *   stronger tests for scanner, parser: dump all falderal testbodies to files
 *   option for ref interp to not output result (or by default, don't)
 *   "mini" interpreter that handles variables (ouch)
