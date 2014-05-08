@@ -3,7 +3,6 @@ TODO
 
 *   `$:deep_reverse`
 *   use Tamsin repr in error messages
-*   definition of reprification needs work (e.g. `"` should repr to `'"'`)
 *   `$:substr` and/or `$:atom_to_list`
 *   finish implementing compiler (to C) for a subset of Tamsin, in Tamsin
 *   `$:alpha`
@@ -14,6 +13,9 @@ TODO
 *   `$:tell` and `$:seek` the implicit buffer -- for VM's etc -- although
     note, this may have scary consequences when combined with backtracking
 *   non-backtracking versions of `|` and `{}`:  `|!` and `{}!`
+*   scanner should probably not be responsible for escaping characters;
+    the token `"\n"` should turn into the term whose repr is `'"\\n"'`.
+    ("scanner sanity")
 
 ### testing ###
 
@@ -25,11 +27,14 @@ TODO
 ### lower-priority ###
 
 *   find different way to match variables in libtamsin, so that
-    struct term's can be const all the way down
+    struct term's can be const all the way down — then share terms
+*   and maybe even garbage-collect them, ooh.
+*   figure out why reading a 4M file in a compiled program TAKES DOWN UBUNTU
 *   `$:format`
 *   analysis: always_succeeds(Rule)
 *   analysis: may_backtrack(Rule)
-*   `\s` for whitespace; escape for form feed
+*   `\s` production for whitespace
+*   `\f` escape for form feed
 *   make it possible to recover from more errors using `|` (don't throw
     exceptions so often)
 *   fold: often you want to construct terms "the other way" or to "join"

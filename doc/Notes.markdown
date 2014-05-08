@@ -145,3 +145,15 @@ and the like.  I've been thinking about some kind of compromise.  Which
 is, currently, what we sort of have.  A Tamsin term doubles as a string,
 for better or worse.  Mainly, we should sort out the properties of terms,
 then.  Which we will do.  But first,
+
+### conceptual sugar ###
+
+Have
+
+    reverse(tree(A,B)) = ...
+
+be *conceptually* sugar for
+
+    reverse["tree" & "(" & term → A & "," & term → B & ")"] = ...
+
+but *actually* we still keep it in terms of terms, for efficiency.

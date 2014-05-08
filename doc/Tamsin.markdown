@@ -382,8 +382,9 @@ in term context in a Tamsin program.  (Flattening a term does not always
 guarantee this because, for example, flattening `'\n'` results in an actual
 newline.)
 
-*   repr(T) when T is an atom whose text consists only of printable ASCII
-    characters, results in T;
+*   repr(T) when T is an atom whose text consists only of one or more ASCII
+    characters in the ranges `a` to `z`, `A` to `Z`, `0` to `9`, and `_`,
+    results in T;
 
 *   repr(T) when T is any other atom results in an atom comprising
     
@@ -393,8 +394,8 @@ newline.)
     their associated `\xXX` escape sequences (for example, newline is `\x0a`),
     and with `\` replaced by `\\` and `'` replaced by `\'`;
 
-*   repr(T) when T is a constructor S(T1,...Tn) whose text of
-    S consists only of printable ASCII characters, results in
+*   repr(T) when T is a constructor S(T1,...Tn) whose text S consists only of
+    one or more ASCII characters in the ranges listed above, results in
 
         S · "(" · repr(T1) · "," · ... · "," · repr(Tn) · ")"
 
@@ -1069,8 +1070,14 @@ result of reprifying that term (see section on Terms, above.)
     | main = $:repr(hello).
     = hello
 
-    | main = $:repr('016fooZZ').
-    = 016fooZZ
+    | main = $:repr('016fo_oZZ').
+    = 016fo_oZZ
+
+    | main = $:repr('016fo$oZZ').
+    = '016fo$oZZ'
+
+    | main = $:repr('').
+    = ''
 
     | main = $:repr('016\n016').
     = '016\x0a016'
