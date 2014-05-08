@@ -7,9 +7,12 @@
 # __str__ : make a string that looks like a Tamsin term (reprify)
 # __repr__ : make a string that is valid Python code for constructing the AST
 
+# TODO: the __str__'s in this module are littered with "if isinstance Terms".
+# there Must be a Better Way.
+
 import sys
 
-from tamsin.term import Term, Variable
+from tamsin.term import Term, Atom, Variable
 
 
 def format_list(l):
@@ -136,8 +139,8 @@ class Prodref(AST):
 
     def __str__(self):
         return "prodref(%s, %s)" % (
-            self.module,
-            self.name
+            Atom(self.module).repr(),
+            Atom(self.name).repr()
         )
 
 
@@ -257,9 +260,12 @@ class Set(AST):
         )
 
     def __str__(self):
+        texpr = self.texpr
+        if isinstance(texpr, Term):
+            texpr = texpr.repr()
         return "set(%s, %s)" % (
             self.variable,
-            self.texpr
+            texpr
         )
 
 
@@ -281,7 +287,10 @@ class Concat(AST):
         rhs = self.rhs
         if isinstance(rhs, Term):
             rhs = rhs.repr()
-        return "%s%s" % (lhs, rhs)
+        return "concat(%s, %s)" % (
+            lhs,
+            rhs
+        )
 
 
 class Using(AST):

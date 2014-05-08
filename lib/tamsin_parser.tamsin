@@ -79,7 +79,7 @@ tamsin_parser {
              reverse(L, nil) → L &
              return call(P, L).
 
-  texpr    = term → T & {"+" & term → S & T ← T + S} & T.
+  texpr    = term → T & {"+" & term → S & T ← concat(T, S)} & T.
   term     = atom → A & L ← nil & ["(" &
                                     term → T & L ← list(T, L) &
                                       {"," & term → T & L ← list(T, L)} &
