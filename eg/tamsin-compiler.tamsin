@@ -14,7 +14,7 @@
 
 main = tamsin_parser:parse → AST & {" " | "\n"} & eof & compile(AST).
 
-prelude = '
+prelude = $:emit('
 /*
  * Generated code!  Edit at your own risk!
  * Must be linked with -ltamsin to build.
@@ -29,9 +29,9 @@ struct scanner * scanner;
 
 int ok;
 struct term *result;
-'.
+').
 
-postlude = '
+postlude = $:emit('
 int main(int argc, char **argv) {
     FILE *input = NULL;
     char *filename = argv[1];
@@ -62,26 +62,27 @@ int main(int argc, char **argv) {
 
     if (ok) {
         term_fput(result, stdout);
-        fwrite("\n", 1, 1, stdout);
+        fwrite("\\n", 1, 1, stdout);
         exit(0);
     } else {
         term_fput(result, stderr);
-        fwrite("\n", 1, 1, stderr);
+        fwrite("\\n", 1, 1, stderr);
         exit(1);
     }
 }
-'.
+').
 
 emit(X) = $:emit(X) & $:emit('\n').
 indent = 'ok'.
 outdent = 'ok'.
 
-compile(P) =
-    emit(prelude) &
-    find_main_module_prods(P) → MMPs &
+compile(program(Ms)) =
+    prelude &
+    find_main_module_prods(Ms) → MMPs &
     emit_prototypes(MMPs) &
-    emit_functions(P, MMPs) &
-    emit(postlude).
+    emit_functions(program(Ms), MMPs) &
+    postlude &
+    ''.
 
 emit_prototypes(nil) = 'ok'.
 emit_prototypes(list(production(N, F, E), MMPs)) =
@@ -101,6 +102,9 @@ emit_functions(P, list(production(N, F, E), MMPs)) =
 
 compile_r(P, production(N, F, E)) =
     compile_r(P, E).
+
+compile_r(P, call(prodref(M, N), A)) =
+    emit('call ' + N).
 
 compile_r(P, and(L, R)) =
     compile_r(P, L) &

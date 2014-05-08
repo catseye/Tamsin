@@ -87,6 +87,24 @@ def main(args, tamsin_dir='.'):
         ast = parse_and_check_args(args[1:])
         compiler = Compiler(ast, sys.stdout)
         compiler.compile()
+    elif args[0] == 'doublecompile':
+        # http://www.youtube.com/watch?v=6WxJECOFg8w
+        ast = parse_and_check_args(args[1:])
+        c_filename = 'foo.c'
+        exe_filename = './foo'
+        with open(c_filename, 'w') as f:
+            compiler = Compiler(ast, f)
+            compiler.compile()
+        c_src_dir = os.path.join(tamsin_dir, 'c_src')
+        command = ("gcc", "-g", "-I%s" % c_src_dir, "-L%s" % c_src_dir,
+                   c_filename, "-o", exe_filename, "-ltamsin")
+        try:
+            subprocess.check_call(command)
+            exit_code = 0
+        except subprocess.CalledProcessError:
+            exit_code = 1
+        #subprocess.call(('rm', '-f', c_filename))
+        sys.exit(exit_code)
     elif args[0] == 'loadngo':
         ast = parse_and_check_args(args[1:])
         c_filename = 'foo.c'
@@ -103,7 +121,7 @@ def main(args, tamsin_dir='.'):
             exit_code = 0
         except subprocess.CalledProcessError:
             exit_code = 1
-        #subprocess.call(('rm', '-f', c_filename, exe_filename))
+        subprocess.call(('rm', '-f', c_filename, exe_filename))
         sys.exit(exit_code)
     else:
         ast = parse_and_check_args(args)

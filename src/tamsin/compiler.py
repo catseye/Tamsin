@@ -122,9 +122,9 @@ class Compiler(object):
             locals_ = ast.locals_
             body = ast.body
 
-            self.emit("/*")
-            self.emit(repr(ast))
-            self.emit("*/")
+            #self.emit("/*")
+            #self.emit(repr(ast))
+            #self.emit("*/")
 
             fmls = []
             i = 0
