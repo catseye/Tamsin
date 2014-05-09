@@ -28,8 +28,6 @@ class Analyzer(EventProducer):
     def __init__(self, program, listeners=None):
         self.listeners = listeners
         self.program = program
-        self.prodnames = set()
-        self.modnames = set()
         self.current_module = None
 
     def analyze(self, ast):
@@ -43,22 +41,24 @@ class Analyzer(EventProducer):
             return self.program
         elif isinstance(ast, Module):
             self.current_module = ast
-            for prod in ast.prodlist:
-                self.prodnames.add(prod.name)
-            prodmap = {}
             prodlist = []
             for prod in ast.prodlist:
                 prod = self.analyze(prod)
-                prod.rank = len(prodmap.setdefault(prod.name, []))
-                prodmap[prod.name].append(prod)
-                prodlist.append(prod)
+                linked = False
+                for parent in prodlist:
+                    if parent.name == prod.name:
+                        parent.link(prod)
+                        linked = True
+                        break
+                if not linked:
+                    prodlist.append(prod)
             self.current_module = None
             return Module(ast.name, prodlist)
         elif isinstance(ast, Production):
             locals_ = set()
             body = self.analyze(ast.body)
             self.collect_locals(body, locals_)
-            return Production(ast.name, 0, ast.formals, locals_, body)
+            return Production(ast.name, 0, ast.formals, locals_, body, None)
         elif isinstance(ast, Or):
             return Or(self.analyze(ast.lhs), self.analyze(ast.rhs))
         elif isinstance(ast, And):
@@ -147,8 +147,8 @@ class Analyzer(EventProducer):
             module = self.program.find_module(ast.module)
             if not module:
                 raise KeyError("no '%s' module defined" % ast.module)
-            productions = module.find_productions(ast.name)
-            if not productions:
+            production = module.find_production(ast.name)
+            if not production:
                 raise KeyError("no '%s:%s' production defined" %
                     (ast.module, ast.name)
                 )

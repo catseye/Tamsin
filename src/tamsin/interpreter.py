@@ -69,10 +69,10 @@ class Interpreter(EventProducer):
     ### interpreter proper ---------------------------------- ###
 
     def interpret_program(self, program):
-        prods = program.find_productions(Prodref('main', 'main'))
-        if len(prods) == 0:
+        main = program.find_production(Prodref('main', 'main'))
+        if not main:
             raise ValueError("no 'main:main' production defined")
-        return self.interpret(prods[0])
+        return self.interpret(main)
 
     def interpret(self, ast, bindings=None):
         """Returns a pair (bool, result) where bool is True if it
@@ -206,13 +206,13 @@ class Interpreter(EventProducer):
             name = prodref.name
             args = ast.args
             ibuf = ast.ibuf
-            prods = self.program.find_productions(prodref)
-            if prods is None:
+            prod = self.program.find_production(prodref)
+            if prod is None:
                 raise ValueError("internal error: unresolved: " + repr(prodref))
-            self.event('call_candidates', prods)
+            self.event('call_candidates', prod)
             args = [self.interpret(x)[1] for x in args]
             args = [x.expand(self.context) for x in args]
-            for prod in prods:
+            while prod is not None:
                 formals = prod.formals
                 self.event('call_args', formals, args)
                 if isinstance(formals, list):
@@ -243,6 +243,7 @@ class Interpreter(EventProducer):
                         return (success, result)
                     else:
                         self.context.pop_scope(prod.name)
+                prod = prod.next
             raise ValueError("No '%s' production matched arguments %r" %
                 (name, args)
             )
@@ -259,10 +260,10 @@ class Interpreter(EventProducer):
             elif prodref.module == '$' and scanner_name == u'utf8':
                 new_engine = UTF8ScannerEngine()
             else:
-                prods = self.program.find_productions(prodref)
-                if len(prods) != 1:
+                prod = self.program.find_production(prodref)
+                if not prod:
                     raise ValueError("No such scanner '%s'" % scanner_name)
-                new_engine = ProductionScannerEngine(self, prods[0])
+                new_engine = ProductionScannerEngine(self, prod)
             self.scanner.push_engine(new_engine)
             self.event('enter_with')
             (succeeded, result) = self.interpret(sub)

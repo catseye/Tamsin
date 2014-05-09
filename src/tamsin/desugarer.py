@@ -33,7 +33,7 @@ class Desugarer(EventProducer):
             )
         elif isinstance(ast, Production):
             return Production(ast.name, 0, ast.formals, [],
-                              self.desugar(ast.body))
+                              self.desugar(ast.body), None)
         elif isinstance(ast, Or):
             return Or(self.desugar(ast.lhs), self.desugar(ast.rhs))
         elif isinstance(ast, And):

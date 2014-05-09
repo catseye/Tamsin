@@ -92,8 +92,8 @@ class Compiler(object):
     def compile(self):
         self.emit(PRELUDE)
 
-        prods = self.program.find_productions(Prodref('main', 'main'))
-        if len(prods) == 0:
+        main = self.program.find_production(Prodref('main', 'main'))
+        if not main:
             raise ValueError("no 'main:main' production defined")
 
         for module in self.program.modlist:
@@ -107,15 +107,9 @@ class Compiler(object):
         for module in self.program.modlist:
             self.currmod = module
             mod_name = module.name
-            done_prod = set()
             for prod in module.prodlist:
-                if prod.name in done_prod:
-                    continue
                 self.current_prod_name = prod.name
-                prods = module.find_productions(prod.name)
-                for prod in prods:
-                    self.compile_r(prod)
-                done_prod.add(prod.name)
+                self.compile_r(prod)
                 self.current_prod_name = None
             self.currmod = None
 
@@ -155,11 +149,8 @@ class Compiler(object):
                 )
                 self.indent()
                 
-                next = None
-                myprods = self.currmod.find_productions(self.current_prod_name)
-                if ast.rank + 1 < len(myprods):
-                    next = myprods[ast.rank + 1]
-                
+                # TODO: ... do thsi right
+                next = ast.next
                 if next:
                     args = ', '.join(["i%s" % i for i in xrange(0, len(formals))])
                     self.emit("prod_%s_%s%s(%s);" % (

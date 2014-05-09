@@ -40,7 +40,7 @@ class Program(AST):
                 return m
         return None
 
-    def find_productions(self, prodref):
+    def find_production(self, prodref):
         module_name = prodref.module
         prod_name = prodref.name
         assert module_name != ''
@@ -58,15 +58,15 @@ class Program(AST):
                 'startswith': [Variable('X')],
                 'unquote': [Variable('X'), Variable('L'), Variable('R')],
             }.get(prod_name, [])
-            return [Production('$.' + prod_name, 0, formals, [], None)]
+            return Production('$.' + prod_name, 0, formals, [], None, None)
         else:
             module = self.find_module(module_name)
             if not module:
                 raise KeyError("no '%s' module defined" % module_name)
-            productions = module.find_productions(prod_name)
-            if not productions:
+            production = module.find_production(prod_name)
+            if not production:
                 raise KeyError("no '%s:%s' production defined" % (mod, name))
-            return productions
+            return production
 
     def incorporate(self, other):
         """Add all Modules from other to self.  Changes self.
@@ -92,12 +92,15 @@ class Module(AST):
         self.name = name
         self.prodlist = prodlist
 
-    def find_productions(self, name):
+    def find_production(self, name):
         prods = []
         for prod in self.prodlist:
             if prod.name == name:
                 prods.append(prod)
-        return prods
+        assert len(prods) in (0, 1)
+        if not prods:
+            return None
+        return prods[0]
 
     def __repr__(self):
         return "Module(%r, %r)" % (self.name, self.prodlist)
@@ -107,12 +110,19 @@ class Module(AST):
 
 
 class Production(AST):
-    def __init__(self, name, rank, formals, locals_, body):
+    def __init__(self, name, rank, formals, locals_, body, next):
         self.name = name
         self.rank = rank
         self.formals = formals
         self.locals_ = locals_
         self.body = body
+        self.next = next
+
+    def link(self, other):
+        if self.next is None:
+            self.next = other
+        else:
+            self.next.link(other)
 
     def __repr__(self):
         return u"Production(%r, %r, %r, %r, %r)" % (
