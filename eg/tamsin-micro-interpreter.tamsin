@@ -13,7 +13,7 @@ interpret(P, program(L)) =
     find_prod(main, MMPs) → Main &
     interpret(P, Main).
 
-interpret(P, production(N, F, Ls, E, Ps)) = interpret(P, E).
+interpret(P, production(N, list(prodbranch(Fs, Ls, E), nil))) = interpret(P, E).
 interpret(program(L), call(prodref('$', 'return'), list(term(X), nil))) = return X.
 interpret(program(L), call(prodref('$', 'expect'), list(term(X), nil))) = «X».
 interpret(program(L), call(prodref('$', 'print'), list(term(X), nil))) = print X.
@@ -32,7 +32,7 @@ find_main_module_prods(list(module(main, Ps), T)) = Ps.
 find_main_module_prods(list(H, T)) = find_main_module_prods(T).
 find_main_module_prods(nil) = fail 'no main module'.
 
-find_prod(N1, list(production(N2, F, Ls, E, Ps), T)) =
-    $:equal(N1, N2) & return production(N2, F, Ls, E, Ps) | find_prod(N1, T).
+find_prod(N1, list(production(N2, Bs), T)) =
+    $:equal(N1, N2) & return production(N2, Bs) | find_prod(N1, T).
 find_prod(N, list(H, T)) = find_prod(N, T).
 find_prod(N, nil) = fail 'no ' + N + ' production'.

@@ -12,12 +12,14 @@ tamsin_analyzer {
   desugar(program(L)) = desugar_all(L) → DL & return program(DL).
   desugar(module(N, L)) =
       desugar_all(L) → DL &
-      link_productions(DL, nil) → Map &
-      #unmap(Map, nil) → DP &
-      unmap_and_reverse_prod(Map, nil) → DP &
-      return module(N, DP).
-  desugar(production(N, F, Ls, E, Ps)) =
-      desugar(E) → DE & return production(N, F, Ls, DE, Ps).
+      merge_prod_branches(DL, nil) → DDL &
+      return module(N, DDL).
+  desugar(production(N, PBs)) =
+      desugar_all(PBs) → DPBs &
+      return production(N, DPBs).
+  desugar(prodbranch(Fs, Ls, B)) =
+      desugar(B) → DB &
+      return prodbranch(Fs, Ls, DB).
   desugar(call(PR, Args)) = return call(PR, Args).
   desugar(or(L, R)) = desugar(L) → DL & desugar(R) → DR & return or(DL, DR).
   desugar(and(L, R)) = desugar(L) → DL & desugar(R) → DR & return and(DL, DR).
@@ -43,33 +45,27 @@ tamsin_analyzer {
   delete(K, list(pair(K2, V), T)) = $:equal(K, K2) & delete(K, T)
                                   | delete(K, T) → R & return list(pair(K2, V), R).
   delete(K, nil)                  = 'nil'.
-
+  
   store(K, V, A)                  = delete(K, A) → A2 &
                                     return list(pair(K, V), A2).
 
-  unmap(list(pair(K, V), T), A)   = A ← list(V, A) & unmap(T, A).
-  unmap(nil, A)                   = A.
+  merge_prod_branches(list(production(N, list(B, nil)),T),Map) =
+      fetch(N, Map) → Blist &
+      Blist ← list(B, Blist) &
+      store(N, Blist, Map) → Map &
+      merge_prod_branches(T, Map).
+  merge_prod_branches(nil,Map) =
+      unmap(Map, nil).
 
-  unmap_and_reverse_prod(list(pair(K, V), T), A) =
-      reverse_prod(V, nil) → VR &
-      A ← list(VR, A) &
+  unmap(list(pair(K, V), T), A) =
+      reverse(V, nil) → RV &
+      P ← production(K, RV) &
+      A ← list(P, A) &
       unmap(T, A).
-  unmap_and_reverse_prod(nil, A) = A.
+  unmap(nil, A) = A.
 
-  insert_production(production(N, F, Ls, E, nil), Next) =
-      return production(N, F, Ls, E, Next).
-
-  link_productions(nil, Alist) = Alist.
-  link_productions(list(production(N, F, Ls, E, nil), Ps), Alist) =
-      Self ← production(N, F, Ls, E, nil) &
-      fetch(N, Alist) → P &
-      insert_production(Self, P) → Self &
-      store(N, Self, Alist) → NewAlist &
-      link_productions(Ps, NewAlist).
-
-  reverse_prod(production(N, F, Ls, E, T), A) =
-      reverse_prod(T, production(N, F, Ls, E, A)).
-  reverse_prod(nil, A) = A.
+  reverse(list(H, T), A) = reverse(T, list(H, A)).
+  reverse(nil, A) = A.
 
   #####
 

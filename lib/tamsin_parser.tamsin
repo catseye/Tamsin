@@ -39,7 +39,7 @@ tamsin_parser {
              [formals → F] &
              "=" &
              expr0 → E &
-             return production(N, F, nil, E, nil).
+             return production(N, list(prodbranch(F, nil, E), nil)).
   formals  = L ← nil &
              "(" &
              term → T & L ← list(T, L) &
