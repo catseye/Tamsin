@@ -14,9 +14,9 @@ interpret(P, program(L)) =
     interpret(P, Main).
 
 interpret(P, production(N, list(prodbranch(Fs, Ls, E), nil))) = interpret(P, E).
-interpret(program(L), call(prodref('$', 'return'), list(term(X), nil))) = return X.
-interpret(program(L), call(prodref('$', 'expect'), list(term(X), nil))) = «X».
-interpret(program(L), call(prodref('$', 'print'), list(term(X), nil))) = print X.
+interpret(P, call(prodref('$', 'return'), list(atom(X), nil))) = return X.
+interpret(P, call(prodref('$', 'expect'), list(atom(X), nil))) = «X».
+interpret(P, call(prodref('$', 'print'), list(atom(X), nil))) = print X.
 
 interpret(program(L), call(prodref(M, N), A)) =
     find_main_module_prods(L) → MMP &

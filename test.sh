@@ -33,7 +33,7 @@ if [ x$1 = xthorough ]; then
    echo "Testing EVERYTHING.  Will likely take more than 5 minutes."
    $0 interpreter &&
    $0 compiler &&
-   $0 scanner &&
+   #$0 scanner &&
    $0 parser &&
    $0 ast &&
    $0 desugarer &&
@@ -54,8 +54,7 @@ testcompiled() {
     CMD=$3
     BIN=$4
 
-    echo "Compiling $1 in Tamsin and"
-    echo "  testing it against '$2'..."
+    echo "Compiling $1 and testing it against '$2'..."
     ./build.sh
     bin/tamsin compile $LIBS $SRC > foo.c && \
        gcc -g -Ic_src -Lc_src foo.c -o $BIN -ltamsin || exit 1
@@ -78,39 +77,39 @@ elif [ x$1 = xscanner ]; then
         echo $EG
         bin/tamsin scan <$EG > 1.txt || exit 1
         bin/tamsin lib/tamsin_scanner.tamsin \
-                   eg/tamsin-scanner-driver.tamsin <$EG > 2.txt || exit 1
+                   mains/scanner.tamsin <$EG > 2.txt || exit 1
         diff -ru 1.txt 2.txt || exit 1
     done
-elif [ x$1 = xparser ]; then   # just check that tamsin-parser accepts it
-    echo "Testing parser for syntactic correctness in Tamsin..."
+elif [ x$1 = xgrammar ]; then
+    echo "Testing parser (for syntactic correctness only) in Tamsin..."
     for EG in eg/*.tamsin; do
         echo $EG
         bin/tamsin lib/tamsin_scanner.tamsin \
-                   eg/tamsin-parser.tamsin <$EG || exit 1
+                   mains/tamsin-grammar.tamsin <$EG || exit 1
     done
-elif [ x$1 = xinterpretedast ]; then   # check that tamsin-ast output looks like bin/tamsin parse
+elif [ x$1 = xinterpretedast ]; then
     echo "Testing parser (for AST) in Tamsin..."
     for EG in eg/*.tamsin; do
         echo $EG
         bin/tamsin parse $EG > 1.txt
         bin/tamsin lib/tamsin_scanner.tamsin \
                    lib/tamsin_parser.tamsin \
-                   eg/tamsin-parser-driver.tamsin <$EG > 2.txt || exit 1
+                   mains/parser.tamsin <$EG > 2.txt || exit 1
         diff -ru 1.txt 2.txt > ast.diff
         diff -ru 1.txt 2.txt || exit 1
     done
 elif [ x$1 = xast ]; then   # check that tamsin-ast output looks like bin/tamsin parse
-    testcompiled "eg/tamsin-parser-driver.tamsin" \
+    testcompiled "mains/parser.tamsin" \
                  "lib/tamsin_scanner.tamsin lib/tamsin_parser.tamsin" \
                  "./bin/tamsin parse" \
                  "tamsin-ast"
 elif [ x$1 = xdesugarer ]; then
-    testcompiled "eg/tamsin-desugarer-driver.tamsin" \
+    testcompiled "mains/desugarer.tamsin" \
                  "lib/tamsin_scanner.tamsin lib/tamsin_parser.tamsin lib/tamsin_analyzer.tamsin" \
                  "./bin/tamsin desugar" \
                  "tamsin-desugarer"
 elif [ x$1 = xanalyzer ]; then
-    testcompiled "eg/tamsin-analyzer-driver.tamsin" \
+    testcompiled "mains/analyzer.tamsin" \
                  "lib/tamsin_scanner.tamsin lib/tamsin_parser.tamsin lib/tamsin_analyzer.tamsin" \
                  "./bin/tamsin analyze" \
                  "tamsin-analyzer"
@@ -119,7 +118,7 @@ elif [ x$1 = xmicro ]; then
     ./build.sh
     bin/tamsin compile lib/tamsin_scanner.tamsin \
                        lib/tamsin_parser.tamsin \
-                       eg/tamsin-micro-interpreter.tamsin > foo.c && \
+                       mains/micro-tamsin.tamsin > foo.c && \
        gcc -g -ansi -Werror \
            -Ic_src -Lc_src foo.c -o micro-tamsin -ltamsin || exit 1
     echo "Testing Micro-Tamsin interpreter..."
