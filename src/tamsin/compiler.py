@@ -144,9 +144,6 @@ class Compiler(object):
                 self.current_branch = branch
                 self.compile_r(branch)
                 self.current_branch = None
-
-            self.emit("{")   # ... else { ...
-            self.indent()
             
             # ... ???
             
@@ -157,10 +154,6 @@ class Compiler(object):
                 self.emit('result = term_concat(result, term_flatten(i%d));' % i)
                 self.emit('result = term_concat(result, term_new_from_cstring(", "));')
             self.emit("ok = 0;")
-            self.emit("return;")
-            
-            self.outdent()
-            self.emit("}")
 
             self.outdent()
             self.emit("}")
@@ -168,6 +161,9 @@ class Compiler(object):
         elif isinstance(ast, ProdBranch):
             branch = ast
             all_pattern_variables = set()
+
+            self.emit("{")
+            self.indent()
             
             for fml_num in xrange(0, len(branch.formals)):
                 self.emit_term(branch.formals[fml_num].term,
@@ -200,9 +196,13 @@ class Compiler(object):
             self.emit("")
             
             self.compile_r(branch.body)
-            
+
+            self.emit("return;")
             self.outdent()
-            self.emit("} else")
+            self.emit("}")
+            self.outdent()
+            self.emit("}")
+
         elif isinstance(ast, And):
             self.compile_r(ast.lhs)
             self.emit("if (ok) {")
