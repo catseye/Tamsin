@@ -53,7 +53,7 @@ class Program(AST):
                 'unquote': [Variable('X'), Variable('L'), Variable('R')],
             }.get(prod_name, [])
             formals = [TermNode(f) for f in formals]
-            return Production('$.' + prod_name, formals, [], None, None)
+            return Production('$.' + prod_name, [ProdBranch(formals, [], None)])
         else:
             module = self.find_module(module_name)
             if not module:
@@ -94,7 +94,7 @@ class Module(AST):
         for prod in self.prodlist:
             if prod.name == name:
                 prods.append(prod)
-        assert len(prods) in (0, 1)
+        assert len(prods) in (0, 1), repr((name, prods))
         if not prods:
             return None
         return prods[0]
@@ -107,12 +107,9 @@ class Module(AST):
 
 
 class Production(AST):
-    def __init__(self, name, formals, locals_, body, next):
+    def __init__(self, name, branches):
         self.name = name
-        self.formals = formals
-        self.locals_ = locals_
-        self.body = body
-        self.next = next
+        self.branches = branches
 
     def link(self, other):
         if self.next is None:
@@ -121,21 +118,36 @@ class Production(AST):
             self.next.link(other)
 
     def __repr__(self):
-        return u"Production(%r, %r, %r, %r, %r)" % (
+        return "Production(%r, %r)" % (
             self.name,
-            self.formals,
-            self.locals_,
-            self.body,
-            self.next
+            self.branches,
         )
 
     def __str__(self):
-        return "production(%s, %s, %s, %s, %s)" % (
+        return "production(%s, %s)" % (
             self.name,
+            format_list(self.branches),
+        )
+
+
+class ProdBranch(AST):
+    def __init__(self, formals, locals_, body):
+        self.formals = formals
+        self.locals_ = locals_
+        self.body = body
+
+    def __repr__(self):
+        return u"Prodbranch(%r, %r, %r)" % (
+            self.formals,
+            self.locals_,
+            self.body,
+        )
+
+    def __str__(self):
+        return "prodbranch(%s, %s, %s)" % (
             format_list(self.formals),
             format_list(self.locals_),
             self.body,
-            self.next or 'nil'
         )
 
 

@@ -6,7 +6,7 @@
 import sys
 
 from tamsin.ast import (
-    Production, And, Or, Not, While, Call, Send, Set, Using,
+    Production, ProdBranch, And, Or, Not, While, Call, Send, Set, Using,
     Prodref, Concat, TermNode
 )
 from tamsin.term import Term, EOF, Atom, Constructor
@@ -74,7 +74,7 @@ class Interpreter(EventProducer):
             raise ValueError("no 'main:main' production defined")
         return self.interpret(main)
 
-    def interpret(self, ast, bindings=None):
+    def interpret(self, ast, args=None):
         """Returns a pair (bool, result) where bool is True if it
         succeeded and False if it failed.
 
@@ -84,7 +84,7 @@ class Interpreter(EventProducer):
             name = ast.name
             if name == '$.expect':
                 upcoming_token = self.scanner.peek()
-                term = bindings['X']
+                term = args[0]
                 token = str(term)
                 if self.scanner.consume(token):
                     return (True, term)
@@ -95,7 +95,7 @@ class Interpreter(EventProducer):
                           self.scanner.report_buffer(self.scanner.position, 20)))
                     return (False, Atom(s))
             elif name == '$.return':
-                return (True, bindings['X'])
+                return (True, args[0])
             elif name == '$.eof':
                 if self.scanner.peek() is EOF:
                     return (True, EOF)
@@ -123,28 +123,28 @@ class Interpreter(EventProducer):
                                         self.scanner.peek()))
             elif name == '$.startswith':
                 if (self.scanner.peek() is not EOF and
-                    self.scanner.peek()[0].startswith((str(bindings['X']),))):
+                    self.scanner.peek()[0].startswith((str(args[0]),))):
                     return (True, Atom(self.scanner.consume_any()))
                 else:
                     return (False, Atom("expected '%s, found '%s'" %
-                                        (bindings['X'], self.scanner.peek())))
+                                        (args[0], self.scanner.peek())))
             elif name == '$.equal':
-                if bindings['L'].match(bindings['R']) != False:
-                    return (True, bindings['L'])
+                if args[0].match(args[1]) != False:
+                    return (True, args[0])
                 else:
                     return (False, Atom("term '%s' does not equal '%s'" %
-                                        (bindings['L'], bindings['R'])))
+                                        (args[0], args[1])))
             elif name == '$.unquote':
-                x = str(bindings['X'])
-                if (x.startswith((str(bindings['L']),)) and
-                    x.endswith((str(bindings['R']),))):
+                x = str(args[0])
+                if (x.startswith((str(args[1]),)) and
+                    x.endswith((str(args[2]),))):
                     return (True, Atom(x[1:-1]))
                 else:
                     return (False, Atom("term '%s' is not quoted with '%s' and '%s'" %
-                                        (bindings['X'], bindings['L'], bindings['R'])))
+                                        (args[0], args[1], args[2])))
             elif name == '$.mkterm':
-                t = bindings['T']
-                l = bindings['L']
+                t = args[0]
+                l = args[1]
                 contents = []
                 while isinstance(l, Constructor) and l.tag == 'list':
                     contents.append(l.contents[0])
@@ -154,33 +154,74 @@ class Interpreter(EventProducer):
                 else:
                     return (True, t)
             elif name == '$.reverse':
-                return (True, bindings['X'].reversed(bindings['E']))
+                return (True, args[0].reversed(args[1]))
             elif name == '$.print':
-                val = bindings['X']
+                val = args[0]
                 sys.stdout.write(str(val))
                 sys.stdout.write("\n")
                 return (True, val)
             elif name == '$.emit':
-                val = bindings['X']
+                val = args[0]
                 sys.stdout.write(str(val))
                 return (True, val)
             elif name == '$.repr':
-                val = bindings['X']
+                val = args[0]
                 val = Atom(val.repr())
                 return (True, val)
             elif name == '$.fail':
-                return (False, bindings['X'])
+                return (False, args[0])
             elif name.startswith('$.'):
                 raise ValueError("No '%s' production defined" % name)
+
+            bindings = False
+            branch = None
+            for b in ast.branches:
+                formals = [self.interpret(f)[1] for f in b.formals]
+                self.event('call_args', formals, args)
+                if isinstance(formals, list):
+                    bindings = Term.match_all(formals, args)
+                    self.event('call_bindings', bindings)
+                    if bindings != False:
+                        branch = b
+                        break
+                        # if ibuf is not None:
+                        #     return self.interpret_on_buffer(
+                        #         prod, unicode(ibuf.expand(self.context)),
+                        #         bindings=bindings
+                        #     )
+                        # else:
+                # else:
+                #     self.event('call_newfangled_parsing_args', prod)
+                #     # start a new scope.  arg bindings will appear here.
+                #     self.context.push_scope(prod.name)
+                #     (success, result) = self.interpret_on_buffer(
+                #         formals, unicode(args[0])
+                #     )
+                #     # we do not want to start a new scope here, and we
+                #     # interpret the rule directly, not the prod.
+                #     if success:
+                #         self.event('begin_interpret_rule', prod.body)
+                #         (success, result) = self.interpret(prod.body)
+                #         self.event('end_interpret_rule', prod.body)
+                #         self.context.pop_scope(prod.name)
+                #         return (success, result)
+                #     else:
+                #         self.context.pop_scope(prod.name)
+            if branch is None:
+                raise ValueError("No '%s' production matched arguments %r" %
+                    (name, args)
+                )
+
             self.context.push_scope(name)
-            if bindings:
+            if bindings != False:
                 for name in bindings.keys():
                     self.context.store(name, bindings[name])
-            self.event('begin_interpret_rule', ast.body)
-            assert ast.body, repr(ast)
-            (success, result) = self.interpret(ast.body)
-            self.event('end_interpret_rule', ast.body)
+            self.event('begin_interpret_rule', branch.body)
+            assert branch.body, repr(ast)
+            (success, result) = self.interpret(branch.body)
+            self.event('end_interpret_rule', branch.body)
             self.context.pop_scope(ast.name)
+
             return (success, result)
         elif isinstance(ast, And):
             (success, value_lhs) = self.interpret(ast.lhs)
@@ -214,41 +255,7 @@ class Interpreter(EventProducer):
             args = [x.expand(self.context) for x in args]
             for a in args:
                 assert isinstance(a, Term)
-            while prod is not None:
-                formals = [self.interpret(f)[1] for f in prod.formals]
-                self.event('call_args', formals, args)
-                if isinstance(formals, list):
-                    bindings = Term.match_all(formals, args)
-                    self.event('call_bindings', bindings)
-                    if bindings != False:
-                        if ibuf is not None:
-                            return self.interpret_on_buffer(
-                                prod, unicode(ibuf.expand(self.context)),
-                                bindings=bindings
-                            )
-                        else:
-                            return self.interpret(prod, bindings=bindings)
-                else:
-                    self.event('call_newfangled_parsing_args', prod)
-                    # start a new scope.  arg bindings will appear here.
-                    self.context.push_scope(prod.name)
-                    (success, result) = self.interpret_on_buffer(
-                        formals, unicode(args[0])
-                    )
-                    # we do not want to start a new scope here, and we
-                    # interpret the rule directly, not the prod.
-                    if success:
-                        self.event('begin_interpret_rule', prod.body)
-                        (success, result) = self.interpret(prod.body)
-                        self.event('end_interpret_rule', prod.body)
-                        self.context.pop_scope(prod.name)
-                        return (success, result)
-                    else:
-                        self.context.pop_scope(prod.name)
-                prod = prod.next
-            raise ValueError("No '%s' production matched arguments %r" %
-                (name, args)
-            )
+            return self.interpret(prod, args=args)
         elif isinstance(ast, Send):
             (success, variable) = self.interpret(ast.variable)
             (success, result) = self.interpret(ast.rule)

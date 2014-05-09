@@ -4,7 +4,8 @@
 # Distributed under a BSD-style license; see LICENSE for more information.
 
 from tamsin.ast import (
-    Program, Module, Production, And, Or, Not, While, Call, Send, Set,
+    Program, Module, Production, ProdBranch,
+    And, Or, Not, While, Call, Send, Set,
     Variable, Using, Concat, Fold, Prodref, TermNode
 )
 from tamsin.term import Term, Atom, Constructor
@@ -30,20 +31,28 @@ class Desugarer(EventProducer):
             )
         elif isinstance(ast, Module):
             prodlist = []
+            
+            def find_prod_pos(name):
+                i = 0
+                for prod in prodlist:
+                    if prod.name == name:
+                        return i
+                    i += 1
+                return None
+
             for prod in ast.prodlist:
                 prod = self.desugar(prod)
-                linked = False
-                for parent in prodlist:
-                    if parent.name == prod.name:
-                        parent.link(prod)
-                        linked = True
-                        break
-                if not linked:
+                pos = find_prod_pos(prod.name)
+                if pos is None:
                     prodlist.append(prod)
+                else:
+                    prodlist[pos].branches.extend(prod.branches)
+            
             return Module(ast.name, prodlist)
         elif isinstance(ast, Production):
-            return Production(ast.name, ast.formals, [],
-                              self.desugar(ast.body), None)
+            return Production(ast.name, [self.desugar(x) for x in ast.branches])
+        elif isinstance(ast, ProdBranch):
+            return ProdBranch(ast.formals, [], self.desugar(ast.body))
         elif isinstance(ast, Or):
             return Or(self.desugar(ast.lhs), self.desugar(ast.rhs))
         elif isinstance(ast, And):

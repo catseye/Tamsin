@@ -4,7 +4,8 @@
 # Distributed under a BSD-style license; see LICENSE for more information.
 
 from tamsin.ast import (
-    Program, Production, Module, And, Or, Not, While, Call, Send, Set,
+    Program, Module, Production, ProdBranch,
+    And, Or, Not, While, Call, Send, Set,
     Variable, Using, Concat, Prodref, TermNode
 )
 from tamsin.term import Term, Constructor, Atom
@@ -24,6 +25,7 @@ class Analyzer(EventProducer):
       (this is done at the end by analyze_prodrefs)
 
     TODO: it should also find any locals that are accessed before being set
+    TODO: it should also look for a mismatch in # of formals
     """
     def __init__(self, program, listeners=None):
         self.listeners = listeners
@@ -47,13 +49,15 @@ class Analyzer(EventProducer):
             self.current_module = None
             return Module(ast.name, prodlist)
         elif isinstance(ast, Production):
+            branches = []
+            for b in ast.branches:
+                branches.append(self.analyze(b))
+            return Production(ast.name, branches)
+        elif isinstance(ast, ProdBranch):            
             locals_ = set()
             body = self.analyze(ast.body)
             self.collect_locals(body, locals_)
-            next = ast.next
-            if next is not None:
-                next = self.analyze(next)
-            return Production(ast.name, ast.formals, locals_, body, next)
+            return ProdBranch(ast.formals, locals_, body)
         elif isinstance(ast, Or):
             return Or(self.analyze(ast.lhs), self.analyze(ast.rhs))
         elif isinstance(ast, And):
@@ -90,7 +94,7 @@ class Analyzer(EventProducer):
     def collect_locals(self, ast, locals_):
         """locals_ should be a set."""
 
-        if isinstance(ast, Production):
+        if isinstance(ast, ProdBranch):
             self.collect_locals(ast.body, locals_)
         elif (isinstance(ast, And) or isinstance(ast, Or) or
               isinstance(ast, Concat)):
@@ -130,6 +134,9 @@ class Analyzer(EventProducer):
             for prod in ast.prodlist:
                 self.analyze_prodrefs(prod)
         elif isinstance(ast, Production):
+            for b in ast.branches:
+                self.analyze_prodrefs(b)
+        elif isinstance(ast, ProdBranch):
             self.analyze_prodrefs(ast.body)
         elif isinstance(ast, Or) or isinstance(ast, And):
             self.analyze_prodrefs(ast.lhs)

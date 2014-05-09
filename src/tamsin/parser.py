@@ -4,7 +4,8 @@
 # Distributed under a BSD-style license; see LICENSE for more information.
 
 from tamsin.ast import (
-    AST, Module, Program, Production, And, Or, Not, While, Call, Prodref,
+    AST, Module, Program, Production, ProdBranch,
+    And, Or, Not, While, Call, Prodref,
     Send, Set, Concat, Using, Fold, TermNode
 )
 from tamsin.term import (
@@ -108,7 +109,7 @@ class Parser(EventProducer):
         self.expect('=')
         body = self.expr0()
         self.expect('.')
-        return Production(name, formals, (), body, None)
+        return Production(name, [ProdBranch(formals, (), body)])
 
     def expr0(self):
         lhs = self.expr1()
