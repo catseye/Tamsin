@@ -54,7 +54,7 @@ class Analyzer(EventProducer):
                 branches.append(self.analyze(b))
             return Production(ast.name, branches)
         elif isinstance(ast, ProdBranch):            
-            locals_ = set()
+            locals_ = []
             body = self.analyze(ast.body)
             self.collect_locals(body, locals_)
             return ProdBranch(ast.formals, locals_, body)
@@ -92,7 +92,7 @@ class Analyzer(EventProducer):
             raise NotImplementedError(repr(ast))
 
     def collect_locals(self, ast, locals_):
-        """locals_ should be a set."""
+        """locals_ should be a list."""
 
         if isinstance(ast, ProdBranch):
             self.collect_locals(ast.body, locals_)
@@ -116,7 +116,8 @@ class Analyzer(EventProducer):
             self.collect_locals(ast.term, locals_)
         # terms --- could just call t.collect_variables() and map out names...
         elif isinstance(ast, Variable):
-            locals_.add(ast.name)
+            if ast.name not in locals_:
+                locals_.append(ast.name)
         elif isinstance(ast, Constructor):
             for sub in ast.contents:
                 self.collect_locals(sub, locals_)

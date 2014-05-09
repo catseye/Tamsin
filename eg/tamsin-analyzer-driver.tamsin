@@ -1,4 +1,4 @@
 main = tamsin_parser:parse → AST & {" " | "\n" } & eof &
        tamsin_analyzer:desugar(AST) → AST &
-       tamsin_analyzer:analyze(AST) → AST &
+       tamsin_analyzer:analyze(nil, AST) → AST &
        $:repr(AST).

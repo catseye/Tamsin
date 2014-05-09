@@ -82,7 +82,7 @@ def main(args, tamsin_dir='.'):
         print str(ast)
     elif args[0] == 'analyze':
         ast = parse_and_check_args(args[1:])
-        print repr(ast)
+        print str(ast)
     elif args[0] == 'compile':
         ast = parse_and_check_args(args[1:])
         compiler = Compiler(ast, sys.stdout)

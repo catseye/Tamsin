@@ -68,25 +68,56 @@ tamsin_analyzer {
   reverse(nil, A) = A.
 
   #####
+  # CP = current module name (sorry)
 
-  analyze_all(list(H,T)) =
-      analyze(H) → DH &
-      analyze_all(T) → DT &
+  analyze_all(CP, list(H,T)) =
+      analyze(CP, H) → DH &
+      analyze_all(CP, T) → DT &
       return list(DH, DT).
-  analyze_all(nil) = 'nil'.
+  analyze_all(CP, nil) = 'nil'.
 
-  analyze(program(L)) = analyze_all(L) → DL & return program(DL).
-  analyze(module(N, L)) = analyze_all(L) → DL & return module(N, DL).
-  analyze(production(N, F, Ls, E, Ps)) = analyze(E) → DE &
-      return production(N, F, Ls, DE, Ps).
-  analyze(call(PR, Args)) = return call(PR, Args).
-  analyze(or(L, R)) = analyze(L) → DL & analyze(R) → DR & return or(DL, DR).
-  analyze(and(L, R)) = analyze(L) → DL & analyze(R) → DR & return and(DL, DR).
-  analyze(not(X)) = analyze(X) → DX & return not(DX).
-  analyze(while(X)) = analyze(X) → DX & return while(DX).
-  analyze(concat(L, R)) = analyze(L) → DL & analyze(R) → DR & return concat(DL, DR).
-  analyze(using(R, P)) = analyze(R) → DR & return using(DR, P).  
-  analyze(send(R, V)) = analyze(R) → DR & return send(DR, V).
-  analyze(set(V, T)) = analyze(T) → DT & return set(V, DT).
-  analyze(term(T)) = return term(T).
+  analyze(CP, program(L)) =
+      analyze_all(CP, L) → DL &
+      return program(DL).
+  analyze(CP, module(N, L)) =
+      analyze_all(N, L) → DL &
+      return module(N, DL).
+  analyze(CP, production(N, Bs)) =
+      analyze_all(CP, Bs) → DBs &
+      return production(N, DBs).
+  analyze(CP, prodbranch(Fs, Ls, E)) =
+      analyze(CP, E) → DE &
+      return prodbranch(Fs, Ls, DE).
+  analyze(CP, call(prodref(MN, PN), As)) =
+      $:equal(MN, '') & return call(prodref(CP, PN), As)
+                      | return call(prodref(MN, PN), As).
+  analyze(CP, or(L, R)) =
+      analyze(CP, L) → DL &
+      analyze(CP, R) → DR &
+      return or(DL, DR).
+  analyze(CP, and(L, R)) =
+      analyze(CP, L) → DL &
+      analyze(CP, R) → DR &
+      return and(DL, DR).
+  analyze(CP, not(X)) =
+      analyze(CP, X) → DX &
+      return not(DX).
+  analyze(CP, while(X)) =
+      analyze(CP, X) → DX &
+      return while(DX).
+  analyze(CP, concat(L, R)) =
+      analyze(CP, L) → DL &
+      analyze(CP, R) → DR &
+      return concat(DL, DR).
+  analyze(CP, using(R, P)) =
+      analyze(CP, R) → DR &
+      return using(DR, P).  
+  analyze(CP, send(R, V)) =
+      analyze(CP, R) → DR &
+      return send(DR, V).
+  analyze(CP, set(V, T)) =
+      analyze(CP, T) → DT &
+      return set(V, DT).
+  analyze(CP, term(T)) =
+      return term(T).
 }
