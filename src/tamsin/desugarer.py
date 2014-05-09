@@ -16,6 +16,7 @@ class Desugarer(EventProducer):
     It is responsible for:
 
     * Desugaring Fold() nodes.
+    * Turning the list of Production() nodes into a linked list.
 
     """
     def __init__(self, program, listeners=None):
@@ -28,9 +29,18 @@ class Desugarer(EventProducer):
                 [self.desugar(m) for m in ast.modlist]
             )
         elif isinstance(ast, Module):
-            return Module(
-                ast.name, [self.desugar(p) for p in ast.prodlist]
-            )
+            prodlist = []
+            for prod in ast.prodlist:
+                prod = self.desugar(prod)
+                linked = False
+                for parent in prodlist:
+                    if parent.name == prod.name:
+                        parent.link(prod)
+                        linked = True
+                        break
+                if not linked:
+                    prodlist.append(prod)
+            return Module(ast.name, prodlist)
         elif isinstance(ast, Production):
             return Production(ast.name, ast.formals, [],
                               self.desugar(ast.body), None)

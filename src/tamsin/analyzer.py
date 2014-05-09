@@ -14,7 +14,7 @@ from tamsin.event import EventProducer
 class Analyzer(EventProducer):
     """The Analyzer takes a desugared AST, walks it, and returns a new AST.
     It is responsible for:
-    
+
     * Finding the set of local variable names used in each production and
       sticking that in the locals_ field of the new Production node.
     * Resolving any '' modules in Prodrefs to the name of the current
@@ -43,22 +43,17 @@ class Analyzer(EventProducer):
             self.current_module = ast
             prodlist = []
             for prod in ast.prodlist:
-                prod = self.analyze(prod)
-                linked = False
-                for parent in prodlist:
-                    if parent.name == prod.name:
-                        parent.link(prod)
-                        linked = True
-                        break
-                if not linked:
-                    prodlist.append(prod)
+                prodlist.append(self.analyze(prod))
             self.current_module = None
             return Module(ast.name, prodlist)
         elif isinstance(ast, Production):
             locals_ = set()
             body = self.analyze(ast.body)
             self.collect_locals(body, locals_)
-            return Production(ast.name, ast.formals, locals_, body, None)
+            next = ast.next
+            if next is not None:
+                next = self.analyze(next)
+            return Production(ast.name, ast.formals, locals_, body, next)
         elif isinstance(ast, Or):
             return Or(self.analyze(ast.lhs), self.analyze(ast.rhs))
         elif isinstance(ast, And):
