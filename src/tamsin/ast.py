@@ -60,7 +60,9 @@ class Program(AST):
                 raise KeyError("no '%s' module defined" % module_name)
             production = module.find_production(prod_name)
             if not production:
-                raise KeyError("no '%s:%s' production defined" % (mod, name))
+                raise KeyError("no '%s:%s' production defined" %
+                    (module_name, prod_name)
+                )
             return production
 
     def incorporate(self, other):
