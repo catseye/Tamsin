@@ -18,7 +18,7 @@ desugar_all(nil) = 'nil'.
 
 desugar(program(L)) = desugar_all(L) → DL & return program(DL).
 desugar(module(N, L)) = desugar_all(L) → DL & return module(N, DL).
-desugar(production(N, F, E)) = desugar(E) → DE & return production(N, F, DE).
+desugar(production(N, F, E, Ps)) = desugar(E) → DE & return production(N, F, DE, Ps).
 desugar(or(L, R)) = desugar(L) → DL & desugar(R) → DR & return or(DL, DR).
 desugar(and(L, R)) = desugar(L) → DL & desugar(R) → DR & return and(DL, DR).
 desugar(not(X)) = desugar(X) → DX & return not(DX).
@@ -31,11 +31,11 @@ desugar(set(V, T)) = desugar(T) → DT & return set(V, DT).
 
 desugar(fold(R, I)) =
     desugar(R) → DR &
-    SET ← set('_1', I) &
-    SEND ← send(DR, '_2') &
-    CAT ← concat('_1', '_2') &
-    ACC ← set('_1', CAT) &
-    RET ← call(prodref('$', 'return'), list('_1', nil)) &
+    SET ← set(term('_1'), I) &
+    SEND ← send(DR, term('_2')) &
+    CAT ← concat(term('_1'), term('_2')) &
+    ACC ← set(term('_1'), CAT) &
+    RET ← call(prodref('$', 'return'), list(term('_1'), nil)) &
     return and(and(SET, while(and(SEND, ACC))), RET).
 
 desugar(Else) = Else.

@@ -5,20 +5,18 @@
 # REQUIRES lib/tamsin_scanner.tamsin
 # REQUIRES lib/tamsin_parser.tamsin
 
-# Note that this may contain support for some features which are not in
-# the current released or pre-released version.
-
-main = tamsin_parser:parse → AST & {" " | "\n"} & "/" & interpret(AST, AST).
+main = tamsin_parser:parse → AST & tamsin_scanner:skippable & "/" &
+       interpret(AST, AST).
 
 interpret(P, program(L)) =
     find_main_module_prods(L) → MMPs &
     find_prod(main, MMPs) → Main &
     interpret(P, Main).
 
-interpret(P, production(N, F, E)) = interpret(P, E).
-interpret(program(L), call(prodref('$', 'return'), list(X, nil))) = return X.
-interpret(program(L), call(prodref('$', 'expect'), list(X, nil))) = «X».
-interpret(program(L), call(prodref('$', 'print'), list(X, nil))) = print X.
+interpret(P, production(N, F, E, Ps)) = interpret(P, E).
+interpret(program(L), call(prodref('$', 'return'), list(term(X), nil))) = return X.
+interpret(program(L), call(prodref('$', 'expect'), list(term(X), nil))) = «X».
+interpret(program(L), call(prodref('$', 'print'), list(term(X), nil))) = print X.
 
 interpret(program(L), call(prodref(M, N), A)) =
     find_main_module_prods(L) → MMP &
@@ -30,11 +28,11 @@ interpret(P, and(L, R)) = interpret(P, L) & interpret(P, R).
 interpret(P, not(X)) = !interpret(P, X).
 interpret(P, while(X)) = {interpret(P, X)}.
 
-find_main_module_prods(list(module(main, Ps),T)) = Ps.
-find_main_module_prods(list(H,T)) = find_main_module_prods(T).
+find_main_module_prods(list(module(main, Ps), T)) = Ps.
+find_main_module_prods(list(H, T)) = find_main_module_prods(T).
 find_main_module_prods(nil) = fail 'no main module'.
 
-find_prod(N1, list(production(N2, F, E),T)) =
-    $:equal(N1, N2) & return production(N2, F, E) | find_prod(N1, T).
-find_prod(N, list(H,T)) = find_prod(N, T).
+find_prod(N1, list(production(N2, F, E, Ps), T)) =
+    $:equal(N1, N2) & return production(N2, F, E, Ps) | find_prod(N1, T).
+find_prod(N, list(H, T)) = find_prod(N, T).
 find_prod(N, nil) = fail 'no ' + N + ' production'.

@@ -211,8 +211,8 @@ class Compiler(object):
                     self.emit('result = tamsin_mkterm(temp_atom, temp_list);')
                     self.emit('ok = 1;')
                 elif name == 'fail':
-                    self.emit_term(args[0].term, "temp")
-                    self.emit("result = temp;")
+                    name = self.compile_r(args[0])
+                    self.emit("result = %s;" % name)
                     self.emit('ok = 0;')
                 else:
                     raise NotImplementedError(name)
@@ -296,14 +296,13 @@ class Compiler(object):
             name_lhs = self.compile_r(ast.lhs);
             name_rhs = self.compile_r(ast.rhs);
             name = self.new_name()
-            self.emit('struct term *%s = term_concat(%s, %s);' %
+            self.emit('struct term *%s = term_concat(term_flatten(%s), term_flatten(%s));' %
                 (name, name_lhs, name_rhs)
             )
             return name;
         elif isinstance(ast, TermNode):
             name = self.new_name()
             self.emit_term(ast.term, name);
-            self.emit('result = %s;' % name)
             return name
         else:
             raise NotImplementedError(repr(ast))

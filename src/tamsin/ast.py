@@ -128,12 +128,12 @@ class Production(AST):
         )
 
     def __str__(self):
-        return "production(%s, %s, %s)" % (
+        return "production(%s, %s, %s, %s)" % (
             self.name,
             format_list(self.formals),
             #format_list(self.locals_),
             self.body,
-            #self.next or 'nil'
+            self.next or 'nil'
         )
 
 
@@ -294,7 +294,7 @@ class TermNode(AST):
         return u"TermNode(%r)" % self.term
 
     def __str__(self):
-        return "term(%s)" % self.term
+        return "term(%s)" % self.term.repr()
 
 
 class Using(AST):
