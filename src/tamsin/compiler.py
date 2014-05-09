@@ -96,19 +96,21 @@ class Compiler(object):
         if len(prods) == 0:
             raise ValueError("no 'main:main' production defined")
 
-        for mod_name in self.program.modmap:
-            for prod_name in self.program.modmap[mod_name].prodmap:
-                for prod in self.program.modmap[mod_name].prodmap[prod_name]:
+        for module in self.program.modlist:
+            mod_name = module.name
+            for prod_name in module.prodmap:
+                for prod in module.prodmap[prod_name]:
                     self.emit("void prod_%s_%s%s(%s);" % (
                         mod_name, prod.name, prod.rank,
                         ', '.join(["struct term *" % f for f in prod.formals])
                     ))
         self.emit("")
-        for mod_name in self.program.modmap:
-            self.currmod = self.program.modmap[mod_name]
-            for prod_name in self.program.modmap[mod_name].prodmap:
+        for module in self.program.modlist:
+            self.currmod = module
+            mod_name = module.name
+            for prod_name in module.prodmap:
                 self.current_prod_name = prod_name
-                for prod in self.program.modmap[mod_name].prodmap[prod_name]:
+                for prod in module.prodmap[prod_name]:
                     self.compile_r(prod)
                 self.current_prod_name = None
             self.currmod = None

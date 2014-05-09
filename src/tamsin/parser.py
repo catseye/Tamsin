@@ -64,7 +64,7 @@ class Parser(EventProducer):
         if not prods:
             # no main module. kill it.
             mods = mods[1:]
-        return Program({}, mods)
+        return Program(mods)
 
     def pragma(self):
         if self.consume('alias'):

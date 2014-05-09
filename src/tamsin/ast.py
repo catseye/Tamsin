@@ -31,15 +31,20 @@ class AST(object):
 
 
 class Program(AST):
-    def __init__(self, modmap, modlist):
-        self.modmap = modmap
+    def __init__(self, modlist):
         self.modlist = modlist
 
+    def find_module(self, name):
+        for m in self.modlist:
+            if m.name == name:
+                return m
+        return None
+
     def find_productions(self, prodref):
-        mod = prodref.module
-        name = prodref.name
-        assert mod != ''
-        if mod == '$':
+        module_name = prodref.module
+        prod_name = prodref.name
+        assert module_name != ''
+        if module_name == '$':
             formals = {
                 'emit': [Variable('X')],
                 'equal': [Variable('L'), Variable('R')],
@@ -52,15 +57,16 @@ class Program(AST):
                 'reverse': [Variable('X'), Variable('E')],
                 'startswith': [Variable('X')],
                 'unquote': [Variable('X'), Variable('L'), Variable('R')],
-            }.get(name, [])
-            return [Production('$.%s' % name, 0, formals, [], None)]
+            }.get(prod_name, [])
+            return [Production('$.' + prod_name, 0, formals, [], None)]
         else:
-            if mod not in self.modmap:
-                raise KeyError("no '%s' module defined" % mod)
-            prodmap = self.modmap[mod].prodmap
-            if name not in prodmap:
+            module = self.find_module(module_name)
+            if not module:
+                raise KeyError("no '%s' module defined" % module_name)
+            productions = module.find_productions(prod_name)
+            if not productions:
                 raise KeyError("no '%s:%s' production defined" % (mod, name))
-            return prodmap[name]
+            return productions
 
     def incorporate(self, other):
         """Add all Modules from other to self.  Changes self.
@@ -68,21 +74,14 @@ class Program(AST):
         """
         assert isinstance(other, Program)
 
-        #print repr(other.modmap.keys())
-        #print repr(self.modmap.keys())
-        for modname in other.modmap:
-            if modname in self.modmap:
-                raise KeyError("module '%s' already defined %r %r" %
-                    (modname, self.modmap.keys(), other.modmap.keys())
-                )
-                #print repr((modname, self.modmap.keys(), other.modmap.keys()))
-            self.modmap[modname] = other.modmap[modname]
-        self.modlist.extend(other.modlist)
+        for module in other.modlist:
+            modname = module.name
+            if self.find_module(modname):
+                raise KeyError("module '%s' already defined" % modname)
+            self.modlist.append(module)
 
     def __repr__(self):
-        return "Program(%r, %r)" % (
-            self.modmap, self.modlist
-        )
+        return "Program(%r)" % self.modlist
 
     def __str__(self):
         return "program(%s)" % format_list(self.modlist)
@@ -93,7 +92,14 @@ class Module(AST):
         self.name = name
         self.prodmap = prodmap
         self.prodlist = prodlist
-    
+
+    def find_productions(self, name):
+        prods = []
+        for prod in self.prodlist:
+            if prod.name == name:
+                prods.append(prod)
+        return prods
+
     def __repr__(self):
         return "Module(%r, %r, %r)" % (self.name, self.prodmap, self.prodlist)
 

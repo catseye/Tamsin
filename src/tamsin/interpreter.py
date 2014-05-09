@@ -69,9 +69,6 @@ class Interpreter(EventProducer):
     ### interpreter proper ---------------------------------- ###
 
     def interpret_program(self, program):
-        # if 'main' not in modmap:
-        #     raise ValueError("no 'main' module defined")
-
         prods = program.find_productions(Prodref('main', 'main'))
         if len(prods) == 0:
             raise ValueError("no 'main:main' production defined")
@@ -180,6 +177,7 @@ class Interpreter(EventProducer):
                 for name in bindings.keys():
                     self.context.store(name, bindings[name])
             self.event('begin_interpret_rule', ast.body)
+            assert ast.body, repr(ast)
             (success, result) = self.interpret(ast.body)
             self.event('end_interpret_rule', ast.body)
             self.context.pop_scope(ast.name)
