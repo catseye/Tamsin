@@ -29,14 +29,16 @@ tamsin_analyzer {
   desugar(using(R, P)) = desugar(R) → DR & return using(DR, P).  
   desugar(send(R, V)) = desugar(R) → DR & return send(DR, V).
   desugar(set(V, T)) = desugar(T) → DT & return set(V, DT).
-  desugar(term(T)) = return term(T).
+  desugar(atom(T)) = return atom(T).
+  desugar(constructor(T, Ts)) = return constructor(T, Ts).
+  desugar(variable(N)) = return variable(N).
   desugar(fold(R, I)) =
       desugar(R) → DR &
-      SET ← set(term('_1'), I) &
-      SEND ← send(DR, term('_2')) &
-      CAT ← concat(term('_1'), term('_2')) &
-      ACC ← set(term('_1'), CAT) &
-      RET ← call(prodref('$', 'return'), list(term('_1'), nil)) &
+      SET ← set(variable('_1'), I) &
+      SEND ← send(DR, variable('_2')) &
+      CAT ← concat(variable('_1'), variable('_2')) &
+      ACC ← set(variable('_1'), CAT) &
+      RET ← call(prodref('$', 'return'), list(variable('_1'), nil)) &
       return and(and(SET, while(and(SEND, ACC))), RET).
 
   fetch(K, list(pair(K2, V), T))  = $:equal(K, K2) & V | fetch(K, T).
@@ -68,72 +70,74 @@ tamsin_analyzer {
   reverse(nil, A) = A.
 
   #####
-  # CP = current module name (sorry)
+  # CM = current module name
 
-  analyze_all(CP, list(H,T)) =
-      analyze(CP, H) → DH &
-      analyze_all(CP, T) → DT &
+  analyze_all(CM, list(H,T)) =
+      analyze(CM, H) → DH &
+      analyze_all(CM, T) → DT &
       return list(DH, DT).
-  analyze_all(CP, nil) = 'nil'.
+  analyze_all(CM, nil) = 'nil'.
 
-  analyze(CP, program(L)) =
-      analyze_all(CP, L) → DL &
+  analyze(CM, program(L)) =
+      analyze_all(CM, L) → DL &
       return program(DL).
-  analyze(CP, module(N, L)) =
+  analyze(CM, module(N, L)) =
       analyze_all(N, L) → DL &
       return module(N, DL).
-  analyze(CP, production(N, Bs)) =
-      analyze_all(CP, Bs) → DBs &
+  analyze(CM, production(N, Bs)) =
+      analyze_all(CM, Bs) → DBs &
       return production(N, DBs).
-  analyze(CP, prodbranch(Fs, Ls, E)) =
-      analyze(CP, E) → DE &
+  analyze(CM, prodbranch(Fs, Ls, E)) =
+      analyze(CM, E) → DE &
+      locals(E) → Ls & reverse(Ls, nil) → Ls &
       return prodbranch(Fs, Ls, DE).
-  analyze(CP, call(prodref(MN, PN), As)) =
-      $:equal(MN, '') & return call(prodref(CP, PN), As)
+  analyze(CM, call(prodref(MN, PN), As)) =
+      $:equal(MN, '') & return call(prodref(CM, PN), As)
                       | return call(prodref(MN, PN), As).
-  analyze(CP, or(L, R)) =
-      analyze(CP, L) → DL &
-      analyze(CP, R) → DR &
+  analyze(CM, or(L, R)) =
+      analyze(CM, L) → DL &
+      analyze(CM, R) → DR &
       return or(DL, DR).
-  analyze(CP, and(L, R)) =
-      analyze(CP, L) → DL &
-      analyze(CP, R) → DR &
+  analyze(CM, and(L, R)) =
+      analyze(CM, L) → DL &
+      analyze(CM, R) → DR &
       return and(DL, DR).
-  analyze(CP, not(X)) =
-      analyze(CP, X) → DX &
+  analyze(CM, not(X)) =
+      analyze(CM, X) → DX &
       return not(DX).
-  analyze(CP, while(X)) =
-      analyze(CP, X) → DX &
+  analyze(CM, while(X)) =
+      analyze(CM, X) → DX &
       return while(DX).
-  analyze(CP, concat(L, R)) =
-      analyze(CP, L) → DL &
-      analyze(CP, R) → DR &
+  analyze(CM, concat(L, R)) =
+      analyze(CM, L) → DL &
+      analyze(CM, R) → DR &
       return concat(DL, DR).
-  analyze(CP, using(R, P)) =
-      analyze(CP, R) → DR &
+  analyze(CM, using(R, P)) =
+      analyze(CM, R) → DR &
       return using(DR, P).  
-  analyze(CP, send(R, V)) =
-      analyze(CP, R) → DR &
+  analyze(CM, send(R, V)) =
+      analyze(CM, R) → DR &
       return send(DR, V).
-  analyze(CP, set(V, T)) =
-      analyze(CP, T) → DT &
+  analyze(CM, set(V, T)) =
+      analyze(CM, T) → DT &
       return set(V, DT).
-  analyze(CP, term(T)) =
-      return term(T).
+  analyze(CM, atom(T)) = return atom(T).
+  analyze(CM, constructor(T, Ts)) = return constructor(T, Ts).
+  analyze(CM, variable(N)) = return variable(N).
 
   #####
-  # returns a tree of locals
+  # returns a list of locals
 
   locals(call(PR, As)) =
       return nil.
   locals(or(L, R)) =
       locals(L) → LL &
       locals(R) → LR &
-      return tree(LL, LR).
+      union(LL, LR).
   locals(and(L, R)) =
       locals(L) → LL &
       locals(R) → LR &
-      return tree(LL, LR).
+      union(LL, LR).
   locals(not(X)) =
       locals(X).
   locals(while(X)) =
@@ -141,15 +145,44 @@ tamsin_analyzer {
   locals(concat(L, R)) =
       locals(L) → LL &
       locals(R) → LR &
-      return tree(LL, LR).
+      union(LL, LR).
   locals(using(R, P)) =
       locals(R).
   locals(send(R, V)) =
-      locals(R).  # XXX also V!
+      locals(R) → LR &
+      locals(V) → LV &
+      union(LR, LV).
   locals(set(V, T)) =
-      locals(T).  # XXX also V!
-  locals(term(T)) =
+      locals(V) → LV &
+      locals(T) → LT &
+      union(LV, LT).
+  locals(atom(T)) =
       return nil.
+  locals(constructor(T, Ts)) =
+      locals_all(Ts).
+  locals(variable(N)) =
+      return list(N, nil).
 
-  # XXX need to extend the AST to cover all parts of a term.  ok...
+  locals_all(nil) = nil.
+  locals_all(list(H,T)) =
+      locals(H) → LH &
+      locals_all(T) → LT &
+      union(LH, LT).
+
+  nil = 'nil'.
+
+  member(X, nil) = fail 'not a member'.
+  member(X, list(H,T)) =
+    $:equal(X, H) & H | member(X, T).
+
+  add_elem(X, L) =
+    member(X, L) & L | return list(X, L).
+
+  union(nil, L2) = L2.
+  union(list(H,T), L2) =
+    add_elem(H, L2) → L2 &
+    union(T, L2).
+
+  union(Other, L2) = add_elem(Other, L2).
+
 }

@@ -17,6 +17,18 @@ if [ x$1 = x ]; then
    exit $?
 fi
 
+if [ x$1 = xtamsin ]; then
+   echo "Testing things written in Tamsin only."
+   #$0 scanner &&
+   #$0 parser &&
+   $0 ast &&
+   $0 desugarer &&
+   $0 analyzer &&
+   $0 micro &&
+   echo "All tests passed!"
+   exit $?
+fi
+
 if [ x$1 = xthorough ]; then
    echo "Testing EVERYTHING.  Will likely take more than 5 minutes."
    $0 interpreter &&
