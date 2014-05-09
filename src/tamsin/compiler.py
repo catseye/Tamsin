@@ -117,83 +117,9 @@ class Compiler(object):
 
     def compile_r(self, ast):
         if isinstance(ast, Production):
-            name = ast.name
-            formals = ast.formals
-            locals_ = ast.locals_
-            body = ast.body
-
-            #self.emit("/*")
-            #self.emit(repr(ast))
-            #self.emit("*/")
-
-            fmls = []
-            i = 0
-            for f in formals:
-                fmls.append("struct term *i%s" % i)
-                i += 1
-
-            fmls = ', '.join(fmls)
-            self.emit("void prod_%s_%s(%s) {" % (
-                self.currmod.name, name, fmls
-             ))
-            self.indent()
-
-            all_pattern_variables = set()
-            
-            # emit matching code
-            fml_num = 0
-            for f in formals:
-                self.emit_term(f, "pattern%s" % fml_num, pattern=True)
-                self.emit("if (!term_match(pattern%s, i%s)) {" %
-                    (fml_num, fml_num)
-                )
-                self.indent()
-                
-                # TODO: ... do thsi right
-                next = ast.next
-                if next:
-                    args = ', '.join(["i%s" % i for i in xrange(0, len(formals))])
-                    self.emit("prod_%s_%s(%s);" % (
-                        self.currmod.name, name, args
-                    ))
-                else:
-                    self.emit('result = term_new_from_cstring'
-                              '("No \'%s\' production matched arguments ");' %
-                              self.current_prod_name)
-                    for i in xrange(0, len(formals)):
-                        self.emit('result = term_concat(result, term_flatten(i%d));' % i)
-                        self.emit('result = term_concat(result, term_new_from_cstring(", "));')
-                    self.emit("ok = 0;")
-                self.emit("return;")
-                self.outdent()
-                self.emit("}")
-                self.emit("")
-
-                # emit argument-variables
-                variables = []
-                f.collect_variables(variables)
-                for variable in variables:
-                    self.emit('struct term *%s = '
-                              'term_find_variable(pattern%s, "%s");' %
-                        (variable.name, fml_num, variable.name)
-                    )
-                    all_pattern_variables.add(variable.name)
-
-                self.emit("")
-                fml_num += 1
-
-            for local in locals_:
-                if local not in all_pattern_variables:
-                    self.emit("struct term *%s;" % local)
-            self.emit("")
-
-            self.current_prod = ast
-            self.compile_r(body)
-            self.current_prod = None
-
-            self.outdent()
-            self.emit("}")
-            self.emit("")
+            self.emit_prod_prelude(ast)
+            self.emit_prod_body(ast)
+            self.emit_prod_postlude(ast)
         elif isinstance(ast, And):
             self.compile_r(ast.lhs)
             self.emit("if (ok) {")
@@ -355,6 +281,90 @@ class Compiler(object):
             self.emit("scanner_pop_engine(scanner);")
         else:
             raise NotImplementedError(repr(ast))
+
+    def emit_prod_prelude(self, ast):
+        fmls = []
+        i = 0
+        for f in ast.formals:
+            fmls.append("struct term *i%s" % i)
+            i += 1
+        fmls = ', '.join(fmls)
+        self.emit("void prod_%s_%s(%s) {" % (
+            self.currmod.name, ast.name, fmls
+         ))
+        self.indent()
+
+    def emit_prod_body(self, ast):
+        #
+        # attempt_match(prod formals)
+        # if (match) {
+        #    prod body
+        # } else {
+        #    [[emit_prod_body(ast.next)]]
+        # }
+        #
+
+        all_pattern_variables = set()
+
+        # declare and get variables which are found in patterns for this prod
+        for fml_num in xrange(0, len(ast.formals)):
+            variables = []
+            ast.formals[fml_num].collect_variables(variables)
+            for variable in variables:
+                self.emit('struct term *%s = '
+                          'term_find_variable(pattern%s, "%s");' %
+                    (variable.name, fml_num, variable.name)
+                )
+                all_pattern_variables.add(variable.name)
+        
+        self.emit("")
+
+        for fml_num in xrange(0, len(ast.formals)):
+            self.emit_term(ast.formals[fml_num],
+                           "pattern%s" % fml_num, pattern=True)
+
+        self.emit("if (")
+
+        for fml_num in xrange(0, len(ast.formals)):
+            self.emit("    term_match(pattern%s, i%s)) &&" %
+                (fml_num, fml_num)
+            )
+        self.emit("   1) {")
+        self.indent()
+
+        for local in ast.locals_:
+            if local not in all_pattern_variables:
+                self.emit("struct term *%s;" % local)
+        self.emit("")
+        
+        self.current_prod = ast
+        self.compile_r(ast.body)
+        self.current_prod = None
+
+        self.outdent()
+        self.emit("} else {")
+        self.indent()
+
+        if ast.next:
+            self.emit_prod_body(ast.next)
+        else:
+            self.emit('result = term_new_from_cstring'
+                      '("No \'%s\' production matched arguments ");' %
+                      self.current_prod_name)
+            for i in xrange(0, len(ast.formals)):
+                self.emit('result = term_concat(result, term_flatten(i%d));' % i)
+                self.emit('result = term_concat(result, term_new_from_cstring(", "));')
+            self.emit("ok = 0;")
+        self.emit("return;")
+
+        self.outdent()
+        self.emit("}")
+        self.emit("")
+
+    def emit_prod_postlude(self, ast):
+        self.outdent()
+        self.emit("}")
+        self.emit("")
 
     def emit_decl_state(self):
         for local in self.current_prod.locals_:
