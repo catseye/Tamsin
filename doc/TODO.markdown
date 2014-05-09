@@ -1,21 +1,21 @@
 TODO
 ----
 
-*   tamsin_analyzer.tamsin
 *   finish implementing compiler (to C) for a subset of Tamsin, in Tamsin —
     get it to compile at least one Tamsin program
 
-### escaping ###
+### escape sequences and such ###
 
 *   unescape scanned atoms/""'s in tamsin_parser -- `$:unescape`?
-*   `$:unescape` must support \xXX codes
+*   `$:unescape` must support `\xXX` codes
 *   use Tamsin repr in error messages
 *   __str__ should be Tamsin repr()?
 *   `$:substr` and/or `$:atom_to_list`
 *   should not really need `$:substr` if we implement `@`... just parse it!
-*   scanner should probably not be responsible for escaping characters;
-    the token `"\n"` should turn into the term whose repr is `'"\\n"'`.
-    ("scanner sanity")  (belay this, document it)
+*   `$:format` -- again, parse it using `@`
+*   `\s` production for whitespace
+*   `\f` escape for form feed
+*   `$:hexchar` cheat for handling `\xXX` for now
 
 ### testing ###
 
@@ -23,6 +23,7 @@ TODO
 *   tests that `'V'` is not a variable and that `'EOF'` is not EOF
 *   tests for failing when utf8 scanner hits badly-encoded utf8
 *   test that `$:alpha` and `$:digit` are not locale-dependent (hard)
+*   tests for invalid escape codes
 
 ### vm ###
 
@@ -36,14 +37,13 @@ TODO
 
 ### lower-priority ###
 
-*   `$:deep_reverse`
+*   `list` module, containing `reverse`, `deep_reverse`, `member`,
+    `append`, etc, written in Tamsin -- but replaced by the compiler
+    by "more efficient" versions written in C -- if they really are...
 *   find different way to match variables in libtamsin, so that
     struct term's can be const all the way down — then share terms
 *   and maybe even garbage-collect them, ooh.
 *   figure out why reading a 4M file in a compiled program TAKES DOWN UBUNTU
-*   `$:format`
-*   `\s` production for whitespace
-*   `\f` escape for form feed
 *   make it possible to recover from more errors using `|` (don't throw
     exceptions so often)
 *   fold: often you want to construct terms "the other way" or to "join"

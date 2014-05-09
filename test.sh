@@ -19,8 +19,6 @@ fi
 
 if [ x$1 = xtamsin ]; then
    echo "Testing things written in Tamsin only."
-   #$0 scanner &&
-   #$0 parser &&
    $0 ast &&
    $0 desugarer &&
    $0 analyzer &&
@@ -33,7 +31,7 @@ if [ x$1 = xthorough ]; then
    echo "Testing EVERYTHING.  Will likely take more than 5 minutes."
    $0 interpreter &&
    $0 compiler &&
-   #$0 scanner &&
+   $0 scanner &&
    $0 parser &&
    $0 ast &&
    $0 desugarer &&

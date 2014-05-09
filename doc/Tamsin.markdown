@@ -1804,9 +1804,19 @@ represent the same operator; thus the Tamsin scanner could return `&`
 for both of them, or even something more abstract like `OP_SEQUENCE`.
 But it doesn't; it returns `&&` for `&&` and `&` for `&`.
 
-        | main = ("&&" → S & "&" → T & 'pair'(S,T)) using $.tamsin.
+        | main = ("&&" → S & "&" → T & 'pair'(S,T))
+        |        using tamsin_scanner:scanner.
         + &&&
         = pair(&&, &)
+
+There is one exception to this rule: escape codes in literal strings are
+expanded in the scanner.  Note that in the following, it is not repr'ed
+to `'"\\n"'`.
+
+        | main = ($:startswith('"') → S & $:repr(S))
+        |        using tamsin_scanner:scanner.
+        + "\n"
+        = '"\n"'
 
 The original design of Tamsin had it expose the Tamsin scanner (for use
 with `using`) as `$.tamsin`.  However, this may not be desirable for all
