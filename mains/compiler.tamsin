@@ -12,7 +12,8 @@
 # REQUIRES lib/tamsin_scanner.tamsin
 # REQUIRES lib/tamsin_parser.tamsin
 
-main = tamsin_parser:parse → AST & {" " | "\n"} & eof & compile(AST).
+main = tamsin_parser:parse → AST & tamsin_scanner:skippable & eof &
+       compile(AST).
 
 prelude = $:emit('
 /*
