@@ -58,7 +58,7 @@ class Analyzer(EventProducer):
             locals_ = set()
             body = self.analyze(ast.body)
             self.collect_locals(body, locals_)
-            return Production(ast.name, 0, ast.formals, locals_, body, None)
+            return Production(ast.name, ast.formals, locals_, body, None)
         elif isinstance(ast, Or):
             return Or(self.analyze(ast.lhs), self.analyze(ast.rhs))
         elif isinstance(ast, And):

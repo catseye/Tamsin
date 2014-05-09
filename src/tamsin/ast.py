@@ -58,7 +58,7 @@ class Program(AST):
                 'startswith': [Variable('X')],
                 'unquote': [Variable('X'), Variable('L'), Variable('R')],
             }.get(prod_name, [])
-            return Production('$.' + prod_name, 0, formals, [], None, None)
+            return Production('$.' + prod_name, formals, [], None, None)
         else:
             module = self.find_module(module_name)
             if not module:
@@ -110,9 +110,8 @@ class Module(AST):
 
 
 class Production(AST):
-    def __init__(self, name, rank, formals, locals_, body, next):
+    def __init__(self, name, formals, locals_, body, next):
         self.name = name
-        self.rank = rank
         self.formals = formals
         self.locals_ = locals_
         self.body = body
@@ -127,17 +126,19 @@ class Production(AST):
     def __repr__(self):
         return u"Production(%r, %r, %r, %r, %r)" % (
             self.name,
-            self.rank,
             self.formals,
             self.locals_,
-            self.body
+            self.body,
+            self.next
         )
 
     def __str__(self):
         return "production(%s, %s, %s)" % (
             self.name,
             format_list(self.formals),
-            self.body
+            #format_list(self.locals_),
+            self.body,
+            #self.next or 'nil'
         )
 
 

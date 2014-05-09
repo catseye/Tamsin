@@ -56,7 +56,7 @@ int main(int argc, char **argv) {
     ok = 0;
     result = term_new_from_cstring("nil");
 
-    prod_main_main0();
+    prod_main_main();
 
     if (ok) {
         term_fput(result, stdout);
@@ -99,8 +99,8 @@ class Compiler(object):
         for module in self.program.modlist:
             mod_name = module.name
             for prod in module.prodlist:
-                self.emit("void prod_%s_%s%s(%s);" % (
-                    mod_name, prod.name, prod.rank,
+                self.emit("void prod_%s_%s(%s);" % (
+                    mod_name, prod.name,
                     ', '.join(["struct term *" % f for f in prod.formals])
                 ))
         self.emit("")
@@ -133,8 +133,8 @@ class Compiler(object):
                 i += 1
 
             fmls = ', '.join(fmls)
-            self.emit("void prod_%s_%s%s(%s) {" % (
-                self.currmod.name, name, ast.rank, fmls
+            self.emit("void prod_%s_%s(%s) {" % (
+                self.currmod.name, name, fmls
              ))
             self.indent()
 
@@ -153,8 +153,8 @@ class Compiler(object):
                 next = ast.next
                 if next:
                     args = ', '.join(["i%s" % i for i in xrange(0, len(formals))])
-                    self.emit("prod_%s_%s%s(%s);" % (
-                        self.currmod.name, name, next.rank, args
+                    self.emit("prod_%s_%s(%s);" % (
+                        self.currmod.name, name, args
                     ))
                 else:
                     self.emit('result = term_new_from_cstring'
@@ -290,7 +290,7 @@ class Compiler(object):
                     i += 1
                 
                 args = ', '.join(["temp_arg%s" % p for p in xrange(0, i)])
-                self.emit("prod_%s_%s0(%s);" % (prodmod, name, args))
+                self.emit("prod_%s_%s(%s);" % (prodmod, name, args))
         elif isinstance(ast, Set):
             self.emit_term(ast.texpr, "temp")
             self.emit("result = temp;")
@@ -348,7 +348,7 @@ class Compiler(object):
                 elif scanner_name == 'byte':
                     self.emit("scanner_push_engine(scanner, &scanner_byte_engine);")
             else:
-                self.emit("scanner_push_engine(scanner, &prod_%s_%s0);" % (
+                self.emit("scanner_push_engine(scanner, &prod_%s_%s);" % (
                     scanner_mod, scanner_name
                 ))
             self.compile_r(ast.rule)
