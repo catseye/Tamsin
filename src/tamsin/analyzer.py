@@ -5,9 +5,9 @@
 
 from tamsin.ast import (
     Program, Production, Module, And, Or, Not, While, Call, Send, Set,
-    Variable, Using, Concat, Prodref
+    Variable, Using, Concat, Prodref, TermNode
 )
-from tamsin.term import Term
+from tamsin.term import Term, Constructor, Atom
 from tamsin.event import EventProducer
 
 
@@ -68,10 +68,12 @@ class Analyzer(EventProducer):
         elif isinstance(ast, Call):
             return Call(self.analyze(ast.prodref), ast.args, ast.ibuf)
         elif isinstance(ast, Send):
-            assert isinstance(ast.variable, Variable), ast
+            assert isinstance(ast.variable, TermNode), ast
+            assert isinstance(ast.variable.term, Variable), ast
             return Send(self.analyze(ast.rule), ast.variable)
         elif isinstance(ast, Set):
-            assert isinstance(ast.variable, Variable), ast
+            assert isinstance(ast.variable, TermNode), ast
+            assert isinstance(ast.variable.term, Variable), ast
             return Set(ast.variable, self.analyze(ast.texpr))
         elif isinstance(ast, Not):
             return Not(self.analyze(ast.rule))
@@ -79,7 +81,7 @@ class Analyzer(EventProducer):
             return While(self.analyze(ast.rule))
         elif isinstance(ast, Concat):
             return Concat(self.analyze(ast.lhs), self.analyze(ast.rhs))
-        elif isinstance(ast, Term):
+        elif isinstance(ast, TermNode):
             return ast
         elif isinstance(ast, Prodref):
             module = ast.module
@@ -95,7 +97,8 @@ class Analyzer(EventProducer):
 
         if isinstance(ast, Production):
             self.collect_locals(ast.body, locals_)
-        elif isinstance(ast, And) or isinstance(ast, Or):
+        elif (isinstance(ast, And) or isinstance(ast, Or) or
+              isinstance(ast, Concat)):
             self.collect_locals(ast.lhs, locals_)
             self.collect_locals(ast.rhs, locals_)
         elif isinstance(ast, Using):
@@ -103,12 +106,25 @@ class Analyzer(EventProducer):
         elif isinstance(ast, Call):
             pass
         elif isinstance(ast, Send):
+            self.collect_locals(ast.variable, locals_)
             self.collect_locals(ast.rule, locals_)
-            locals_.add(ast.variable.name)
         elif isinstance(ast, Set):
-            locals_.add(ast.variable.name)
+            self.collect_locals(ast.variable, locals_)
+            self.collect_locals(ast.texpr, locals_)
         elif isinstance(ast, Not) or isinstance(ast, While):
             self.collect_locals(ast.rule, locals_)
+        elif isinstance(ast, TermNode):
+            self.collect_locals(ast.term, locals_)
+        # terms --- could just call t.collect_variables() and map out names...
+        elif isinstance(ast, Variable):
+            locals_.add(ast.name)
+        elif isinstance(ast, Constructor):
+            for sub in ast.contents:
+                self.collect_locals(sub, locals_)
+        elif isinstance(ast, Atom):
+            pass
+        else:
+            raise NotImplementedError(repr(ast))
 
     def analyze_prodrefs(self, ast):
         """does not return anything"""

@@ -13,8 +13,8 @@ TODO
 *   remove `$.alnum`?
 *   scanner should probably not be responsible for escaping characters;
     the token `"\n"` should turn into the term whose repr is `'"\\n"'`.
-    ("scanner sanity")
-*   analyzer → fold all rules with same name into a linked list
+    ("scanner sanity")  (belay this, document it)
+*   tamsin_analyzer.tamsin
 
 ### testing ###
 
@@ -36,8 +36,6 @@ TODO
 *   and maybe even garbage-collect them, ooh.
 *   figure out why reading a 4M file in a compiled program TAKES DOWN UBUNTU
 *   `$:format`
-*   analysis: always_succeeds(Rule)
-*   analysis: may_backtrack(Rule)
 *   `\s` production for whitespace
 *   `\f` escape for form feed
 *   make it possible to recover from more errors using `|` (don't throw
@@ -95,6 +93,8 @@ TODO
 
 ### wild ideas ###    
 
+*   analysis: always_succeeds(Rule)
+*   analysis: may_backtrack(Rule)
 *   regex-like shortcuts: `\w` for "word", `\s` for "whitespace", etc.
 *   EOF and nil are the same?  it would make sense... call it `end`?
 *   productions with names with arbitrary characters in them.

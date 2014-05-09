@@ -143,30 +143,29 @@ class Compiler(object):
             self.emit("}")
         elif isinstance(ast, Send):
             self.compile_r(ast.rule)
-            # TODO: if ok?
-            self.emit("%s = result;" % ast.variable.name)
+            self.emit("%s = result;" % ast.variable.term.name)
         elif isinstance(ast, Call):
             prodref = ast.prodref
             prodmod = prodref.module or 'main'
             name = prodref.name
             args = ast.args
-    
+
             if prodmod == '$':
                 if name == 'expect':
-                    self.emit_term(args[0], "temp")
+                    self.emit_term(args[0].term, "temp")
                     self.emit('tamsin_expect(scanner, temp);')
                 elif name == 'return':
-                    self.emit_term(args[0], "temp")
+                    self.emit_term(args[0].term, "temp")
                     self.emit("result = temp;")
                     self.emit("ok = 1;")
                 elif name == 'print':
-                    self.emit_term(args[0], "temp")
+                    self.emit_term(args[0].term, "temp")
                     self.emit("result = temp;")
                     self.emit("term_fput(result, stdout);")
                     self.emit(r'fwrite("\n", 1, 1, stdout);')
                     self.emit("ok = 1;")
                 elif name == 'emit':
-                    self.emit_term(args[0], "temp")
+                    self.emit_term(args[0].term, "temp")
                     self.emit("result = temp;")
                     self.emit("term_fput(result, stdout);")
                     self.emit("ok = 1;")
@@ -179,32 +178,32 @@ class Compiler(object):
                 elif name == 'upper':
                     self.emit('tamsin_upper(scanner);')
                 elif name == 'startswith':
-                    self.emit_term(args[0], "temp")
+                    self.emit_term(args[0].term, "temp")
                     self.emit('tamsin_startswith(scanner, term_flatten(temp)->atom);')
                 elif name == 'unquote':
-                    self.emit_term(args[0], "temp")
-                    self.emit_term(args[1], "lquote")
-                    self.emit_term(args[2], "rquote")
+                    self.emit_term(args[0].term, "temp")
+                    self.emit_term(args[1].term, "lquote")
+                    self.emit_term(args[2].term, "rquote")
                     self.emit('result = tamsin_unquote(temp, lquote, rquote);')
                 elif name == 'equal':
-                    self.emit_term(args[0], "templ")
-                    self.emit_term(args[1], "tempr")
+                    self.emit_term(args[0].term, "templ")
+                    self.emit_term(args[1].term, "tempr")
                     self.emit('result = tamsin_equal(templ, tempr);')
                 elif name == 'repr':
-                    self.emit_term(args[0], "temp")
+                    self.emit_term(args[0].term, "temp")
                     self.emit('result = term_repr(temp);')
                     self.emit('ok = 1;')
                 elif name == 'reverse':
-                    self.emit_term(args[0], "templist")
-                    self.emit_term(args[1], "tempsentinel")
+                    self.emit_term(args[0].term, "templist")
+                    self.emit_term(args[1].term, "tempsentinel")
                     self.emit('result = tamsin_reverse(templist, tempsentinel);')
                 elif name == 'mkterm':
-                    self.emit_term(args[0], "temp_atom")
-                    self.emit_term(args[1], "temp_list")
+                    self.emit_term(args[0].term, "temp_atom")
+                    self.emit_term(args[1].term, "temp_list")
                     self.emit('result = tamsin_mkterm(temp_atom, temp_list);')
                     self.emit('ok = 1;')
                 elif name == 'fail':
-                    self.emit_term(args[0], "temp")
+                    self.emit_term(args[0].term, "temp")
                     self.emit("result = temp;")
                     self.emit('ok = 0;')
                 else:
@@ -212,13 +211,14 @@ class Compiler(object):
             else:
                 i = 0
                 for a in args:
-                    self.emit_term(a, "temp_arg%s" % i)
+                    self.emit_term(a.term, "temp_arg%s" % i)
                     i += 1
                 
                 args = ', '.join(["temp_arg%s" % p for p in xrange(0, i)])
                 self.emit("prod_%s_%s(%s);" % (prodmod, name, args))
         elif isinstance(ast, Set):
-            self.emit_term(ast.texpr, "temp")
+            # AH HA
+            self.emit_term(ast.texpr.term, "temp")
             self.emit("result = temp;")
             self.emit("%s = result;" % ast.variable.name)
             self.emit("ok = 1;")
@@ -307,7 +307,7 @@ class Compiler(object):
         all_pattern_variables = set()
 
         for fml_num in xrange(0, len(ast.formals)):
-            self.emit_term(ast.formals[fml_num],
+            self.emit_term(ast.formals[fml_num].term,
                            "pattern%s" % fml_num, pattern=True)
 
         self.emit("if (")
@@ -410,7 +410,7 @@ class Compiler(object):
                 self.emit_term(subterm, subname, pattern=pattern);
                 self.emit("term_add_subterm(%s, %s);" % (name, subname))
         else:
-            raise NotImplementedError
+            raise NotImplementedError(repr(term))
 
 
 def escaped(s):

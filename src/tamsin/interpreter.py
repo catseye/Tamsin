@@ -7,7 +7,7 @@ import sys
 
 from tamsin.ast import (
     Production, And, Or, Not, While, Call, Send, Set, Using,
-    Prodref, Concat
+    Prodref, Concat, TermNode
 )
 from tamsin.term import Term, EOF, Atom, Constructor
 from tamsin.event import EventProducer
@@ -212,8 +212,10 @@ class Interpreter(EventProducer):
             self.event('call_candidates', prod)
             args = [self.interpret(x)[1] for x in args]
             args = [x.expand(self.context) for x in args]
+            for a in args:
+                assert isinstance(a, Term)
             while prod is not None:
-                formals = prod.formals
+                formals = [self.interpret(f)[1] for f in prod.formals]
                 self.event('call_args', formals, args)
                 if isinstance(formals, list):
                     bindings = Term.match_all(formals, args)
@@ -248,8 +250,9 @@ class Interpreter(EventProducer):
                 (name, args)
             )
         elif isinstance(ast, Send):
+            (success, variable) = self.interpret(ast.variable)
             (success, result) = self.interpret(ast.rule)
-            self.context.store(ast.variable.name, result)
+            self.context.store(variable.name, result)
             return (success, result)
         elif isinstance(ast, Using):
             sub = ast.rule
@@ -271,9 +274,10 @@ class Interpreter(EventProducer):
             self.scanner.pop_engine()
             return (succeeded, result)
         elif isinstance(ast, Set):
+            (success, variable) = self.interpret(ast.variable)
             (success, term) = self.interpret(ast.texpr)
             result = term.expand(self.context)
-            self.context.store(ast.variable.name, result)
+            self.context.store(variable.name, result)
             return (True, result)
         elif isinstance(ast, Not):
             expr = ast.rule
@@ -312,8 +316,8 @@ class Interpreter(EventProducer):
             (success, rhs) = self.interpret(ast.rhs)
             rhs = str(rhs.expand(self.context))
             return (True, Atom(lhs + rhs))
-        elif isinstance(ast, Term):
-            return (True, ast)
+        elif isinstance(ast, TermNode):
+            return (True, ast.term)
         else:
             raise NotImplementedError(repr(ast))
 

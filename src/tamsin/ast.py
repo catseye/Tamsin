@@ -7,9 +7,6 @@
 # __str__ : make a string that looks like a Tamsin term (reprify)
 # __repr__ : make a string that is valid Python code for constructing the AST
 
-# TODO: the __str__'s in this module are littered with "if isinstance Terms".
-# there Must be a Better Way.
-
 import sys
 
 from tamsin.term import Term, Atom, Variable
@@ -19,10 +16,7 @@ def format_list(l):
     if len(l) == 0:
         return 'nil'
     else:
-        s = l[0]
-        if isinstance(l[0], Term):
-            s = l[0].repr()
-        return 'list(%s, %s)' % (s, format_list(l[1:]))
+        return 'list(%s, %s)' % (l[0], format_list(l[1:]))
 
 
 class AST(object):
@@ -58,6 +52,7 @@ class Program(AST):
                 'startswith': [Variable('X')],
                 'unquote': [Variable('X'), Variable('L'), Variable('R')],
             }.get(prod_name, [])
+            formals = [TermNode(f) for f in formals]
             return Production('$.' + prod_name, formals, [], None, None)
         else:
             module = self.find_module(module_name)
@@ -229,6 +224,8 @@ class While(AST):
 class Call(AST):
     def __init__(self, prodref, args, ibuf):
         self.prodref = prodref
+        for a in args:
+            assert isinstance(a, AST)
         self.args = args
         self.ibuf = ibuf
 
@@ -270,19 +267,10 @@ class Set(AST):
         self.texpr = texpr
 
     def __repr__(self):
-        return u"Set(%r, %r)" % (
-            self.variable,
-            self.texpr
-        )
+        return u"Set(%r, %r)" % (self.variable, self.texpr)
 
     def __str__(self):
-        texpr = self.texpr
-        if isinstance(texpr, Term):
-            texpr = texpr.repr()
-        return "set(%s, %s)" % (
-            self.variable,
-            texpr
-        )
+        return "set(%s, %s)" % (self.variable, self.texpr)
 
 
 class Concat(AST):
@@ -291,22 +279,22 @@ class Concat(AST):
         self.rhs = rhs
 
     def __repr__(self):
-        return u"Concat(%r, %r)" % (
-            self.lhs,
-            self.rhs
-        )
+        return u"Concat(%r, %r)" % (self.lhs, self.rhs)
 
     def __str__(self):
-        lhs = self.lhs
-        if isinstance(lhs, Term):
-            lhs = lhs.repr()
-        rhs = self.rhs
-        if isinstance(rhs, Term):
-            rhs = rhs.repr()
-        return "concat(%s, %s)" % (
-            lhs,
-            rhs
-        )
+        return "concat(%s, %s)" % (self.lhs, self.rhs)
+
+
+class TermNode(AST):
+    def __init__(self, term):
+        assert isinstance(term, Term)
+        self.term = term
+
+    def __repr__(self):
+        return u"TermNode(%r)" % self.term
+
+    def __str__(self):
+        return "term(%s)" % self.term
 
 
 class Using(AST):
@@ -316,16 +304,10 @@ class Using(AST):
         self.prodref = prodref
 
     def __repr__(self):
-        return u"Using(%r, %r)" % (
-            self.rule,
-            self.prodref
-        )
+        return u"Using(%r, %r)" % (self.rule, self.prodref)
 
     def __str__(self):
-        return "using(%s, %s)" % (
-            self.rule,
-            self.prodref
-        )
+        return "using(%s, %s)" % (self.rule, self.prodref)
 
 
 class Fold(AST):
@@ -344,5 +326,5 @@ class Fold(AST):
     def __str__(self):
         return "fold(%s, %s)" % (
             self.rule,
-            self.initial.repr()
+            self.initial
         )

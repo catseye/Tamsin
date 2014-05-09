@@ -4,8 +4,8 @@
 # Distributed under a BSD-style license; see LICENSE for more information.
 
 from tamsin.ast import (
-    Module, Program, Production, And, Or, Not, While, Call, Prodref,
-    Send, Set, Concat, Using, Fold
+    AST, Module, Program, Production, And, Or, Not, While, Call, Prodref,
+    Send, Set, Concat, Using, Fold, TermNode
 )
 from tamsin.term import (
     Atom, Constructor, Variable, EOF
@@ -103,6 +103,8 @@ class Parser(EventProducer):
         elif self.consume('['):
             formals = self.expr0()
             self.expect(']')
+        for f in formals:
+            assert isinstance(f, AST)
         self.expect('=')
         body = self.expr0()
         self.expect('.')
@@ -155,7 +157,7 @@ class Parser(EventProducer):
             e = self.expr0()
             self.expect(']')
             return Or(e,
-                Call(Prodref('$', 'return'), [Atom('nil')], None)
+                Call(Prodref('$', 'return'), [TermNode(Atom('nil'))], None)
             )
         elif self.consume('{'):
             e = self.expr0()
@@ -163,7 +165,7 @@ class Parser(EventProducer):
             return While(e)
         elif self.peek()[0] == '"':
             s = unescape(self.consume_any()[1:-1])
-            return Call(Prodref('$', 'expect'), [Atom(s)], None)
+            return Call(Prodref('$', 'expect'), [TermNode(Atom(s))], None)
         elif self.consume(u'«') or self.consume('<<'):
             t = self.texpr()
             if self.consume(u'»') or self.consume('>>'):
@@ -237,7 +239,7 @@ class Parser(EventProducer):
     def variable(self):
         if self.peek()[0].isupper():
             var = self.consume_any()
-            return Variable(var)
+            return TermNode(Variable(var))
         else:
             self.error('variable')
 
@@ -262,13 +264,13 @@ class Parser(EventProducer):
             subs = []
             if self.consume('('):
                 if self.peek() != ')':
-                    subs.append(self.term())
+                    subs.append(self.term().term)
                 while self.consume(','):
-                    subs.append(self.term())
+                    subs.append(self.term().term)
                 self.expect(')')
-                return Constructor(atom, subs)
+                return TermNode(Constructor(atom, subs))
             else:
-                return Atom(atom)
+                return TermNode(Atom(atom))
         else:
             self.error('term')
 

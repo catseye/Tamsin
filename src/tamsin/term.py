@@ -122,6 +122,8 @@ class Constructor(Term):
     def __init__(self, tag, contents):
         assert not isinstance(tag, unicode)
         self.tag = tag
+        for c in contents:
+            assert isinstance(c, Term), repr(c)
         self.contents = contents
 
     def expand(self, context):

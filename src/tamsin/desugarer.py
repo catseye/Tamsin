@@ -5,7 +5,7 @@
 
 from tamsin.ast import (
     Program, Module, Production, And, Or, Not, While, Call, Send, Set,
-    Variable, Using, Concat, Fold, Prodref
+    Variable, Using, Concat, Fold, Prodref, TermNode
 )
 from tamsin.term import Term, Atom, Constructor
 from tamsin.event import EventProducer
@@ -52,18 +52,21 @@ class Desugarer(EventProducer):
             return While(self.desugar(ast.rule))
         elif isinstance(ast, Concat):
             return Concat(self.desugar(ast.lhs), self.desugar(ast.rhs))
-        elif isinstance(ast, Term):
+        elif isinstance(ast, TermNode):
             return ast
         elif isinstance(ast, Fold):
-            set_ = Set(Variable('_1'), ast.initial)
-            send_ = Send(self.desugar(ast.rule), Variable('_2'))
-            acc_ = Set(Variable('_1'), Concat(Variable('_1'), Variable('_2')))
+            under1 = TermNode(Variable('_1'))
+            under2 = TermNode(Variable('_2'))
+            set_ = Set(under1, ast.initial)
+            send_ = Send(self.desugar(ast.rule), under2)
+            acc_ = Set(under1, Concat(under1, under2))
             if ast.constratom is not None:
-                assert isinstance(ast.constratom, Atom)
-                acc_ = Set(Variable('_1'),
-                           Constructor(ast.constratom.text,
-                                       [Variable('_2'), Variable('_1')]))
-            return_ = Call(Prodref('$', 'return'), [Variable('_1')], None)
+                assert isinstance(ast.constratom, TermNode)
+                assert isinstance(ast.constratom.term, Atom)
+                acc_ = Set(under1,
+                           TermNode(Constructor(ast.constratom.term.text,
+                                    [Variable('_2'), Variable('_1')])))
+            return_ = Call(Prodref('$', 'return'), [under1], None)
             return And(And(set_, While(And(send_, acc_))), return_)
         else:
             raise NotImplementedError(repr(ast))
