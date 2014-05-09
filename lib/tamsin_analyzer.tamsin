@@ -120,4 +120,36 @@ tamsin_analyzer {
       return set(V, DT).
   analyze(CP, term(T)) =
       return term(T).
+
+  #####
+  # returns a tree of locals
+
+  locals(call(PR, As)) =
+      return nil.
+  locals(or(L, R)) =
+      locals(L) → LL &
+      locals(R) → LR &
+      return tree(LL, LR).
+  locals(and(L, R)) =
+      locals(L) → LL &
+      locals(R) → LR &
+      return tree(LL, LR).
+  locals(not(X)) =
+      locals(X).
+  locals(while(X)) =
+      locals(X).
+  locals(concat(L, R)) =
+      locals(L) → LL &
+      locals(R) → LR &
+      return tree(LL, LR).
+  locals(using(R, P)) =
+      locals(R).
+  locals(send(R, V)) =
+      locals(R).  # XXX also V!
+  locals(set(V, T)) =
+      locals(T).  # XXX also V!
+  locals(term(T)) =
+      return nil.
+
+  # XXX need to extend the AST to cover all parts of a term.  ok...
 }
