@@ -51,7 +51,7 @@ tamsin_analyzer {
   unmap(nil, A)                   = A.
 
   unmap_and_reverse_prod(list(pair(K, V), T), A) =
-      reverse_prod(V) → VR &
+      reverse_prod(V, nil) → VR &
       A ← list(VR, A) &
       unmap(T, A).
   unmap_and_reverse_prod(nil, A) = A.
@@ -67,10 +67,9 @@ tamsin_analyzer {
       store(N, Self, Alist) → NewAlist &
       link_productions(Ps, NewAlist).
 
-  reverse_prod(production(N, F, Ls, E, Next)) =
-      reverse_prod(Next) → Next2 &
-      return production(N, F, Ls, E, Next2).
-  reverse_prod(nil) = 'nil'.
+  reverse_prod(production(N, F, Ls, E, T), A) =
+      reverse_prod(T, production(N, F, Ls, E, A)).
+  reverse_prod(nil, A) = A.
 
   #####
 
