@@ -9,7 +9,8 @@
 
 from tamsin.ast import (
     Production, ProdBranch,
-    And, Or, Not, While, Call, Send, Set, Concat, Using, Prodref, TermNode
+    And, Or, Not, While, Call, Send, Set, Concat, Using, Prodref,
+    TermNode, VariableNode
 )
 from tamsin.term import Atom, Constructor, Variable
 
@@ -166,7 +167,7 @@ class Compiler(object):
             self.indent()
             
             for fml_num in xrange(0, len(branch.formals)):
-                self.emit_term(branch.formals[fml_num].term,
+                self.emit_term(branch.formals[fml_num].to_term(),
                                "pattern%s" % fml_num, pattern=True)
             
             self.emit("if (")
@@ -182,7 +183,7 @@ class Compiler(object):
             for fml_num in xrange(0, len(branch.formals)):
                 variables = []
                 formal = branch.formals[fml_num]
-                formal.term.collect_variables(variables)
+                formal.to_term().collect_variables(variables)
                 for variable in variables:
                     self.emit('struct term *%s = '
                               'term_find_variable(pattern%s, "%s");' %
@@ -232,20 +233,21 @@ class Compiler(object):
 
             if prodmod == '$':
                 if name == 'expect':
-                    self.emit_term(args[0].term, "temp")
+                    self.emit_term(args[0].to_term(), "temp")
                     self.emit('tamsin_expect(scanner, temp);')
                 elif name == 'return':
+                    # TODO: make 'em all like this!
                     name = self.compile_r(args[0])
                     self.emit("result = %s;" % name)
                     self.emit("ok = 1;")
                 elif name == 'print':
-                    self.emit_term(args[0].term, "temp")
+                    self.emit_term(args[0].to_term(), "temp")
                     self.emit("result = temp;")
                     self.emit("term_fput(result, stdout);")
                     self.emit(r'fwrite("\n", 1, 1, stdout);')
                     self.emit("ok = 1;")
                 elif name == 'emit':
-                    self.emit_term(args[0].term, "temp")
+                    self.emit_term(args[0].to_term(), "temp")
                     self.emit("result = temp;")
                     self.emit("term_fput(result, stdout);")
                     self.emit("ok = 1;")
@@ -258,28 +260,28 @@ class Compiler(object):
                 elif name == 'upper':
                     self.emit('tamsin_upper(scanner);')
                 elif name == 'startswith':
-                    self.emit_term(args[0].term, "temp")
+                    self.emit_term(args[0].to_term(), "temp")
                     self.emit('tamsin_startswith(scanner, term_flatten(temp)->atom);')
                 elif name == 'unquote':
-                    self.emit_term(args[0].term, "temp")
-                    self.emit_term(args[1].term, "lquote")
-                    self.emit_term(args[2].term, "rquote")
+                    self.emit_term(args[0].to_term(), "temp")
+                    self.emit_term(args[1].to_term(), "lquote")
+                    self.emit_term(args[2].to_term(), "rquote")
                     self.emit('result = tamsin_unquote(temp, lquote, rquote);')
                 elif name == 'equal':
-                    self.emit_term(args[0].term, "templ")
-                    self.emit_term(args[1].term, "tempr")
+                    self.emit_term(args[0].to_term(), "templ")
+                    self.emit_term(args[1].to_term(), "tempr")
                     self.emit('result = tamsin_equal(templ, tempr);')
                 elif name == 'repr':
-                    self.emit_term(args[0].term, "temp")
+                    self.emit_term(args[0].to_term(), "temp")
                     self.emit('result = term_repr(temp);')
                     self.emit('ok = 1;')
                 elif name == 'reverse':
-                    self.emit_term(args[0].term, "templist")
-                    self.emit_term(args[1].term, "tempsentinel")
+                    self.emit_term(args[0].to_term(), "templist")
+                    self.emit_term(args[1].to_term(), "tempsentinel")
                     self.emit('result = tamsin_reverse(templist, tempsentinel);')
                 elif name == 'mkterm':
-                    self.emit_term(args[0].term, "temp_atom")
-                    self.emit_term(args[1].term, "temp_list")
+                    self.emit_term(args[0].to_term(), "temp_atom")
+                    self.emit_term(args[1].to_term(), "temp_list")
                     self.emit('result = tamsin_mkterm(temp_atom, temp_list);')
                     self.emit('ok = 1;')
                 elif name == 'fail':
@@ -291,7 +293,7 @@ class Compiler(object):
             else:
                 i = 0
                 for a in args:
-                    self.emit_term(a.term, "temp_arg%s" % i)
+                    self.emit_term(a.to_term(), "temp_arg%s" % i)
                     i += 1
                 
                 args = ', '.join(["temp_arg%s" % p for p in xrange(0, i)])
@@ -374,7 +376,7 @@ class Compiler(object):
             return name;
         elif isinstance(ast, TermNode):
             name = self.new_name()
-            self.emit_term(ast.term, name);
+            self.emit_term(ast.to_term(), name);
             return name
         else:
             raise NotImplementedError(repr(ast))
@@ -382,7 +384,7 @@ class Compiler(object):
     def emit_lvalue(self, ast):
         """Does not actually emit anything.  (Yet.)"""
         if isinstance(ast, TermNode):
-            return self.emit_lvalue(ast.term)
+            return self.emit_lvalue(ast.to_term())
         elif isinstance(ast, Variable):
             return ast.name
         else:

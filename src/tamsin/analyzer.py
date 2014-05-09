@@ -6,7 +6,8 @@
 from tamsin.ast import (
     Program, Module, Production, ProdBranch,
     And, Or, Not, While, Call, Send, Set,
-    Variable, Using, Concat, Prodref, TermNode
+    Variable, Using, Concat, Prodref,
+    TermNode, VariableNode, AtomNode, ConstructorNode
 )
 from tamsin.term import Term, Constructor, Atom
 from tamsin.event import EventProducer
@@ -67,12 +68,10 @@ class Analyzer(EventProducer):
         elif isinstance(ast, Call):
             return Call(self.analyze(ast.prodref), ast.args, ast.ibuf)
         elif isinstance(ast, Send):
-            assert isinstance(ast.variable, TermNode), ast
-            assert isinstance(ast.variable.term, Variable), ast
+            assert isinstance(ast.variable, VariableNode), ast
             return Send(self.analyze(ast.rule), ast.variable)
         elif isinstance(ast, Set):
-            assert isinstance(ast.variable, TermNode), ast
-            assert isinstance(ast.variable.term, Variable), ast
+            assert isinstance(ast.variable, VariableNode), ast
             return Set(ast.variable, self.analyze(ast.texpr))
         elif isinstance(ast, Not):
             return Not(self.analyze(ast.rule))
@@ -112,16 +111,14 @@ class Analyzer(EventProducer):
             self.collect_locals(ast.texpr, locals_)
         elif isinstance(ast, Not) or isinstance(ast, While):
             self.collect_locals(ast.rule, locals_)
-        elif isinstance(ast, TermNode):
-            self.collect_locals(ast.term, locals_)
         # terms --- could just call t.collect_variables() and map out names...
-        elif isinstance(ast, Variable):
+        elif isinstance(ast, VariableNode):
             if ast.name not in locals_:
                 locals_.append(ast.name)
-        elif isinstance(ast, Constructor):
+        elif isinstance(ast, ConstructorNode):
             for sub in ast.contents:
                 self.collect_locals(sub, locals_)
-        elif isinstance(ast, Atom):
+        elif isinstance(ast, AtomNode):
             pass
         else:
             raise NotImplementedError(repr(ast))

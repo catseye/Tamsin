@@ -6,7 +6,8 @@
 from tamsin.ast import (
     AST, Module, Program, Production, ProdBranch,
     And, Or, Not, While, Call, Prodref,
-    Send, Set, Concat, Using, Fold, TermNode
+    Send, Set, Concat, Using, Fold,
+    AtomNode, VariableNode, ConstructorNode,
 )
 from tamsin.term import (
     Atom, Constructor, Variable, EOF
@@ -158,7 +159,7 @@ class Parser(EventProducer):
             e = self.expr0()
             self.expect(']')
             return Or(e,
-                Call(Prodref('$', 'return'), [TermNode(Atom('nil'))], None)
+                Call(Prodref('$', 'return'), [AtomNode('nil')], None)
             )
         elif self.consume('{'):
             e = self.expr0()
@@ -166,7 +167,7 @@ class Parser(EventProducer):
             return While(e)
         elif self.peek()[0] == '"':
             s = unescape(self.consume_any()[1:-1])
-            return Call(Prodref('$', 'expect'), [TermNode(Atom(s))], None)
+            return Call(Prodref('$', 'expect'), [AtomNode(s)], None)
         elif self.consume(u'«') or self.consume('<<'):
             t = self.texpr()
             if self.consume(u'»') or self.consume('>>'):
@@ -240,7 +241,7 @@ class Parser(EventProducer):
     def variable(self):
         if self.peek()[0].isupper():
             var = self.consume_any()
-            return TermNode(Variable(var))
+            return VariableNode(var)
         else:
             self.error('variable')
 
@@ -265,13 +266,13 @@ class Parser(EventProducer):
             subs = []
             if self.consume('('):
                 if self.peek() != ')':
-                    subs.append(self.term().term)
+                    subs.append(self.term())
                 while self.consume(','):
-                    subs.append(self.term().term)
+                    subs.append(self.term())
                 self.expect(')')
-                return TermNode(Constructor(atom, subs))
+                return ConstructorNode(atom, subs)
             else:
-                return TermNode(Atom(atom))
+                return AtomNode(atom)
         else:
             self.error('term')
 

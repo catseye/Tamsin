@@ -9,7 +9,7 @@
 
 import sys
 
-from tamsin.term import Term, Atom, Variable
+from tamsin.term import Term, Atom, Variable, Constructor
 
 
 def format_list(l):
@@ -40,19 +40,18 @@ class Program(AST):
         assert module_name != ''
         if module_name == '$':
             formals = {
-                'emit': [Variable('X')],
-                'equal': [Variable('L'), Variable('R')],
-                'expect': [Variable('X')],
-                'fail': [Variable('X')],
-                'mkterm': [Variable('T'), Variable('L')],
-                'print': [Variable('X')],
-                'repr': [Variable('X')],
-                'return': [Variable('X')],
-                'reverse': [Variable('X'), Variable('E')],
-                'startswith': [Variable('X')],
-                'unquote': [Variable('X'), Variable('L'), Variable('R')],
+                'emit': [VariableNode('X')],
+                'equal': [VariableNode('L'), VariableNode('R')],
+                'expect': [VariableNode('X')],
+                'fail': [VariableNode('X')],
+                'mkterm': [VariableNode('T'), VariableNode('L')],
+                'print': [VariableNode('X')],
+                'repr': [VariableNode('X')],
+                'return': [VariableNode('X')],
+                'reverse': [VariableNode('X'), VariableNode('E')],
+                'startswith': [VariableNode('X')],
+                'unquote': [VariableNode('X'), VariableNode('L'), VariableNode('R')],
             }.get(prod_name, [])
-            formals = [TermNode(f) for f in formals]
             return Production('$.' + prod_name, [ProdBranch(formals, [], None)])
         else:
             module = self.find_module(module_name)
@@ -299,18 +298,6 @@ class Concat(AST):
         return "concat(%s, %s)" % (self.lhs, self.rhs)
 
 
-class TermNode(AST):
-    def __init__(self, term):
-        assert isinstance(term, Term)
-        self.term = term
-
-    def __repr__(self):
-        return u"TermNode(%r)" % self.term
-
-    def __str__(self):
-        return "term(%s)" % self.term.repr()
-
-
 class Using(AST):
     def __init__(self, rule, prodref):
         self.rule = rule
@@ -342,3 +329,61 @@ class Fold(AST):
             self.rule,
             self.initial
         )
+
+
+class TermNode(AST):
+    def __init__(self, *args):
+        raise NotImplementedError("abstract class!")
+
+    def to_term(self):
+        raise NotImplementedError
+
+
+class AtomNode(TermNode):
+    def __init__(self, text):
+        self.text = text
+
+    def __repr__(self):
+        return u"AtomNode(%r)" % self.text
+
+    def __str__(self):
+        return "atom(%s)" % Atom(self.text).repr()
+
+    def to_term(self):
+        return Atom(self.text)
+
+
+class VariableNode(TermNode):
+    def __init__(self, name):
+        self.name = name
+
+    def __repr__(self):
+        return u"VariableNode(%r)" % self.name
+
+    def __str__(self):
+        return "variable(%s)" % Atom(self.name).repr()
+
+    def to_term(self):
+        return Variable(self.name)
+
+
+class ConstructorNode(TermNode):
+    def __init__(self, text, contents):
+        self.text = text
+        self.contents = contents
+        for c in self.contents:
+            assert isinstance(c, TermNode)
+
+    def __repr__(self):
+        return u"ConstructorNode(%r, %r)" % (self.text, self.contents)
+
+    def __str__(self):
+        return "constructor(%s, %s)" % (
+            Atom(self.text).repr(),
+            format_list(self.contents)
+        )
+
+    def to_term(self):
+        return Constructor(self.text, [
+            x.to_term() for x in self.contents
+        ])

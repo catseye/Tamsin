@@ -6,7 +6,8 @@
 from tamsin.ast import (
     Program, Module, Production, ProdBranch,
     And, Or, Not, While, Call, Send, Set,
-    Variable, Using, Concat, Fold, Prodref, TermNode
+    Variable, Using, Concat, Fold, Prodref,
+    TermNode, VariableNode, AtomNode, ConstructorNode
 )
 from tamsin.term import Term, Atom, Constructor
 from tamsin.event import EventProducer
@@ -74,17 +75,16 @@ class Desugarer(EventProducer):
         elif isinstance(ast, TermNode):
             return ast
         elif isinstance(ast, Fold):
-            under1 = TermNode(Variable('_1'))
-            under2 = TermNode(Variable('_2'))
+            under1 = VariableNode('_1')
+            under2 = VariableNode('_2')
             set_ = Set(under1, ast.initial)
             send_ = Send(self.desugar(ast.rule), under2)
             acc_ = Set(under1, Concat(under1, under2))
             if ast.constratom is not None:
-                assert isinstance(ast.constratom, TermNode)
-                assert isinstance(ast.constratom.term, Atom)
+                assert isinstance(ast.constratom, AtomNode)
                 acc_ = Set(under1,
-                           TermNode(Constructor(ast.constratom.term.text,
-                                    [Variable('_2'), Variable('_1')])))
+                           ConstructorNode(ast.constratom.text,
+                                           [under2, under1]))
             return_ = Call(Prodref('$', 'return'), [under1], None)
             return And(And(set_, While(And(send_, acc_))), return_)
         else:

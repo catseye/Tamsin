@@ -324,7 +324,7 @@ class Interpreter(EventProducer):
             rhs = str(rhs.expand(self.context))
             return (True, Atom(lhs + rhs))
         elif isinstance(ast, TermNode):
-            return (True, ast.term)
+            return (True, ast.to_term())
         else:
             raise NotImplementedError(repr(ast))
 
