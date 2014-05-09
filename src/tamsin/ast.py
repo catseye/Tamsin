@@ -88,9 +88,8 @@ class Program(AST):
 
 
 class Module(AST):
-    def __init__(self, name, prodmap, prodlist):
+    def __init__(self, name, prodlist):
         self.name = name
-        self.prodmap = prodmap
         self.prodlist = prodlist
 
     def find_productions(self, name):
@@ -101,7 +100,7 @@ class Module(AST):
         return prods
 
     def __repr__(self):
-        return "Module(%r, %r, %r)" % (self.name, self.prodmap, self.prodlist)
+        return "Module(%r, %r)" % (self.name, self.prodlist)
 
     def __str__(self):
         return "module(%s, %s)" % (self.name, format_list(self.prodlist))

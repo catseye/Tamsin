@@ -98,20 +98,24 @@ class Compiler(object):
 
         for module in self.program.modlist:
             mod_name = module.name
-            for prod_name in module.prodmap:
-                for prod in module.prodmap[prod_name]:
-                    self.emit("void prod_%s_%s%s(%s);" % (
-                        mod_name, prod.name, prod.rank,
-                        ', '.join(["struct term *" % f for f in prod.formals])
-                    ))
+            for prod in module.prodlist:
+                self.emit("void prod_%s_%s%s(%s);" % (
+                    mod_name, prod.name, prod.rank,
+                    ', '.join(["struct term *" % f for f in prod.formals])
+                ))
         self.emit("")
         for module in self.program.modlist:
             self.currmod = module
             mod_name = module.name
-            for prod_name in module.prodmap:
-                self.current_prod_name = prod_name
-                for prod in module.prodmap[prod_name]:
+            done_prod = set()
+            for prod in module.prodlist:
+                if prod.name in done_prod:
+                    continue
+                self.current_prod_name = prod.name
+                prods = module.find_productions(prod.name)
+                for prod in prods:
                     self.compile_r(prod)
+                done_prod.add(prod.name)
                 self.current_prod_name = None
             self.currmod = None
 
@@ -152,7 +156,7 @@ class Compiler(object):
                 self.indent()
                 
                 next = None
-                myprods = self.currmod.prodmap[self.current_prod_name]
+                myprods = self.currmod.find_productions(self.current_prod_name)
                 if ast.rank + 1 < len(myprods):
                     next = myprods[ast.rank + 1]
                 

@@ -29,7 +29,7 @@ class Desugarer(EventProducer):
             )
         elif isinstance(ast, Module):
             return Module(
-                ast.name, ast.prodmap, [self.desugar(p) for p in ast.prodlist]
+                ast.name, [self.desugar(p) for p in ast.prodlist]
             )
         elif isinstance(ast, Production):
             return Production(ast.name, 0, ast.formals, [],

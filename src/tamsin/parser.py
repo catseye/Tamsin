@@ -53,7 +53,7 @@ class Parser(EventProducer):
             self.pragma()
             self.expect('.')
         prods = []
-        main_module = Module('main', {}, prods)
+        main_module = Module('main', prods)
         mods = [main_module]
         while self.peek() is not EOF:
             prod_or_mod = self.prod_or_mod()
@@ -86,7 +86,7 @@ class Parser(EventProducer):
             while self.peek() is not EOF and self.peek() != "}":
                 prods.append(self.production())
             self.expect("}")
-            return Module(name, {}, prods)
+            return Module(name, prods)
         else:
             return self.production(name)
 

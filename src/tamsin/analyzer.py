@@ -17,8 +17,6 @@ class Analyzer(EventProducer):
     
     * Finding the set of local variable names used in each production and
       sticking that in the locals_ field of the new Production node.
-    * Creating a map from production name -> list of productions and
-      sticking that in the prodmap field of the each Module node.
     * Resolving any '' modules in Prodrefs to the name of the current
       module.
 
@@ -55,7 +53,7 @@ class Analyzer(EventProducer):
                 prodmap[prod.name].append(prod)
                 prodlist.append(prod)
             self.current_module = None
-            return Module(ast.name, prodmap, prodlist)
+            return Module(ast.name, prodlist)
         elif isinstance(ast, Production):
             locals_ = set()
             body = self.analyze(ast.body)
@@ -149,7 +147,8 @@ class Analyzer(EventProducer):
             module = self.program.find_module(ast.module)
             if not module:
                 raise KeyError("no '%s' module defined" % ast.module)
-            if ast.name not in module.prodmap:
+            productions = module.find_productions(ast.name)
+            if not productions:
                 raise KeyError("no '%s:%s' production defined" %
                     (ast.module, ast.name)
                 )
