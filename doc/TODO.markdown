@@ -1,20 +1,21 @@
 TODO
 ----
 
+*   tamsin_analyzer.tamsin
+*   finish implementing compiler (to C) for a subset of Tamsin, in Tamsin —
+    get it to compile at least one Tamsin program
+
+### escaping ###
+
 *   unescape scanned atoms/""'s in tamsin_parser -- `$:unescape`?
 *   `$:unescape` must support \xXX codes
 *   use Tamsin repr in error messages
 *   __str__ should be Tamsin repr()?
 *   `$:substr` and/or `$:atom_to_list`
 *   should not really need `$:substr` if we implement `@`... just parse it!
-*   finish implementing compiler (to C) for a subset of Tamsin, in Tamsin
-*   `$:alpha`
-*   `$:digit`
-*   remove `$.alnum`?
 *   scanner should probably not be responsible for escaping characters;
     the token `"\n"` should turn into the term whose repr is `'"\\n"'`.
     ("scanner sanity")  (belay this, document it)
-*   tamsin_analyzer.tamsin
 
 ### testing ###
 
@@ -23,13 +24,18 @@ TODO
 *   tests for failing when utf8 scanner hits badly-encoded utf8
 *   test that `$:alpha` and `$:digit` are not locale-dependent (hard)
 
-### lower-priority ###
+### vm ###
 
+*   `$:alpha`
+*   `$:digit`
 *   `$:add`, `$:sub`, `$:mul`, `$:div`, `$:rem`, for atoms which look like
     integers: `["-"] & {$:digit}`.
 *   `$:tell` and `$:seek` the implicit buffer -- for VM's etc -- although
     note, this may have scary consequences when combined with backtracking
 *   non-backtracking versions of `|` and `{}`:  `|!` and `{}!`
+
+### lower-priority ###
+
 *   `$:deep_reverse`
 *   find different way to match variables in libtamsin, so that
     struct term's can be const all the way down — then share terms

@@ -1,0 +1,3 @@
+main = tamsin_parser:parse → AST & {" " | "\n" } & eof &
+       tamsin_analyzer:desugar(AST) → AST &
+       $:repr(AST).

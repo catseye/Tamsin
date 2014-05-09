@@ -89,7 +89,8 @@ elif [ x$1 = xdesugarer ]; then
         bin/tamsin desugar $EG > 1.txt
         bin/tamsin lib/tamsin_scanner.tamsin \
                    lib/tamsin_parser.tamsin \
-                   eg/tamsin-desugarer.tamsin <$EG > 2.txt || exit 1
+                   lib/tamsin_analyzer.tamsin \
+                   eg/tamsin-desugarer-driver.tamsin <$EG > 2.txt || exit 1
         diff -ru 1.txt 2.txt > ast.diff
         diff -ru 1.txt 2.txt || exit 1
     done
@@ -98,7 +99,8 @@ elif [ x$1 = xcompileddesugarer ]; then
     ./build.sh
     bin/tamsin compile lib/tamsin_scanner.tamsin \
                        lib/tamsin_parser.tamsin \
-                       eg/tamsin-desugarer.tamsin > foo.c && \
+                       lib/tamsin_analyzer.tamsin \
+                       eg/tamsin-desugarer-driver.tamsin > foo.c && \
        gcc -g -Ic_src -Lc_src foo.c -o tamsin-desugarer -ltamsin || exit 1
     for EG in eg/*.tamsin; do
         echo $EG
