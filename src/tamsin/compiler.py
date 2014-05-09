@@ -8,7 +8,8 @@
 # Does not support `using` or `@` at the moment.
 
 from tamsin.ast import (
-    Production, And, Or, Not, While, Call, Send, Set, Concat, Using, Prodref
+    Production, And, Or, Not, While, Call, Send, Set, Concat, Using, Prodref,
+    TermNode
 )
 from tamsin.term import Atom, Constructor, Variable
 
@@ -78,6 +79,12 @@ class Compiler(object):
         self.current_prod_name = None   # this is without the 0, 1, 2...
         self.current_prod = None
         self.currmod = None
+        self.name_index = 0
+
+    def new_name(self):
+        name = "temp%s" % self.name_index
+        self.name_index += 1
+        return name
 
     def indent(self):
         self.indent_ += 1
@@ -90,6 +97,10 @@ class Compiler(object):
         self.outfile.write(s)
 
     def compile(self):
+        """Returns the name of a local temporary if it created one to
+        store its most recent result.  Otherwise returns None.
+
+        """
         self.emit(PRELUDE)
 
         main = self.program.find_production(Prodref('main', 'main'))
@@ -141,9 +152,6 @@ class Compiler(object):
             self.emit("}")
             self.outdent()
             self.emit("}")
-        elif isinstance(ast, Send):
-            self.compile_r(ast.rule)
-            self.emit("%s = result;" % ast.variable.term.name)
         elif isinstance(ast, Call):
             prodref = ast.prodref
             prodmod = prodref.module or 'main'
@@ -155,8 +163,8 @@ class Compiler(object):
                     self.emit_term(args[0].term, "temp")
                     self.emit('tamsin_expect(scanner, temp);')
                 elif name == 'return':
-                    self.emit_term(args[0].term, "temp")
-                    self.emit("result = temp;")
+                    name = self.compile_r(args[0])
+                    self.emit("result = %s;" % name)
                     self.emit("ok = 1;")
                 elif name == 'print':
                     self.emit_term(args[0].term, "temp")
@@ -216,11 +224,16 @@ class Compiler(object):
                 
                 args = ', '.join(["temp_arg%s" % p for p in xrange(0, i)])
                 self.emit("prod_%s_%s(%s);" % (prodmod, name, args))
+        elif isinstance(ast, Send):
+            self.compile_r(ast.rule)
+            lname = self.emit_lvalue(ast.variable)
+            self.emit("%s = result;" % lname)
         elif isinstance(ast, Set):
-            # AH HA
-            self.emit_term(ast.texpr.term, "temp")
-            self.emit("result = temp;")
-            self.emit("%s = result;" % ast.variable.name)
+            self.emit("/* %r */" % ast)
+            name = self.compile_r(ast.texpr)
+            lname = self.emit_lvalue(ast.variable)
+            self.emit("%s = %s;" % (lname, name))
+            self.emit("result = %s;" % name)
             self.emit("ok = 1;")
         elif isinstance(ast, While):
             self.emit("{")
@@ -279,6 +292,28 @@ class Compiler(object):
                 ))
             self.compile_r(ast.rule)
             self.emit("scanner_pop_engine(scanner);")
+        elif isinstance(ast, Concat):
+            name_lhs = self.compile_r(ast.lhs);
+            name_rhs = self.compile_r(ast.rhs);
+            name = self.new_name()
+            self.emit('struct term *%s = term_concat(%s, %s);' %
+                (name, name_lhs, name_rhs)
+            )
+            return name;
+        elif isinstance(ast, TermNode):
+            name = self.new_name()
+            self.emit_term(ast.term, name);
+            self.emit('result = %s;' % name)
+            return name
+        else:
+            raise NotImplementedError(repr(ast))
+
+    def emit_lvalue(self, ast):
+        """Does not actually emit anything.  (Yet.)"""
+        if isinstance(ast, TermNode):
+            return self.emit_lvalue(ast.term)
+        elif isinstance(ast, Variable):
+            return ast.name
         else:
             raise NotImplementedError(repr(ast))
 
@@ -322,7 +357,8 @@ class Compiler(object):
         # declare and get variables which are found in patterns for this prod
         for fml_num in xrange(0, len(ast.formals)):
             variables = []
-            ast.formals[fml_num].collect_variables(variables)
+            formal = ast.formals[fml_num]
+            formal.term.collect_variables(variables)
             for variable in variables:
                 self.emit('struct term *%s = '
                           'term_find_variable(pattern%s, "%s");' %
@@ -382,13 +418,7 @@ class Compiler(object):
             self.emit("%s = save_%s;" % (local, local))
 
     def emit_term(self, term, name, pattern=False):
-        if isinstance(term, Concat):
-            self.emit_term(term.lhs, name + '_lhs', pattern=pattern)
-            self.emit_term(term.rhs, name + '_rhs', pattern=pattern)
-            self.emit('struct term *%s = term_concat(%s_lhs, %s_rhs);' %
-                (name, name, name)
-            )
-        elif isinstance(term, Variable):
+        if isinstance(term, Variable):
             if pattern:
                 self.emit('struct term *%s = term_new_variable("%s", %s);' %
                     (name, term.name, 'term_new_from_cstring("nil_%s")' % term.name))
