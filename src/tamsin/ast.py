@@ -128,10 +128,10 @@ class Production(AST):
         )
 
     def __str__(self):
-        return "production(%s, %s, %s, %s)" % (
+        return "production(%s, %s, %s, %s, %s)" % (
             self.name,
             format_list(self.formals),
-            #format_list(self.locals_),
+            format_list(self.locals_),
             self.body,
             self.next or 'nil'
         )

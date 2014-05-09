@@ -11,7 +11,8 @@ tamsin_analyzer {
 
   desugar(program(L)) = desugar_all(L) → DL & return program(DL).
   desugar(module(N, L)) = desugar_all(L) → DL & return module(N, DL).
-  desugar(production(N, F, E, Ps)) = desugar(E) → DE & return production(N, F, DE, Ps).
+  desugar(production(N, F, L, E, Ps)) =
+      desugar(E) → DE & return production(N, F, L, DE, Ps).
   desugar(call(PR, Args)) = return call(PR, Args).
   desugar(or(L, R)) = desugar(L) → DL & desugar(R) → DR & return or(DL, DR).
   desugar(and(L, R)) = desugar(L) → DL & desugar(R) → DR & return and(DL, DR).
@@ -39,7 +40,8 @@ tamsin_analyzer {
 
   analyze(program(L)) = analyze_all(L) → DL & return program(DL).
   analyze(module(N, L)) = analyze_all(L) → DL & return module(N, DL).
-  analyze(production(N, F, E, Ps)) = analyze(E) → DE & return production(N, F, DE, Ps).
+  analyze(production(N, F, L, E, Ps)) = analyze(E) → DE &
+      return production(N, F, L, DE, Ps).
   analyze(call(PR, Args)) = return call(PR, Args).
   analyze(or(L, R)) = analyze(L) → DL & analyze(R) → DR & return or(DL, DR).
   analyze(and(L, R)) = analyze(L) → DL & analyze(R) → DR & return and(DL, DR).
