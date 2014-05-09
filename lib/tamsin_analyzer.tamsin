@@ -89,11 +89,16 @@ tamsin_analyzer {
       return production(N, DBs).
   analyze(CM, prodbranch(Fs, Ls, E)) =
       analyze(CM, E) → DE &
-      locals(E) → Ls & reverse(Ls, nil) → Ls &
+      locals(DE, nil) → Ls &
+      reverse(Ls, nil) → Ls &
       return prodbranch(Fs, Ls, DE).
-  analyze(CM, call(prodref(MN, PN), As)) =
-      $:equal(MN, '') & return call(prodref(CM, PN), As)
-                      | return call(prodref(MN, PN), As).
+  analyze(CM, call(PR, As)) =
+      analyze(CM, PR) → DPR &
+      analyze_all(CM, As) → DAs &
+      return call(DPR, DAs).
+  analyze(CM, prodref(MN, PN)) =
+      $:equal(MN, '') & return prodref(CM, PN)
+                      | return prodref(MN, PN).
   analyze(CM, or(L, R)) =
       analyze(CM, L) → DL &
       analyze(CM, R) → DR &
@@ -112,9 +117,10 @@ tamsin_analyzer {
       analyze(CM, L) → DL &
       analyze(CM, R) → DR &
       return concat(DL, DR).
-  analyze(CM, using(R, P)) =
+  analyze(CM, using(R, PR)) =
       analyze(CM, R) → DR &
-      return using(DR, P).  
+      analyze(CM, PR) → DPR &
+      return using(DR, DPR).
   analyze(CM, send(R, V)) =
       analyze(CM, R) → DR &
       return send(DR, V).
@@ -128,48 +134,39 @@ tamsin_analyzer {
   #####
   # returns a list of locals
 
-  locals(call(PR, As)) =
-      return nil.
-  locals(or(L, R)) =
-      locals(L) → LL &
-      locals(R) → LR &
-      union(LL, LR).
-  locals(and(L, R)) =
-      locals(L) → LL &
-      locals(R) → LR &
-      union(LL, LR).
-  locals(not(X)) =
-      locals(X).
-  locals(while(X)) =
-      locals(X).
-  locals(concat(L, R)) =
-      locals(L) → LL &
-      locals(R) → LR &
-      union(LL, LR).
-  locals(using(R, P)) =
-      locals(R).
-  locals(send(R, V)) =
-      locals(R) → LR &
-      locals(V) → LV &
-      union(LR, LV).
-  locals(set(V, T)) =
-      locals(V) → LV &
-      locals(T) → LT &
-      union(LV, LT).
-  locals(atom(T)) =
-      return nil.
-  locals(constructor(T, Ts)) =
-      locals_all(Ts).
-  locals(variable(N)) =
-      return list(N, nil).
+  locals(call(PR, As), Ls) =
+      Ls.
+  locals(or(L, R), Ls) =
+      locals(L, Ls) → Ls &
+      locals(R, Ls).
+  locals(and(L, R), Ls) =
+      locals(L, Ls) → Ls &
+      locals(R, Ls).
+  locals(not(X), Ls) =
+      locals(X, Ls).
+  locals(while(X), Ls) =
+      locals(X, Ls).
+  locals(concat(L, R), Ls) =
+      locals(L, Ls) → Ls &
+      locals(R, Ls).
+  locals(using(R, P), Ls) =
+      locals(R, Ls).
+  locals(send(R, V), Ls) =
+      locals(V, Ls) → Ls &
+      locals(R, Ls).
+  locals(set(V, T), Ls) =
+      locals(V, Ls) → Ls &
+      locals(T, Ls).
+  locals(atom(T), Ls) = Ls.
+  locals(constructor(T, Ts), Ls) =
+      locals_all(Ts, Ls).
+  locals(variable(N), Ls) =
+      add_elem(N, Ls).
 
-  locals_all(nil) = nil.
-  locals_all(list(H,T)) =
-      locals(H) → LH &
-      locals_all(T) → LT &
-      union(LH, LT).
-
-  nil = 'nil'.
+  locals_all(nil, Ls) = Ls.
+  locals_all(list(H,T), Ls) =
+      locals(H, Ls) → Ls &
+      locals_all(T, Ls).
 
   member(X, nil) = fail 'not a member'.
   member(X, list(H,T)) =
@@ -178,11 +175,11 @@ tamsin_analyzer {
   add_elem(X, L) =
     member(X, L) & L | return list(X, L).
 
-  union(nil, L2) = L2.
-  union(list(H,T), L2) =
-    add_elem(H, L2) → L2 &
-    union(T, L2).
-
-  union(Other, L2) = add_elem(Other, L2).
+  # union(nil, L2) = L2.
+  # union(list(H,T), L2) =
+  #   add_elem(H, L2) → L2 &
+  #   union(T, L2).
+  # 
+  # union(Other, L2) = add_elem(Other, L2).
 
 }
