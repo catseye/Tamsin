@@ -306,6 +306,19 @@ class Compiler(object):
 
         all_pattern_variables = set()
 
+        for fml_num in xrange(0, len(ast.formals)):
+            self.emit_term(ast.formals[fml_num],
+                           "pattern%s" % fml_num, pattern=True)
+
+        self.emit("if (")
+
+        for fml_num in xrange(0, len(ast.formals)):
+            self.emit("    term_match(pattern%s, i%s) &&" %
+                (fml_num, fml_num)
+            )
+        self.emit("    1) {")
+        self.indent()
+
         # declare and get variables which are found in patterns for this prod
         for fml_num in xrange(0, len(ast.formals)):
             variables = []
@@ -316,21 +329,6 @@ class Compiler(object):
                     (variable.name, fml_num, variable.name)
                 )
                 all_pattern_variables.add(variable.name)
-        
-        self.emit("")
-
-        for fml_num in xrange(0, len(ast.formals)):
-            self.emit_term(ast.formals[fml_num],
-                           "pattern%s" % fml_num, pattern=True)
-
-        self.emit("if (")
-
-        for fml_num in xrange(0, len(ast.formals)):
-            self.emit("    term_match(pattern%s, i%s)) &&" %
-                (fml_num, fml_num)
-            )
-        self.emit("   1) {")
-        self.indent()
 
         for local in ast.locals_:
             if local not in all_pattern_variables:
@@ -359,7 +357,6 @@ class Compiler(object):
 
         self.outdent()
         self.emit("}")
-        self.emit("")
 
     def emit_prod_postlude(self, ast):
         self.outdent()
