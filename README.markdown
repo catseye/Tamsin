@@ -77,7 +77,8 @@ Evaluate an (admittedly trivial) S-expression based language in
     reverse(X, A) = X.
 
 Interpret a small subset of Tamsin in
-**[less than 160 lines of code](https://github.com/catseye/Tamsin/blob/master/eg/tamsin-micro-interpreter.tamsin)**.
+**[30 lines of code](https://github.com/catseye/Tamsin/blob/master/mains/micro-tamsin.tamsin)**
+(not counting the included batteries.)
 
 For more information
 --------------------
@@ -99,10 +100,12 @@ with a [Mercurial mirror on Bitbucket](https://bitbucket.org/catseye/tamsin).
 
 This repository contains the reference implementation of Tamsin, called
 `tamsin`, written in Python 2.7.  It can both interpret a Tamsin program and
-compile a program written in Tamsin to C.  The distribution also contains an
-[implementation of the Tamsin scanner and parser written in Tamsin itself](https://github.com/catseye/Tamsin/blob/master/eg/tamsin-parser.tamsin)
-as well as an [interpreter for a tiny subset of Tamsin written in Tamsin](https://github.com/catseye/Tamsin/blob/master/eg/tamsin-micro-interpreter.tamsin).
-(although we're still a ways from a fully bootrapped implementation.)
+compile a program written in Tamsin to C.
+
+The distribution also contains a (tiny subset of) Tamsin interpreter written
+in Tamsin, and a (grossly incomplete) Tamsin-to-C compiler written in Tamsin.
+We're still a ways from a fully bootrapped implementation, but we're getting
+closer.
 
 While the interpreter is fine for prototyping, note that some informal
 benchmarking revealed the compiled C programs to be about 30x faster.  **Note**

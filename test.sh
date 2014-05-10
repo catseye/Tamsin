@@ -150,9 +150,9 @@ elif [ x$1 = xtcompiler ]; then
                        mains/compiler.tamsin > tmp/foo.c && \
        gcc -g -ansi -Werror \
            -Ic_src -Lc_src tmp/foo.c -o bin/tamsin-compiler -ltamsin || exit 1
-    # echo "*** Testing Tamsin-in-Tamsin compiler..."
-    # FILES="doc/Micro-Tamsin.markdown"
-    # falderal $VERBOSE --substring-error fixture/tamsin-compiler.markdown $FILES
+    echo "*** Testing Tamsin-in-Tamsin compiler..."
+    FILES="doc/Micro-Tamsin.markdown"
+    falderal $VERBOSE --substring-error fixture/compiler.tamsin.markdown $FILES
 elif [ x$1 = xmicro ]; then
     echo "*** Compiling Micro-Tamsin interpreter..."
     ./build.sh
