@@ -89,7 +89,7 @@ compile(program(Ms)) =
 
 # P is the current program()
 # B is the current prodbranch()
-# Nm is the current temporary name
+# Nm is the current temporary name -- which might not be used now.
 # Returns the name of where the latest result is stored, or nil.
 
 compile_all(P,B,Nm, nil) = 'nil'.
@@ -146,6 +146,31 @@ compile_r(P,B,Nm, call(prodref('$', 'alnum'), nil)) =
     emitln('tamsin_alnum(scanner);').
 compile_r(P,B,Nm, call(prodref('$', 'upper'), nil)) =
     emitln('tamsin_upper(scanner);').
+compile_r(P,B,Nm, call(prodref('$', 'startswith'), list(T, nil))) =
+    compile_r(P,B,Nm, T) → TNm &
+    emit('tamsin_startswith(scanner, ') &
+    emit(TNm) &
+    emitln('->atom);').
+compile_r(P,B,Nm, call(prodref('$', 'mkterm'), list(T, list(L, nil)))) =
+    compile_r(P,B,Nm, T) → TNm &
+    compile_r(P,B,Nm, L) → LNm &
+    emit('result = tamsin_mkterm(') &
+    emit(TNm) &
+    emit(', ') &
+    emit(LNm) &
+    emitln(');') &
+    emitln('ok = 1;').
+compile_r(P,B,Nm, call(prodref('$', 'unquote'), list(T, list(L, list(R, nil))))) =
+    compile_r(P,B,Nm, T) → TNm &
+    compile_r(P,B,Nm, L) → LNm &
+    compile_r(P,B,Nm, R) → RNm &
+    emit('result = tamsin_unquote(') &
+    emit(TNm) &
+    emit(', ') &
+    emit(LNm) &
+    emit(', ') &
+    emit(RNm) &
+    emitln(');').
 
 compile_r(P,B,Nm, call(prodref('$', 'equal'), list(L, list(R, nil)))) =
     compile_r(P,B,Nm, L) → LNm &
@@ -232,7 +257,7 @@ compile_r(P,B,Nm, while(R)) =
     emitln('{') &
     indent &
     emit_decl_state(B) &
-    compile_r(P,B,'successful_result', atom(nil)) &
+    compile_r(P,B,Nm, atom(nil)) → SRNm &   # 'successful_result'
     emitln('ok = 1;') &
     emitln('while (ok) {') &
     indent &
@@ -240,21 +265,24 @@ compile_r(P,B,Nm, while(R)) =
     compile_r(P,B,Nm, R) &
     emitln('if (ok) {') &
     indent &
-    emitln('successful_resultx = result;') &
+    emit(SRNm) &
+    emitln(' = result;') &
     outdent &
     emitln('}') &
     outdent &
     emitln('}') &     # endwhile
     emit_restore_state(B) &
-    emitln('result = successful_resultx;') &
+    emit('result = ') &
+    emit(SRNm) &
+    emitln(';') &
     emitln('ok = 1;') &
     outdent &
     emitln('}').
 
 compile_r(P,B,Nm, concat(L, R)) =
     compile_r(P,B,Nm, L) → NmL &
-    compile_r(P,B,NmL, R) → NmR &
-    Nm ← NmR + 'x' &
+    compile_r(P,B,Nm, R) → NmR &
+    $:gensym('temp') → Nm &
     emit('struct term *') &
     emit(Nm) &
     emit(' = term_concat(term_flatten(') &
@@ -266,7 +294,7 @@ compile_r(P,B,Nm, concat(L, R)) =
 
 compile_r(P,B,Nm, atom(T)) =
     emit('struct term *') &
-    Nm ← Nm + 'x' &
+    $:gensym('temp') → Nm &
     emit(Nm) &
     emit(' = term_new_from_cstring("') &
     escaped(T) → T &
@@ -277,7 +305,7 @@ compile_r(P,B,Nm, atom(T)) =
 # TODO: this is only one way to compile a variable; there are others
 compile_r(P,B,Nm, variable(VN)) =
     emit('struct term *') &
-    Nm ← Nm + 'x' &
+    $:gensym('temp') → Nm &
     emit(Nm) &
     emit(' = ') &
     emit(VN) &
@@ -286,7 +314,7 @@ compile_r(P,B,Nm, variable(VN)) =
 
 compile_r(P,B,Nm, constructor(T,Ts)) =
     emit('struct term *') &
-    Nm ← Nm + 'x' &
+    $:gensym('temp') → Nm &
     emit(Nm) &
     emit(' = term_new_from_cstring("') &
     escaped(T) → T &

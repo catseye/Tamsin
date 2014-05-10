@@ -922,3 +922,150 @@ for this purpose.
     | string = $:alnum/''.
     + *hi*there*nice*day*isnt*it
     = cons(it, cons(isnt, cons(day, cons(nice, cons(there, cons(hi, nil))))))
+
+### System Module ###
+
+The module `$` contains a number of built-in productions which would not
+be possible or practical to implement in Tamsin.  See Appendix C for a list.
+
+In fact, we have been using the `$` module already!  But our usage of it
+has been hidden under some syntactic sugar.  The following examples are
+the same as `main = "k".`
+
+    | main = $:expect(k).
+    + k
+    = k
+
+    | main = $:expect(k).
+    + l
+    ? expected 'k' found 'l'
+
+The section about aliases needs to be written too.
+
+Here's `$:alnum`, which only consumes tokens where the first character is
+alphanumeric.
+
+    | main = "(" & {$:alnum → A} & ")" & A.
+    + (abc123deefghi459876jklmnopqRSTUVXYZ0)
+    = 0
+
+    | main = "(" & {$:alnum → A} & ")" & A.
+    + (abc123deefghi459876!jklmnopqRSTUVXYZ0)
+    ? expected ')' found '!'
+
+Here's `$:upper`, which only consumes tokens where the first character is
+uppercase alphabetic.
+
+    | main = "(" & {$:upper → A} & ")" & A.
+    + (ABCDEFGHIJKLMNOPQRSTUVWXYZ)
+    = Z
+
+    | main = "(" & {$:upper → A} & ")" & A.
+    + (ABCDEFGHIJKLMNoPQRSTUVWXYZ)
+    ? expected ')' found 'o'
+
+Here's `$:startswith`, which only consumes tokens which start with
+the given term.  (For a single-character scanner this isn't very
+impressive.)
+
+    | main = "(" & {$:startswith('A') → A} & ")" & A.
+    + (AAAA)
+    = A
+
+    | main = "(" & {$:startswith('A') → A} & ")" & A.
+    + (AAAABAAA)
+    ? expected ')' found 'B'
+
+Here's `$:mkterm`, which takes an atom and a list and creates a constructor.
+
+    | main = $:mkterm(atom, list(a, list(b, list(c, nil)))).
+    = atom(a, b, c)
+
+Here's `$:unquote`, which takes three terms, X, L and R, where L and R
+must be one-character atoms.  If X begins with L and ends with R then
+the contents in-between will be returned as an atom.  Otherwise fails.
+
+    | main = $:unquote('"hello"', '"', '"').
+    = hello
+
+    | main = $:unquote('(hello)', '(', ')').
+    = hello
+
+    | main = $:unquote('(hello)', '(', '"').
+    ? term '(hello)' is not quoted with '(' and '"'
+
+Here's `$:equal`, which takes two terms, L and R.  If L and R are equal,
+succeeds and returns that term which they both are.  Otherwise fails.
+
+Two atoms are equal if their texts are identical.
+
+    | main = $:equal('hi', 'hi').
+    = hi
+
+    | main = $:equal('hi', 'lo').
+    ? term 'hi' does not equal 'lo'
+
+Two constructors are equal if their texts are identical, they have the
+same number of subterms, and all of their corresponding subterms are equal.
+
+    | main = $:equal(hi(there), hi(there)).
+    = hi(there)
+
+    | main = $:equal(hi(there), lo(there)).
+    ? term 'hi(there)' does not equal 'lo(there)'
+
+    | main = $:equal(hi(there), hi(here)).
+    ? term 'hi(there)' does not equal 'hi(here)'
+
+    | main = $:equal(hi(there), hi(there, there)).
+    ? term 'hi(there)' does not equal 'hi(there, there)'
+
+........................................................
+
+Here's `$:reverse`, which takes a term E, and a term of the form
+`X(a, X(b, ... X(z, E)) ... )`, and returns a term of the form
+`X(z, X(y, ... X(a, E)) ... )`.  The constructor tag X is often `cons`
+or `pair` or `list` and E is often `nil`.
+
+    | main = $:reverse(list(a, list(b, list(c, nil))), nil).
+    = list(c, list(b, list(a, nil)))
+
+E need not be an atom.
+
+    | main = $:reverse(list(a, list(b, list(c, hello(world)))), hello(world)).
+    = list(c, list(b, list(a, hello(world))))
+
+If the tail of the list isn't E, an error occurs.
+
+    | main = $:reverse(list(a, list(b, list(c, hello(world)))), nil).
+    ? malformed list
+
+If some list constructor doesn't have two children, an error occurs.
+
+    | main = $:reverse(list(a, list(b, list(nil))), nil).
+    ? malformed list
+
+The constructor tag can be anything.
+
+    | main = $:reverse(foo(a, foo(b, foo(c, nil))), nil).
+    = foo(c, foo(b, foo(a, nil)))
+
+But if there is a different constructor somewhere in the list, well,
+
+    | main = $:reverse(foo(a, fooz(b, foo(c, nil))), nil).
+    ? malformed list
+
+You can reverse an empty list.
+
+    | main = $:reverse(nil, nil).
+    = nil
+
+But of course,
+
+    | main = $:reverse(nil, zilch).
+    ? malformed list
+
+This is a shallow reverse.  Embedded lists are not reversed.
+
+    | main = $:reverse(list(a, list(list(1, list(2, nil)), list(c, nil))), nil).
+    = list(c, list(list(1, list(2, nil)), list(a, nil)))

@@ -995,7 +995,7 @@ impressive.)
     + (AAAABAAA)
     ? expected ')' found 'B'
 
-Here's `$:mkterm`, which takes an atom and a list and creates a term.
+Here's `$:mkterm`, which takes an atom and a list and creates a constructor.
 
     | main = $:mkterm(atom, list(a, list(b, list(c, nil)))).
     = atom(a, b, c)
