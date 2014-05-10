@@ -2,6 +2,7 @@
 # Distributed under a BSD-style license; see LICENSE.
 
 # REQUIRES lib/tamsin_scanner.tamsin
+# REQUIRES lib/list.tamsin
 
 # Note that this may contain support for some features which are not in
 # the current released or pre-released version.
@@ -15,7 +16,7 @@ tamsin_parser {
                  production → P & "." & LP ← list(P, LP)
                  | module → M & LM ← list(M, LM)
              } &
-             reverse(LP, nil) → LP &
+             list:reverse(LP, nil) → LP &
              #
              # If we leave this line like this:
              # MM ← module(main, LP) &
@@ -25,14 +26,14 @@ tamsin_parser {
              # ...so we include in directly in the next constructor
              #
              LM ← list(module(main, LP), LM) &
-             reverse(LM, nil) → LM &
+             list:reverse(LM, nil) → LM &
              return program(LM).
   module   = word → N &
              LP ← nil &
              "{" &
              {production → P & "." & LP ← list(P, LP)} &
              "}" &
-             reverse(LP, nil) → LP &
+             list:reverse(LP, nil) → LP &
              return module(N, LP).
   production = word → N &
              F ← nil &
@@ -45,7 +46,7 @@ tamsin_parser {
              term → T & L ← list(T, L) &
              {"," & term → T & L ← list(T, L)} &
              ")" &
-             reverse(L, nil) → L &
+             list:reverse(L, nil) → L &
              return L
              | "[" & expr0 & "]".
   expr0    = expr1 → L & {("|" | "||") & expr1 → R & L ← or(L, R)} & L.
@@ -77,7 +78,7 @@ tamsin_parser {
               texpr → T & L ← list(T, L) &
               {"," & texpr → T & L ← list(T, L)} &
               ")"] &
-             reverse(L, nil) → L &
+             list:reverse(L, nil) → L &
              return call(P, L).
 
   texpr    = term → T & {"+" & term → S & T ← concat(T, S)} & T.
@@ -87,7 +88,7 @@ tamsin_parser {
                                     term0 → T & L ← list(T, L) &
                                       {"," & term0 → T & L ← list(T, L)} &
                                     ")"] &
-                                    reverse(L, nil) → L &
+                                    list:reverse(L, nil) → L &
                                     ($:equal(L, nil) & return atom(A)
                                      | return constructor(A, L)).
   atom     = word
@@ -107,7 +108,4 @@ tamsin_parser {
   variable = $:upper → V & return variable(V).
   sq_string = $:startswith('\'').
   dq_string = $:startswith('"').
-
-  reverse(list(H, T), A) = reverse(T, list(H, A)).
-  reverse(nil, A) = A.
 }

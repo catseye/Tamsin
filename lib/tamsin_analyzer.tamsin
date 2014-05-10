@@ -60,14 +60,11 @@ tamsin_analyzer {
       unmap(Map, nil).
 
   unmap(list(pair(K, V), T), A) =
-      reverse(V, nil) → RV &
+      list:reverse(V, nil) → RV &
       P ← production(K, RV) &
       A ← list(P, A) &
       unmap(T, A).
   unmap(nil, A) = A.
-
-  reverse(list(H, T), A) = reverse(T, list(H, A)).
-  reverse(nil, A) = A.
 
   #####
   # CM = current module name
@@ -90,7 +87,7 @@ tamsin_analyzer {
   analyze(CM, prodbranch(Fs, Ls, E)) =
       analyze(CM, E) → DE &
       locals(DE, nil) → Ls &
-      reverse(Ls, nil) → Ls &
+      list:reverse(Ls, nil) → Ls &
       return prodbranch(Fs, Ls, DE).
   analyze(CM, call(PR, As)) =
       analyze(CM, PR) → DPR &
@@ -161,25 +158,10 @@ tamsin_analyzer {
   locals(constructor(T, Ts), Ls) =
       locals_all(Ts, Ls).
   locals(variable(N), Ls) =
-      add_elem(N, Ls).
+      list:add_elem(N, Ls).
 
   locals_all(nil, Ls) = Ls.
   locals_all(list(H,T), Ls) =
       locals(H, Ls) → Ls &
       locals_all(T, Ls).
-
-  member(X, nil) = fail 'not a member'.
-  member(X, list(H,T)) =
-    $:equal(X, H) & H | member(X, T).
-
-  add_elem(X, L) =
-    member(X, L) & L | return list(X, L).
-
-  # union(nil, L2) = L2.
-  # union(list(H,T), L2) =
-  #   add_elem(H, L2) → L2 &
-  #   union(T, L2).
-  # 
-  # union(Other, L2) = add_elem(Other, L2).
-
 }

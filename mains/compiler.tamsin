@@ -4,7 +4,6 @@
 # Distributed under a BSD-style license; see LICENSE.
 
 # NOTE, VERY INCOMPLETE: it could use:
-#   locals in production(), found by analysis phase
 #   database -- for indent/outdent (minor)
 #   $:format or similar, for emitting
 # ... the goal right now is just for THIS to compile.  not its output.

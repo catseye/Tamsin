@@ -1,0 +1,16 @@
+list {
+  reverse(list(H, T), A) = reverse(T, list(H, A)).
+  reverse(nil, A) = A.
+
+  member(X, nil) = fail 'not a member'.
+  member(X, list(H,T)) =
+    $:equal(X, H) & H | member(X, T).
+
+  add_elem(X, L) =
+    member(X, L) & L | return list(X, L).
+
+  union(nil, L2) = L2.
+  union(list(H,T), L2) =
+    add_elem(H, L2) → L2 &
+    union(T, L2).
+}
