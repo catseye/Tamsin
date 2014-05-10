@@ -80,7 +80,7 @@ compile(program(Ms)) =
     prelude &
     tamsin_parser:find_module('main', Ms) → MainMod &
     get_prods(MainMod) → MMPs &
-    compile_all(program(Ms), MMPs) &
+    compile_all(program(Ms), nil, MMPs) &
     postlude &
     ''.
 
@@ -93,85 +93,85 @@ emit_prototypes(list(production(N, Bs), MMPs)) =
     emitln('();') &
     emit_prototypes(MMPs).
 
-compile_all(P, nil) = 'ok'.
-compile_all(P, list(H,T)) = compile_r(P, H) & compile_all(P, T).
+compile_all(P, B, nil) = 'ok'.
+compile_all(P, B, list(H,T)) = compile_r(P, B, H) & compile_all(P, B, T).
 
-compile_r(P, production(N, Bs)) =
+compile_r(P, B, production(N, Bs)) =
     emit('void prod_main_') &
     emit(N) &
     emitln('() {') &
     indent &
-    compile_all(P, Bs) &
+    compile_all(P, B, Bs) &
     outdent &
     emitln('}').
 
-compile_r(P, prodbranch(Fs, Ls, E)) =
+compile_r(P, B, prodbranch(Fs, Ls, E)) =
     emitln('/* formals and locals go here... */') &
-    compile_r(P, E).
+    compile_r(P, prodbranch(Fs, Ls, E), E).
 
-compile_r(P, call(prodref('$', 'expect'), list(T, nil))) =
+compile_r(P, B, call(prodref('$', 'expect'), list(T, nil))) =
     emit_term(T, 'temp') &
     emitln('tamsin_expect(scanner, temp);').
 
-compile_r(P, call(prodref('$', 'return'), list(T, nil))) =
+compile_r(P, B, call(prodref('$', 'return'), list(T, nil))) =
     emit_term(T, 'temp') &
     emitln('result = temp;') &
     emitln('ok = 1;').
 
-compile_r(P, call(prodref('$', 'print'), list(T, nil))) =
+compile_r(P, B, call(prodref('$', 'print'), list(T, nil))) =
     emit_term(T, 'temp') &
     emitln('result = temp;') &
     emitln('term_fput(result, stdout);') &
     emitln('fprintf(stdout, "\\n");') &
     emitln('ok = 1;').
 
-compile_r(P, call(prodref(M, N), A)) =
+compile_r(P, B, call(prodref(M, N), A)) =
     emit('prod_main_') &
     emit(N) &
     emitln('();').
 
-compile_r(P, and(L, R)) =
-    compile_r(P, L) &
+compile_r(P, B, and(L, R)) =
+    compile_r(P, B, L) &
     emitln('if (ok) {') &
     indent &
-    compile_r(P, R) &
+    compile_r(P, B, R) &
     outdent &
     emitln('}').
 
-compile_r(P, or(L, R)) =
+compile_r(P, B, or(L, R)) =
     emitln('{') &
     indent &
-    emit_decl_state &
-    emit_save_state &
-    compile_r(P, L) &
+    emit_decl_state(B) &
+    emit_save_state(B) &
+    compile_r(P, B, L) &
     emitln('if (!ok) {') &
     indent &
-    emit_restore_state &
-    compile_r(P, R) &
+    emit_restore_state(B) &
+    compile_r(P, B, R) &
     outdent &
     emitln('}') &
     outdent &
     emitln('}').
-compile_r(P, send(R, V)) =
-    compile_r(P, R) &
+compile_r(P, B, send(R, V)) =
+    compile_r(P, B, R) &
     emit(V) &
     emitln(' = result;').
-compile_r(P, set(V, T)) =
+compile_r(P, B, set(V, T)) =
     emit_term(T, 'temp') &
     emitln('result = temp;') &
     emit(V) &
     emitln(' = result;') &
     emitln('ok = 1;').
-compile_r(P, while(R)) =
+compile_r(P, B, while(R)) =
     emitln('{') &
     indent &
-    emit_decl_state &
+    emit_decl_state(B) &
     emit_term(atom(nil), 'successful_result') &
     emitln('ok = 1;') &
     emitln('while (ok) {') &
     indent &
-    emit_save_state &
-    compile_r(P, R) &
+    emit_save_state(B) &
+    compile_r(P, B, R) &
     emitln('if (ok) {') &
     indent &
     emitln('successful_result = result;') &
@@ -179,15 +179,55 @@ compile_r(P, while(R)) =
     emitln('}') &
     outdent &
     emitln('}') &     # endwhile
-    emit_restore_state &
+    emit_restore_state(B) &
     emitln('result = successful_result;') &
     emitln('ok = 1;') &
     outdent &
     emitln('}').
 
-emit_decl_state = 'ok'.
-emit_save_state = 'ok'.
-emit_restore_state = 'ok'.
+
+
+emit_decl_state(prodbranch(Fs, Ls, E)) =
+    emit_decl_state_locals(Ls) &
+    emitln('int position;') &
+    emitln('int reset_position;').
+
+emit_decl_state_locals(nil) = 'ok'.
+emit_decl_state_locals(list(H,T)) =
+    emit('struct term *save_') &
+    emit(H) &
+    emitln(';') &
+    emit_decl_state_locals(T).
+
+emit_save_state(prodbranch(Fs, Ls, E)) =
+    emit_save_state_locals(Ls) &
+    emitln('position = scanner->position;') &
+    emitln('reset_position = scanner->reset_position;').
+
+emit_save_state_locals(nil) = 'ok'.
+emit_save_state_locals(list(H,T)) =
+    emit('save_') &
+    emit(H) &
+    emit(' = ') &
+    emit(H) &
+    emitln(';') &
+    emit_save_state_locals(T).
+
+emit_restore_state(prodbranch(Fs, Ls, E)) =
+    emitln('scanner->position = position;') &
+    emitln('scanner->reset_position = reset_position;') &
+    emit_restore_state_locals(Ls).
+
+emit_restore_state_locals(nil) = 'ok'.
+emit_restore_state_locals(list(H,T)) =
+    emit(H) &
+    emit(' = ') &
+    emit('save_') &
+    emit(H) &
+    emitln(';') &
+    emit_restore_state_locals(T).
+
+
 
 emit_term(variable(VN), N) =
     emit('struct term *') &

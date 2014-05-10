@@ -25,6 +25,7 @@ if [ x$1 = x ]; then
    $0 compiler &&
    $0 compiled analyzer &&
    $0 micro &&
+   $0 tcompiler &&
    echo "All tests passed!"
    exit $?
 fi
@@ -37,6 +38,7 @@ if [ x$1 = xtamsin ]; then
    $0 compiled desugarer &&
    $0 compiled analyzer &&
    $0 micro &&
+   $0 tcompiler &&
    echo "All tests passed!"
    exit $?
 fi
@@ -56,6 +58,7 @@ if [ x$1 = xthorough ]; then
    $0 compiled desugarer &&
    $0 compiled analyzer &&
    $0 micro &&
+   $0 tcompiler &&
    echo "All tests passed!"
    exit $?
 fi
