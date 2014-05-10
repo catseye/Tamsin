@@ -313,6 +313,190 @@ alternative.
     + 02
     = original
 
+Terms
+-----
+
+We must now digress for a definition of Tamsin's basic data type, the
+_term_.
+
+A term T is defined inductively as follows:
+
+*   An _atom_, written as a character string, is a term;
+*   A special, unique symbol called _EOF_ is a term;
+*   A _constructor_, written S(T1, T2, ... Tn) where S is a character
+    string and T1 through Tn are terms (called the _subterms_ of T), is a term;
+*   A _variable_, written as a character string where the first character
+    is a capital Latin letter, is a term;
+*   Nothing else is a term.
+
+In fact, there is little theoretical difference between an atom and a
+constructor with zero subterms, but they are considered different things
+for conceptual clarity.
+
+Note that EOF is not at atom.
+
+A term is called _ground_ if it does not contain any variables.
+
+Terms support an operation called _expansion_, which also requires a
+context C (a map from variable names to ground terms.)
+
+*   expand(T, C) when T is an atom or EOF evaluates to T;
+*   expand(T, C) when T is a constructor S(T1,...,Tn) evaluates to a new
+    term S(expand(T1, C), ... expand(Tn, C));
+*   expand(T, C) when T is a variable looks up T in C and, if there is
+    a ground term T' associated with T in C, evaluates to T'; otherwise
+    the result is not defined.
+
+The result of expansion will always be a ground term.
+
+Ground terms support an operation called _flattening_ (also sometimes called
+stringification).
+
+*   flatten(T) when T is an atom, results in that atom;
+*   flatten(T) when T is a constructor S(T1,...Tn) results in an atom comprising
+    
+        S · "(" · flatten(T1) · "," · ... · "," · flatten(Tn) · ")"
+    
+    where `·` is string concatenation;
+*   flatten(EOF) is not defined.
+
+The result of flattening is always an atom.
+
+Ground terms also support an operation called _reprifying_ (also sometimes
+called "readable stringification").  It is very similar to flattening, but
+results in an atom, the contents of which is always a legal syntactic atom
+in term context in a Tamsin program.  (Flattening a term does not always
+guarantee this because, for example, flattening `'\n'` results in an actual
+newline.)
+
+*   repr(T) when T is an atom whose text consists only of one or more ASCII
+    characters in the ranges `a` to `z`, `A` to `Z`, `0` to `9`, and `_`,
+    results in T;
+
+*   repr(T) when T is any other atom results in an atom comprising
+    
+        "'" · T′ · "'"
+    
+    where T′ is T with all non-printable and non-ASCII bytes replaced by
+    their associated `\xXX` escape sequences (for example, newline is `\x0a`),
+    and with `\` replaced by `\\` and `'` replaced by `\'`;
+
+*   repr(T) when T is a constructor S(T1,...Tn) whose text S consists only of
+    one or more ASCII characters in the ranges listed above, results in
+
+        S · "(" · repr(T1) · "," · ... · "," · repr(Tn) · ")"
+
+*   repr(T) when T is a any other constructor S(T1,...Tn) results in
+    
+        "'" · S′ · "'" · "(" · repr(T1) · ", " · ... · ", " · repr(Tn) · ")"
+    
+    where `·` is string concatenation and S′ is defined the same way as T′ is
+    for atoms;
+    
+*   repr(EOF) is `EOF`.
+
+Note that in the above, "printable" means ASCII characters between 32 ` `
+(space) and 126 `~`.  It is not dependent on locale.
+
+Also, `\xXX` escapes will always be output in lowercase, e.g. `\x0a`, not
+`\x0A`.
+
+The input to a Tamsin production is, in fact, an atom (although it's hardly
+atomic; "atom" is sort of a quaint moniker for the role these objects play.)
+
+The contexts in Tamsin which expect a term expression are `return`, `set`, and
+arguments to productions (but you haven't seen those yet.)  In these contexts,
+a bareword evaluates to an atom (rather than a non-terminal.)
+
+    | main = return hello.
+    = hello
+
+But an atom can contain arbitrary text.  To write an atom which contains
+spaces or other things which are not "bareword", enclose it in single quotes.
+
+    | main = return Hello, world!
+    ? expected
+
+    | main = return 'Hello, world!'.
+    = Hello, world!
+
+Note that the atom `'X'` is not the same as the variable `X`.  Nor is the
+atom `'tree(a,b)'` the same as the constructor `tree(a,b)`.
+
+In a term context, a constuctor may be given with parentheses after the
+string.
+
+    | main = return hello(world).
+    = hello(world)
+
+The bareword rule applies in subterms.
+
+    | main = return hello(beautiful world).
+    ? expected
+
+    | main = return hello('beautiful world').
+    = hello(beautiful world)
+
+In a term context, variables may be given.  The term is always expanded
+during evaluation.
+
+    | main = set E = world & return hello(E).
+    = hello(world)
+
+A term expression may also contain a `+` operator, which evaluates and
+flattens both its arguments and concatenates the resulting atoms.
+
+    | main = set E = world & return 'hello, ' + E + '!'.
+    = hello, world!
+
+And note, underscores are allowed in production and variable names,
+and atoms without quotes.
+
+    | main = this_prod.
+    | this_prod = set Var_name = this_atom & return Var_name.
+    = this_atom
+
+### Escape Sequences ###
+
+A literal string may contain escape sequences.  Note, I hate escape sequences!
+So I might not leave this feature in, or, at least, not quite like this.
+
+    | main = "a" & "\"" & "b" & print 'don\'t'.
+    + a"b
+    = don't
+    = don't
+
+    | main = "a" & "\\" & "b" & print 'don\\t'.
+    + a\b
+    = don\t
+    = don\t
+
+    | main = "a" & "\n" & "b" & print 'don\nt'.
+    + a
+    + b
+    = don
+    = t
+    = don
+    = t
+
+    | main = "a" & "\t" & "b" & print 'don\tt'.
+    + a	b
+    = don	t
+    = don	t
+
+The escape sequence \x must be followed by two hex digits.
+
+    # | main = "a" & "\x4a" & "b" & print 'don\x4at'.
+    # + aJb
+    # = donJt
+    # = donJt
+
+Note also that you can print a constructor.
+
+    | main = print hi(there('I\'m'(a(constructor)))).
+    = hi(there(I'm(a(constructor))))
+    = hi(there(I'm(a(constructor))))
+
 ### Examples using Terms ###
 
 This program accepts a pair of bits and evaluates to a term, a constructor
@@ -349,3 +533,127 @@ We can also use concatenation to construct the resulting term as an atom.
     | zeroes = ("0" & zeroes → E & return E + 'Z') | return ''.
     + 0000
     = ZZZZ
+
+Implicit `set` and `return`
+---------------------------
+
+Unquoted atoms and constructors ("barewords") can have the same names as
+productions.  If they are used in rule context, they are assumed to refer
+to productions.  If they are used in term context, they are assumed to
+refer to terms.
+
+    | main = blerf.
+    | blerf = return blerf.
+    = blerf
+
+Because variable names cannot be mistaken for productions, if they are used
+in rule context and followed by `←`, this is equivalent to `set`.
+
+    | main = S ← blerf & "x" & return S.
+    + x
+    = blerf
+
+There is of course an ASCII digraph for the left-pointing arrow.  (The
+right-pointing symbol in the input in this test is just to get keep my
+text editor's syntax highlighting under control.)
+
+    | main = S <- blerf & "x" & return S.
+    + x->
+    = blerf
+
+If the variable name is not followed by `←`, this is an implied `return`
+of the variable's value.
+
+    | main = S ← blerf & "x" & S.
+    + x
+    = blerf
+
+If a *quoted* term (atom or constructor) is used in rule context, this too
+cannot be mistaken for a production.  So this, too, implies a `return` of
+that term.
+
+    | main = S ← blerf & "x" & 'frelb'.
+    + x
+    = frelb
+
+(Not so sure about this one.  It makes the grammar compflicated.)
+
+    # | main = S ← blerf & "x" & 'frelb'(S).
+    # + x
+    # = frelb(blerf)
+
+But it must be quoted, or Tamsin'll think it's a production.
+
+    | main = S ← blerf & "x" & frelb.
+    + x
+    ? 
+
+### Aside: ← vs. → ###
+
+One may well ask why Tamsin has both `→`, to send the result of a rule
+into a variable, and `←`, to send a term into a variable, when both of these
+could be done with one symbol, in one direction, and in fact most languages
+do it this way (with a symbol like `=`, usually.)
+
+Two reasons:
+
+This way gives us two disjoint syntax contexts (rule context and term
+context) which lets us re-use the same symbols (such as lowercased barewords)
+for dual purposes.  Which in turn lets us write more compact code.
+
+And also, parsing is a linear process.  When we consume tokens from the
+input, whether directly with a terminal, or indirectly via a non-terminal,
+we want them to be easily located.  We want all our ducks to be in a row,
+so to speak.  This setup ensures that the focus of parsing is always on
+the left and not nested inside a term.  Like so:
+    
+    | main = "(" &
+    |        expr → S &
+    |        "," &
+    |        expr → T &
+    |        U ← pair(S,T) &
+    |        ")" &
+    |        U.
+    | expr = "a"
+    |      | "b"
+    |      | "c".
+    + (b,c)
+    = pair(b, c)
+
+That said, it is possible to use only the → if you like, by using `return`
+(or implicit return!) instead of `set`.  Like so:
+
+    | main = "(" &
+    |        expr → S &
+    |        "," &
+    |        expr → T &
+    |        return pair(S,T) → U &
+    |        ")" &
+    |        U.
+    | expr = "a"
+    |      | "b"
+    |      | "c".
+    + (b,c)
+    = pair(b, c)
+
+In my opinion, this style is not as clear, because at the rule which updates
+`U`, `U` itself is the focus and should be on the left.
+
+What about the other way around?  We could introduce some symbol (say, `/`)
+which allows a rule in what would otherwise be a term context, for example
+
+    main = "(" &
+           S ← /expr &
+           "," &
+           T ← /expr &
+           U ← pair(S,T) &
+           ")" &
+           U.
+    expr = "a"
+         | "b"
+         | "c".
+
+This would also work, and is more similar to conventional programming
+languages; however, in my opinion, it is not as clear either, because in
+the rules which parse the sub-expressions, it is `expr` that is the focus
+of the logic, rather than the variables the results are being sent into.

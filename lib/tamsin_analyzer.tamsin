@@ -26,7 +26,8 @@ tamsin_analyzer {
   desugar(not(X)) = desugar(X) → DX & return not(DX).
   desugar(while(X)) = desugar(X) → DX & return while(DX).
   desugar(concat(L, R)) = desugar(L) → DL & desugar(R) → DR & return concat(DL, DR).
-  desugar(using(R, P)) = desugar(R) → DR & return using(DR, P).  
+  desugar(using(R, P)) = desugar(R) → DR & return using(DR, P).
+  desugar(on(R, T)) = desugar(R) → DR & desugar(T) → DT & return on(DR, DT).
   desugar(send(R, V)) = desugar(R) → DR & return send(DR, V).
   desugar(set(V, T)) = desugar(T) → DT & return set(V, DT).
   desugar(atom(T)) = return atom(T).
@@ -118,6 +119,10 @@ tamsin_analyzer {
       analyze(CM, R) → DR &
       analyze(CM, PR) → DPR &
       return using(DR, DPR).
+  analyze(CM, on(R, T)) =
+      analyze(CM, R) → DR &
+      analyze(CM, T) → DT &
+      return on(DR, DT).
   analyze(CM, send(R, V)) =
       analyze(CM, R) → DR &
       return send(DR, V).
@@ -148,6 +153,9 @@ tamsin_analyzer {
       locals(R, Ls).
   locals(using(R, P), Ls) =
       locals(R, Ls).
+  locals(on(R, T), Ls) =
+      locals(R, Ls) → Ls &
+      locals(T, Ls).
   locals(send(R, V), Ls) =
       locals(V, Ls) → Ls &
       locals(R, Ls).

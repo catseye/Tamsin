@@ -1,0 +1,2 @@
+main = one @ 'I process this string until ! where I digress a bit' & ''.
+one = {"!" & {any → C & $:emit(C)} @ 'Here I digress' | any → C & $:emit(C)}.

@@ -1,6 +1,13 @@
 Tamsin Release History
 ======================
 
+0.4
+---
+
+### language ###
+
+*   Added `@` (work on different implicit buffer.)
+
 0.3
 ---
 

@@ -589,9 +589,11 @@ that term.
     + x
     = frelb
 
-    | main = S ← blerf & "x" & 'frelb'(S).
-    + x
-    = frelb(blerf)
+(Not so sure about this one.  It makes the grammar compflicated.)
+
+    # | main = S ← blerf & "x" & 'frelb'(S).
+    # + x
+    # = frelb(blerf)
 
 But it must be quoted, or Tamsin'll think it's a production.
 
@@ -639,19 +641,6 @@ That said, it is possible to use only the → if you like, by using `return`
     |        "," &
     |        expr → T &
     |        return pair(S,T) → U &
-    |        ")" &
-    |        U.
-    | expr = "a"
-    |      | "b"
-    |      | "c".
-    + (b,c)
-    = pair(b, c)
-
-    | main = "(" &
-    |        expr → S &
-    |        "," &
-    |        expr → T &
-    |        'pair'(S,T) → U &
     |        ")" &
     |        U.
     | expr = "a"

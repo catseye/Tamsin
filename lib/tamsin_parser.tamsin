@@ -51,7 +51,8 @@ tamsin_parser {
              | "[" & expr0 & "]".
   expr0    = expr1 → L & {("|" | "||") & expr1 → R & L ← or(L, R)} & L.
   expr1    = expr2 → L & {("&" | "&&") & expr2 → R & L ← and(L, R)} & L.
-  expr2    = expr3 → L & ["using" & prodref → P & L ← using(L, P)] & L.
+  expr2    = expr3 → L & ["using" & prodref → P & L ← using(L, P)
+                         | "@" & texpr → T & L ← on(L, T)] & L.
   expr3    = expr4 → L & [("→" | "->") & variable → V & L ← send(L, V)] & L.
   expr4    = expr5 → L & ("/" & texpr → T & return fold(L, T) | return L).
   expr5    = "(" & expr0 → E & ")" & E

@@ -214,7 +214,8 @@ compile_r(P,B,Nm, atom(T)) =
     Nm ← Nm + 'x' &
     emit(Nm) &
     emit(' = term_new_from_cstring("') &
-    emit(T) &   # TODO -- escaped
+    escaped(T) → T &
+    emit(T) &
     emitln('");') &
     Nm.
 
@@ -233,7 +234,8 @@ compile_r(P,B,Nm, constructor(T,Ts)) =
     Nm ← Nm + 'x' &
     emit(Nm) &
     emit(' = term_new_from_cstring("') &
-    emit(T) &   # TODO -- escaped
+    escaped(T) → T &
+    emit(T) &
     emitln('");') &
     list:reverse(Ts, nil) → Ts &
     emit_subterms(P,B,Nm, Nm, Ts) &
@@ -266,6 +268,17 @@ emit_locals(list(H,T)) =
     emit(H) &
     emitln(';') &
     emit_locals(T).
+
+############### escaped #############
+
+escaped(S) = escaped_r @ S.
+escaped_r = A ← '' &
+    {
+        "\\" & A ← A + '\\\\'
+      | "\"" & A ← A + '\\"'
+      | "\n" & A ← A + '\\n'
+      | any → B & A ← A + B
+    } & A.
 
 ############### saving and restoring state for backtracking ##############
 

@@ -127,7 +127,7 @@ To start using `tamsin`,
 
 Then you can run `tamsin` like so:
 
-*   `tamsin run eg/csv_parse.tamsin < eg/names.csv`
+*   `tamsin eg/csv_parse.tamsin < eg/names.csv`
 
 You can also compile to C and compile the C to an executable and run the
 executable all in one step, like so:
