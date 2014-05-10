@@ -6,7 +6,6 @@
 # NOTE, VERY INCOMPLETE: it could use:
 #   database -- for indent/outdent (minor)
 #   $:format or similar, for emitting
-# ... the goal right now is just for THIS to compile.  not its output.
 
 # REQUIRES lib/tamsin_scanner.tamsin
 # REQUIRES lib/tamsin_parser.tamsin
@@ -58,7 +57,7 @@ int main(int argc, char **argv) {
     ok = 0;
     result = term_new_from_cstring("nil");
 
-    prod_main_main0();
+    prod_main_main();
 
     if (ok) {
         term_fput(result, stdout);
@@ -72,7 +71,8 @@ int main(int argc, char **argv) {
 }
 ').
 
-emit(X) = $:emit(X) & $:emit('\n').
+emitln(X) = $:emit(X) & $:emit('\n').
+emit(X) = $:emit(X).
 indent = 'ok'.
 outdent = 'ok'.
 
@@ -88,86 +88,131 @@ get_prods(module(N, Ps)) = Ps.
 
 emit_prototypes(nil) = 'ok'.
 emit_prototypes(list(production(N, Bs), MMPs)) =
-    emit('void ') &
+    emit('void prod_main_') &
     emit(N) &
-    emit('();') &
+    emitln('();') &
     emit_prototypes(MMPs).
 
 compile_all(P, nil) = 'ok'.
 compile_all(P, list(H,T)) = compile_r(P, H) & compile_all(P, T).
 
 compile_r(P, production(N, Bs)) =
-    emit('void ') &
+    emit('void prod_main_') &
     emit(N) &
-    emit('() {') &
+    emitln('() {') &
     indent &
     compile_all(P, Bs) &
     outdent &
-    emit('}').
+    emitln('}').
 
 compile_r(P, prodbranch(Fs, Ls, E)) =
-    emit('/* formals and locals... */') &
+    emitln('/* formals and locals go here... */') &
     compile_r(P, E).
 
+compile_r(P, call(prodref('$', 'expect'), list(T, nil))) =
+    emit_term(T, 'temp') &
+    emitln('tamsin_expect(scanner, temp);').
+
+compile_r(P, call(prodref('$', 'return'), list(T, nil))) =
+    emit_term(T, 'temp') &
+    emitln('result = temp;') &
+    emitln('ok = 1;').
+
+compile_r(P, call(prodref('$', 'print'), list(T, nil))) =
+    emit_term(T, 'temp') &
+    emitln('result = temp;') &
+    emitln('term_fput(result, stdout);') &
+    emitln('fprintf(stdout, "\\n");') &
+    emitln('ok = 1;').
+
 compile_r(P, call(prodref(M, N), A)) =
-    emit('call ' + N).
+    emit('prod_main_') &
+    emit(N) &
+    emitln('();').
 
 compile_r(P, and(L, R)) =
     compile_r(P, L) &
-    emit('if (ok) {') &
+    emitln('if (ok) {') &
     indent &
     compile_r(P, R) &
     outdent &
-    emit('}').
+    emitln('}').
 
 compile_r(P, or(L, R)) =
-    emit('{') &
+    emitln('{') &
     indent &
     emit_decl_state &
     emit_save_state &
     compile_r(P, L) &
-    emit('if (!ok) {') &
+    emitln('if (!ok) {') &
     indent &
     emit_restore_state &
     compile_r(P, R) &
     outdent &
-    emit('}') &
+    emitln('}') &
     outdent &
-    emit('}').
+    emitln('}').
 compile_r(P, send(R, V)) =
     compile_r(P, R) &
-    $:emit(V) &
-    emit(' = result;').
+    emit(V) &
+    emitln(' = result;').
 compile_r(P, set(V, T)) =
     emit_term(T, 'temp') &
-    emit('result = temp;') &
-    $:emit(V) &
-    emit(' = result;') &
-    emit('ok = 1;').
+    emitln('result = temp;') &
+    emit(V) &
+    emitln(' = result;') &
+    emitln('ok = 1;').
 compile_r(P, while(R)) =
-    emit('{') &
+    emitln('{') &
     indent &
     emit_decl_state &
-    emit_term(nil, 'successful_result') &
-    emit('ok = 1;') &
-    emit('while (ok) {') &
+    emit_term(atom(nil), 'successful_result') &
+    emitln('ok = 1;') &
+    emitln('while (ok) {') &
     indent &
     emit_save_state &
     compile_r(P, R) &
-    emit('if (ok) {') &
+    emitln('if (ok) {') &
     indent &
-    emit('successful_result = result;') &
+    emitln('successful_result = result;') &
     outdent &
-    emit('}') &
+    emitln('}') &
     outdent &
-    emit('}') &     # endwhile
+    emitln('}') &     # endwhile
     emit_restore_state &
-    emit('result = successful_result;') &
-    emit('ok = 1;') &
+    emitln('result = successful_result;') &
+    emitln('ok = 1;') &
     outdent &
-    emit('}').
+    emitln('}').
 
 emit_decl_state = 'ok'.
 emit_save_state = 'ok'.
 emit_restore_state = 'ok'.
-emit_term(T, N) = emit(N) & emit('=') & emit(T).
+
+emit_term(variable(VN), N) =
+    emit('struct term *') &
+    emit(N) &
+    emit(' = ') &
+    emit(VN) &
+    emitln(';').
+
+emit_term(atom(T), N) =
+    emit('struct term *') &
+    emit(N) &
+    emit(' = term_new_from_cstring("') &
+    emit(T) &   # TODO -- escaped
+    emitln('");').
+
+emit_term(constructor(T,Ts), N) =
+    emit('struct term *') &
+    emit(N) &
+    emit(' = term_new_from_cstring("') &
+    emit(T) &   # TODO -- escaped
+    emitln('");').
+
+    #  i = 0
+    #  for subterm in reversed(term.contents):
+    #      subname = name + str(i)
+    #      i += 1
+    #      self.emit_term(subterm, subname, pattern=pattern);
+    #      self.emit("term_add_subterm(%s, %s);" % (name, subname))
