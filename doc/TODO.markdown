@@ -2,16 +2,20 @@ TODO
 ----
 
 *   input to compiled Tamsin programs -- process argv[]
+*   problem: compiler.tamsin is trying to thread the temporary name
+    counter in two ways:
+        - indicate the name the last result was stored in (for terms etc)
+        - generate a fresh name for new things
+    so, looks like, unless we want to introduce module variables etc,
+    we need `$:gensym`.
 
 ### escape sequences and such ###
 
-*   unescape scanned atoms/""'s in tamsin_parser -- `$:unescape`?
-*   `$:unescape` must support `\xXX` codes
+*   unescape scanned atoms/""'s in tamsin_parser -- write in Tamsin
+*   unescape must support `\xXX` codes
 *   use Tamsin repr in error messages
 *   __str__ should be Tamsin repr()?
-*   `$:substr` and/or `$:atom_to_list`
-*   should not really need `$:substr` if we implement `@`... just parse it!
-*   `$:format` -- again, parse it using `@`
+*   `format`, using `@`
 *   `\s` production for whitespace
 *   `\f` escape for form feed
 *   `$:hexchar` cheat for handling `\xXX` for now
@@ -35,8 +39,11 @@ TODO
 
 ### lower-priority ###
 
-*   `list` module, containing `reverse`, `deep_reverse`, `member`,
-    `append`, etc, written in Tamsin -- but replaced by the compiler
+*   PROLOG/ERLANG'S LIST SUGAR.  would be really really nice.
+*   `using` production x: x's scanner defaults to utf8, not x
+*   `list` module, containing `deep_reverse`, `append`, etc, written in
+    Tamsin --
+*   have compiler replace calls to `list` functions
     by "more efficient" versions written in C -- if they really are...
 *   find different way to match variables in libtamsin, so that
     struct term's can be const all the way down — then share terms
@@ -60,7 +67,6 @@ TODO
 *   error handling: skip to next sentinel and report more errors
 *   module-level updatable variables.  or globals.  or "process dictionary"
     `$:store()` and `$:fetch()`.  or database.
-*   `using` production x: x's scanner defaults to utf8, not x
 *   figure out good way to do aliases with the Tamsin-parser-in-Tamsin
     (dynamic grammar is really more of a Zz thing...)
 *   should be able to import ("open") other modules into your own namespace.
@@ -74,7 +80,6 @@ TODO
 *   pretty-print AST for error messages
 *   don't consume stdin until asked to scan.  demand_buffer.  per-line loop.
     or rather, per-inputconsumechunk
-*   full term expressions -- maybe
 
 ### symbol fun ###
 
