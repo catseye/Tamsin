@@ -157,3 +157,12 @@ def repr(self, args):
     val = Atom(val.repr())
     return (True, val)
 repr.arity = 1
+
+
+counter = 0
+
+def gensym(self, args):
+    global counter
+    counter += 1
+    return (True, Atom(str(args[0]) + str(counter)))
+gensym.arity = 1

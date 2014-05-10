@@ -1134,6 +1134,14 @@ This is a shallow reverse.  Embedded lists are not reversed.
     | main = $:reverse(list(a, list(list(1, list(2, nil)), list(c, nil))), nil).
     = list(c, list(list(1, list(2, nil)), list(a, nil)))
 
+Here's gensym.
+
+    | main = $:gensym('foo').
+    = foo1
+
+    | main = $:gensym('foo') → F & $:gensym('foo') → G & $:equal(F, G).
+    ? 'foo1' does not equal 'foo2'
+
 ### Back to Modules in General ###
 
 `:foo` always means production `foo` in the current module.

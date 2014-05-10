@@ -137,6 +137,7 @@ struct term *tamsin_unquote(const struct term *,
 struct term *tamsin_mkterm(const struct term *, const struct term *);
 struct term *tamsin_equal(struct term *, struct term *);
 struct term *tamsin_reverse(struct term *, struct term *);
+struct term *tamsin_gensym(struct term *);
 
 int tamsin_isalpha(char);
 int tamsin_isupper(char);

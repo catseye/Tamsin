@@ -202,3 +202,16 @@ struct term *tamsin_reverse(struct term *list, struct term *sentinel) {
         return result;
     }
 }
+
+static int counter = 0;
+static char buffer[80];
+struct term *tamsin_gensym(struct term *base) {
+    struct term *t = term_flatten(base);
+
+    counter++;
+    /* snprintf(buffer, 79, "%d", counter); */
+    sprintf(buffer, "%d", counter);
+    t = term_concat(t, term_new_from_cstring(buffer));
+
+    return t;
+}

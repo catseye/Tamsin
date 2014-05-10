@@ -282,6 +282,9 @@ class Compiler(object):
                         (argnames[1], argnames[0])
                     )
                     self.emit('ok = 1;')
+                elif name == 'gensym':
+                    self.emit('result = tamsin_gensym(%s);' % argnames[0])
+                    self.emit('ok = 1;')
                 elif name == 'fail':
                     self.emit("result = %s;" % argnames[0])
                     self.emit('ok = 0;')

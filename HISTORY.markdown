@@ -1,12 +1,16 @@
 Tamsin Release History
 ======================
 
-0.4
----
+0.4-PRE
+-------
 
 ### language ###
 
 *   Added `@` (work on different implicit buffer.)
+
+### modules ###
+
+*   Added `$:gensym`.
 
 0.3
 ---
@@ -21,14 +25,14 @@ Tamsin Release History
 *   `$:equal` now does deep equality of arbitrary ground terms.
 *   `$:repr` added.
 *   `$:reverse` added.
+*   Some standard modules ship in the distribution: `list`,
+    `tamsin_scanner`, and `tamsin_parser`.
 
 ### implementations ###
 
 *   Support for user-defined modules.
 *   `tamsin` can take more than one source file on command line; this
     is how external modules are supported (by this implementation.)
-*   Some standard modules ship in the distribution: `list`,
-    `tamsin_scanner`, and `tamsin_parser`.
 *   Cleaned-up testing framework; Tamsin versions of scanner, grammar,
     parser, desugarer, analyzer, and compiler found in `mains` subdir.
 *   Most `tamsin` verbs, and their versions in Tamsin, corresponding to

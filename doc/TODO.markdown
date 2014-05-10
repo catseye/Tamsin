@@ -2,12 +2,6 @@ TODO
 ----
 
 *   input to compiled Tamsin programs -- process argv[]
-*   problem: compiler.tamsin is trying to thread the temporary name
-    counter in two ways:
-        - indicate the name the last result was stored in (for terms etc)
-        - generate a fresh name for new things
-    so, looks like, unless we want to introduce module variables etc,
-    we need `$:gensym`.
 
 ### escape sequences and such ###
 
