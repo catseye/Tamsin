@@ -1,8 +1,7 @@
 TODO
 ----
 
-*   finish implementing compiler (to C) for a subset of Tamsin, in Tamsin —
-    get it to compile at least one Tamsin program
+*   input to compiled Tamsin programs -- process argv[]
 
 ### escape sequences and such ###
 
@@ -24,7 +23,7 @@ TODO
 *   test that `$:alpha` and `$:digit` are not locale-dependent (hard)
 *   tests for invalid escape codes
 
-### vm ###
+### support for simulating machines and vms ###
 
 *   `$:alpha`
 *   `$:digit`

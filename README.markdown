@@ -11,9 +11,9 @@ Its primary goal is to allow the rapid development of **parsers**,
 to be expressed *compactly*.  Golf your grammar!  (Or write it like a decent
 human being, if you must.)
 
-The current released version of Tamsin is 0.2; the development version is
-0.3-PRE.  As indicated by the 0.x version number, it is a **work in progress**,
-with the usual caveat that things may change rapidly (and that version 0.3 might
+The current released version of Tamsin is 0.3; the development version is
+0.4-PRE.  As indicated by the 0.x version number, it is a **work in progress**,
+with the usual caveat that things may change rapidly (and that version 0.4 might
 look completely different.)  See [HISTORY](https://github.com/catseye/Tamsin/blob/master/HISTORY.markdown)
 for a list of major changes.
 
@@ -103,7 +103,7 @@ This repository contains the reference implementation of Tamsin, called
 compile a program written in Tamsin to C.
 
 The distribution also contains a (tiny subset of) Tamsin interpreter written
-in Tamsin, and a (grossly incomplete) Tamsin-to-C compiler written in Tamsin.
+in Tamsin, and a (tiny subset of) Tamsin-to-C compiler written in Tamsin.
 We're still a ways from a fully bootrapped implementation, but we're getting
 closer.
 
@@ -162,9 +162,10 @@ Related work
 ------------
 
 *   [CoCo/R](http://www.scifac.ru.ac.za/coco/) (parser generation)
-*   [Parsec](http://www.haskell.org/haskellwiki/Parsec) (parser combination)
+*   [Parsec](http://www.haskell.org/haskellwiki/Parsec) (parser combinators)
 *   [Perl](http://perl.com/) (rubbish listing)
-*   [Prolog](https://en.wikipedia.org/wiki/Prolog) (pattern-matching)
+*   [Prolog](https://en.wikipedia.org/wiki/Prolog) (pattern-matching, terms,
+    backtracking(-ish...))
 *   [K](https://github.com/kevinlawler/kona) (similar feel; Tamsin
     is a _vertical language_)
 *   [Cat's Eye Technologies](http://catseye.tc)' esoteric and experimental

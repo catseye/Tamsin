@@ -1,13 +1,13 @@
-The Tamsin Language Specification, version 0.3-PRE
-==================================================
+The Tamsin Language Specification, version 0.3
+==============================================
 
 This document is a **work in progress**.
 
 *Note* that this document only specifies the behaviour of Tamsin version
-0.3-PRE.  The reference interpreter in fact supports a few more features
+0.3.  The reference interpreter in fact supports a few more features
 than are listed here.  Those features are listed in the
 [Advanced Features document](Advanced_Features.markdown), and may appear
-in a future version of Tamsin (like 0.4) but they are *not* yet a part of
+in a future version of Tamsin (like 0.4) but they are *not* a part of
 0.3.
 
 (Note also that -PRE versions are moving targets that may change rapidly,
@@ -1831,14 +1831,15 @@ Appendix C. System Module
 *   `$:any` — fails on eof, succeeds and returns token on any other token
 *   `$:byte` — 8-bit-clean byte scanner production
 *   `$:eof` — succeeds on eof and returns eof, otherwise fails
-*   `$:equal(L,R)` — succeeds if L and R are the same atom, otherwise fails
+*   `$:equal(L,R)` — succeeds if L and R are identical terms, otherwise fails
 *   `$:expect(X)` — succeeds if token is X and returns it, otherwise fails
 *   `$:fail(X)` — always fails, giving X as the error message
 *   `$:mkterm(A,L)` — given an atom and a list, return a single constructor
 *   `$:not(X)` — succeeds only if token is not X or EOF, and returns token
-*   `$:return(X)` — always succeeds, returning X
 *   `$:print(X)` — prints X to output as a side-effect, returns X
+*   `$:repr(X)` — returns an atom which is the reprified version of C
+*   `$:return(X)` — always succeeds, returning X
+*   `$:reverse(X, T)` — returns the reverse of the list X, with tail of T
 *   `$:startswith(X)` — consumes token if it starts with first character of X
 *   `$:unquote(X,L,R)` — consumes nothing; returns X without quotes if X is quoted
 *   `$:utf8` — UTF-8-encoded Unicode character scanner production
-    

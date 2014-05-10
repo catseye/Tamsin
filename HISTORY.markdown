@@ -1,12 +1,12 @@
 Tamsin Release History
 ======================
 
-0.3-PRE
--------
+0.3
+---
 
 ### language ###
 
-*   (Partially) defined what it means to `reprify` a term.
+*   Defined what it means to `reprify` a term.
 *   Clarified some matters as implementation-defined.
 
 ### modules ###
@@ -17,10 +17,20 @@ Tamsin Release History
 
 ### implementations ###
 
-*   Virtually full support for user-defined modules.
+*   Support for user-defined modules.
 *   `tamsin` can take more than one source file on command line; this
-    is how external modules are supported.
-*   `tamsin parse` and `tamsin-ast.tamsin` output reprified terms.
+    is how external modules are supported (by this implementation.)
+*   Some standard modules ship in the distribution: `list`,
+    `tamsin_scanner`, and `tamsin_parser`.
+*   Cleaned-up testing framework; Tamsin versions of scanner, grammar,
+    parser, desugarer, analyzer, and compiler found in `mains` subdir.
+*   Most `tamsin` verbs, and their versions in Tamsin, corresponding to
+    intermediate phases, output reprified terms.
+*   `tamsin` significantly re-factored so that the interpreter and
+    compiler are more similar, and generating code for production branches
+    is easier.
+*   Added Tamsin-to-C compiler written in Tamsin, which can pass the first
+    43 or so tests from the spec ("Mini-Tamsin").
 
 0.2
 ---
