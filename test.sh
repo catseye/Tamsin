@@ -5,6 +5,8 @@ FILES="
     doc/Tested_Examples.markdown
 "
 
+mkdir -p tmp
+
 if [ x$1 = 'x-f' ]; then
     shift
     echo "(Testing on Falderal files '$1' only)"
@@ -79,24 +81,24 @@ test_it() {
         echo "*** Compiling $SRC (with $LIBS)"
         echo "*** and testing it against '$CMD'..."
         ./build.sh
-        bin/tamsin compile $LIBS $SRC > foo.c && \
-           gcc -g -Ic_src -Lc_src foo.c -o $BIN -ltamsin || exit 1
+        bin/tamsin compile $LIBS $SRC > tmp/foo.c && \
+           gcc -g -Ic_src -Lc_src tmp/foo.c -o $BIN -ltamsin || exit 1
         for EG in eg/*.tamsin; do
             echo $EG
-            $CMD $EG > 1.txt
-            ./$BIN <$EG > 2.txt || exit 1
-            diff -ru 1.txt 2.txt > ast.diff
-            diff -ru 1.txt 2.txt || exit 1
+            $CMD $EG > tmp/1.txt
+            $BIN <$EG > tmp/2.txt || exit 1
+            diff -ru tmp/1.txt tmp/2.txt > tmp/output.diff
+            diff -ru tmp/1.txt tmp/2.txt || exit 1
         done
     elif [ $MODE = "interpreted" ]; then
         echo "*** Interpreting $SRC (with $LIBS)"
         echo "*** and testing it against '$CMD'..."
         for EG in eg/*.tamsin; do
             echo $EG
-            $CMD $EG > 1.txt
-            bin/tamsin $LIBS $SRC <$EG > 2.txt || exit 1
-            diff -ru 1.txt 2.txt > ast.diff
-            diff -ru 1.txt 2.txt || exit 1
+            $CMD $EG > tmp/1.txt
+            bin/tamsin $LIBS $SRC <$EG > tmp/2.txt || exit 1
+            diff -ru tmp/1.txt tmp/2.txt > tmp/output.diff
+            diff -ru tmp/1.txt tmp/2.txt || exit 1
         done
         echo "Passed."
         exit 0
@@ -119,40 +121,40 @@ elif [ x$1 = xgrammar ]; then
     test_it $MODE "mains/tamsin-grammar.tamsin" \
                   "lib/tamsin_scanner.tamsin" \
                   "ok" \
-                  "tamsin-grammar"
+                  "bin/tamsin-grammar"
 elif [ x$1 = xscanner ]; then
     test_it $MODE "mains/scanner.tamsin" \
                   "lib/tamsin_scanner.tamsin" \
                   "./bin/tamsin scan" \
-                  "tamin-scanner"
+                  "bin/tamsin-scanner"
 elif [ x$1 = xparser ]; then
     test_it $MODE "mains/parser.tamsin" \
                   "lib/list.tamsin lib/tamsin_scanner.tamsin lib/tamsin_parser.tamsin" \
                   "./bin/tamsin parse" \
-                  "tamsin-parser"
+                  "bin/tamsin-parser"
 elif [ x$1 = xdesugarer ]; then
     test_it $MODE "mains/desugarer.tamsin" \
                   "lib/list.tamsin lib/tamsin_scanner.tamsin lib/tamsin_parser.tamsin lib/tamsin_analyzer.tamsin" \
                   "./bin/tamsin desugar" \
-                  "tamsin-desugarer"
+                  "bin/tamsin-desugarer"
 elif [ x$1 = xanalyzer ]; then
     test_it $MODE "mains/analyzer.tamsin" \
                   "lib/list.tamsin lib/tamsin_scanner.tamsin lib/tamsin_parser.tamsin lib/tamsin_analyzer.tamsin" \
                   "./bin/tamsin analyze" \
-                  "tamsin-analyzer"
+                  "bin/tamsin-analyzer"
 elif [ x$1 = xtcompiler ]; then
     test_it $MODE "mains/compiler.tamsin" \
                   "lib/list.tamsin lib/tamsin_scanner.tamsin lib/tamsin_parser.tamsin lib/tamsin_analyzer.tamsin" \
                   "./bin/tamsin compile" \
-                  "tamsin-compiler"
+                  "bin/tamsin-compiler"
 elif [ x$1 = xmicro ]; then
     echo "*** Compiling Micro-Tamsin interpreter..."
     ./build.sh
     bin/tamsin compile lib/list.tamsin lib/tamsin_scanner.tamsin \
                        lib/tamsin_parser.tamsin \
-                       mains/micro-tamsin.tamsin > foo.c && \
+                       mains/micro-tamsin.tamsin > tmp/foo.c && \
        gcc -g -ansi -Werror \
-           -Ic_src -Lc_src foo.c -o micro-tamsin -ltamsin || exit 1
+           -Ic_src -Lc_src tmp/foo.c -o bin/micro-tamsin -ltamsin || exit 1
     echo "*** Testing Micro-Tamsin interpreter..."
     FILES="doc/Micro-Tamsin.markdown"
     falderal $VERBOSE --substring-error fixture/micro-tamsin.markdown $FILES

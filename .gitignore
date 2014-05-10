@@ -1,3 +1,6 @@
 *.pyc
 *.o
 *.a
+bin/tamsin-*
+bin/micro-tamsin
+tmp/
