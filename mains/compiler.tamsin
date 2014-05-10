@@ -87,22 +87,6 @@ compile(program(Ms)) =
     postlude &
     ''.
 
-get_prods(module(N, Ps)) = Ps.
-
-emit_prototypes(nil) = 'ok'.
-emit_prototypes(list(production(N, Bs), MMPs)) =
-    emit('void prod_main_') &
-    emit(N) &
-    emitln('();') &
-    emit_prototypes(MMPs).
-
-emit_locals(nil) = 'ok'.
-emit_locals(list(H,T)) =
-    emit('struct term *') &
-    emit(H) &
-    emitln(';') &
-    emit_locals(T).
-
 compile_all(P, B, nil) = 'ok'.
 compile_all(P, B, list(H,T)) = compile_r(P, B, H) & compile_all(P, B, T).
 
@@ -198,7 +182,35 @@ compile_r(P, B, while(R)) =
     outdent &
     emitln('}').
 
+compile_r(P, B, concat(L, R)) =
+    # TODO make this more general
+    compile_r(P, B, L) &
+    compile_r(P, B, R) &
+    emit('struct term *tempc = term_concat(term_flatten(') &
+    emit('NAME_LHS') &
+    emit('), term_flatten(') &
+    emit('NAME_RHS') &
+    emitln('));').
 
+############### misc helpers ##############
+
+get_prods(module(N, Ps)) = Ps.
+
+emit_prototypes(nil) = 'ok'.
+emit_prototypes(list(production(N, Bs), MMPs)) =
+    emit('void prod_main_') &
+    emit(N) &
+    emitln('();') &
+    emit_prototypes(MMPs).
+
+emit_locals(nil) = 'ok'.
+emit_locals(list(H,T)) =
+    emit('struct term *') &
+    emit(H) &
+    emitln(';') &
+    emit_locals(T).
+
+############### saving and restoring state for backtracking ##############
 
 emit_decl_state(prodbranch(Fs, Ls, E)) =
     emit_decl_state_locals(Ls) &
@@ -240,7 +252,7 @@ emit_restore_state_locals(list(H,T)) =
     emitln(';') &
     emit_restore_state_locals(T).
 
-
+############### term emitting ##############
 
 emit_term(variable(VN), N) =
     emit('struct term *') &
@@ -261,11 +273,18 @@ emit_term(constructor(T,Ts), N) =
     emit(N) &
     emit(' = term_new_from_cstring("') &
     emit(T) &   # TODO -- escaped
-    emitln('");').
+    emitln('");') &
+    list:reverse(Ts, nil) → Ts &
+    emit_subterms(N,'x',Ts).
 
-    #  i = 0
-    #  for subterm in reversed(term.contents):
-    #      subname = name + str(i)
-    #      i += 1
-    #      self.emit_term(subterm, subname, pattern=pattern);
-    #      self.emit("term_add_subterm(%s, %s);" % (name, subname))
+emit_subterms(N,Count,nil) = 'ok'.
+emit_subterms(N,Count,list(H,T)) =
+    SubN ← N + Count &
+    Count ← Count + 'x' &
+    emit_term(H, SubN) &
+    emit('term_add_subterm(') &
+    emit(N) &
+    emit(', ') &
+    emit(SubN) &
+    emitln(');') &
+    emit_subterms(N,Count,T).

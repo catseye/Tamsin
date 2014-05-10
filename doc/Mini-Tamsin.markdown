@@ -274,7 +274,7 @@ Names of Variables must be Capitalized.
 
     | main = blerp → b & return b.
     | blerp = "b".
-    ? Expected variable
+    ? 
 
 In fact, the result of not just a production, but any rule, may be sent
 into a variable by `→`.  Note that `→` has a higher precedence than `&`.
@@ -312,3 +312,40 @@ alternative.
     |        return E.
     + 02
     = original
+
+### Examples using Terms ###
+
+This program accepts a pair of bits and evaluates to a term, a constructor
+`pair`, with the two bits as subterms.
+
+    | main = bit → A & bit → B & return pair(A, B).
+    | bit = "0" | "1".
+    + 10
+    = pair(1, 0)
+
+    | main = bit → A & bit → B & return pair(A, B).
+    | bit = "0" | "1".
+    + 01
+    = pair(0, 1)
+
+This program expects an infinite number of 0's.  It will be disappointed.
+
+    | main = zeroes.
+    | zeroes = "0" & zeroes.
+    + 00000
+    ? expected '0' found 'EOF'
+
+This program expects a finite number of 0's, and returns a term representing
+how many it found.  It will not be disappointed.
+
+    | main = zeroes.
+    | zeroes = ("0" & zeroes → E & return zero(E)) | return nil.
+    + 0000
+    = zero(zero(zero(zero(nil))))
+
+We can also use concatenation to construct the resulting term as an atom.
+
+    | main = zeroes.
+    | zeroes = ("0" & zeroes → E & return E + 'Z') | return ''.
+    + 0000
+    = ZZZZ
