@@ -118,11 +118,13 @@ elif [ x$1 = xinterpreter -o x$1 = xi ]; then
 elif [ x$1 = xgrammar ]; then
     test_it $MODE "mains/tamsin-grammar.tamsin" \
                   "lib/tamsin_scanner.tamsin" \
-                  "ok"
+                  "ok" \
+                  "tamsin-grammar"
 elif [ x$1 = xscanner ]; then
     test_it $MODE "mains/scanner.tamsin" \
                   "lib/tamsin_scanner.tamsin" \
-                  "./bin/tamsin scan"
+                  "./bin/tamsin scan" \
+                  "tamin-scanner"
 elif [ x$1 = xparser ]; then
     test_it $MODE "mains/parser.tamsin" \
                   "lib/list.tamsin lib/tamsin_scanner.tamsin lib/tamsin_parser.tamsin" \
@@ -138,6 +140,11 @@ elif [ x$1 = xanalyzer ]; then
                   "lib/list.tamsin lib/tamsin_scanner.tamsin lib/tamsin_parser.tamsin lib/tamsin_analyzer.tamsin" \
                   "./bin/tamsin analyze" \
                   "tamsin-analyzer"
+elif [ x$1 = xtcompiler ]; then
+    test_it $MODE "mains/compiler.tamsin" \
+                  "lib/list.tamsin lib/tamsin_scanner.tamsin lib/tamsin_parser.tamsin lib/tamsin_analyzer.tamsin" \
+                  "./bin/tamsin compile" \
+                  "tamsin-compiler"
 elif [ x$1 = xmicro ]; then
     echo "*** Compiling Micro-Tamsin interpreter..."
     ./build.sh

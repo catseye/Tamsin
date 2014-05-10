@@ -291,12 +291,7 @@ class Compiler(object):
                 else:
                     raise NotImplementedError(name)
             else:
-                i = 0
-                for a in args:
-                    self.emit_term(a.to_term(), "temp_arg%s" % i)
-                    i += 1
-                
-                args = ', '.join(["temp_arg%s" % p for p in xrange(0, i)])
+                args = ', '.join([self.compile_r(a) for a in args])
                 self.emit("prod_%s_%s(%s);" % (prodmod, name, args))
         elif isinstance(ast, Send):
             self.compile_r(ast.rule)
