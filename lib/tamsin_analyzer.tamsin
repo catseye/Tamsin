@@ -33,14 +33,21 @@ tamsin_analyzer {
   desugar(atom(T)) = return atom(T).
   desugar(constructor(T, Ts)) = return constructor(T, Ts).
   desugar(variable(N)) = return variable(N).
-  desugar(fold(R, I)) =
+  desugar(fold(R, I, C)) =
       desugar(R) → DR &
       SET ← set(variable('_1'), I) &
       SEND ← send(DR, variable('_2')) &
       CAT ← concat(variable('_1'), variable('_2')) &
       ACC ← set(variable('_1'), CAT) &
+      ($:equal(C, nil) |
+          get_tag(C) → Tag &
+          ACC ← set(variable('_1'),
+                     constructor(Tag, list(variable('_2'),
+                                        list(variable('_1'), nil))))) &
       RET ← call(prodref('$', 'return'), list(variable('_1'), nil)) &
       return and(and(SET, while(and(SEND, ACC))), RET).
+
+  get_tag(atom(T)) = T.
 
   fetch(K, list(pair(K2, V), T))  = $:equal(K, K2) & V | fetch(K, T).
   fetch(K, nil)                   = 'nil'.

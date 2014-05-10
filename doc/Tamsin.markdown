@@ -287,7 +287,7 @@ Names of Variables must be Capitalized.
 
     | main = blerp → b & return b.
     | blerp = "b".
-    ? Expected variable
+    ? expected variable
 
 In fact, the result of not just a production, but any rule, may be sent
 into a variable by `→`.  Note that `→` has a higher precedence than `&`.
@@ -428,7 +428,7 @@ But an atom can contain arbitrary text.  To write an atom which contains
 spaces or other things which are not "bareword", enclose it in single quotes.
 
     | main = return Hello, world!
-    ? Expected '.' at ', world!'
+    ? expected '.' at ', world!'
 
     | main = return 'Hello, world!'.
     = Hello, world!
@@ -445,7 +445,7 @@ string.
 The bareword rule applies in subterms.
 
     | main = return hello(beautiful world).
-    ? Expected ')' at ' world).'
+    ? expected ')' at ' world).'
 
     | main = return hello('beautiful world').
     = hello(beautiful world)
@@ -926,7 +926,7 @@ Note that the RHS of `//` is *not* a term expression.
 
     | main = $:alnum/ni+l/co+ns.
     + dog.
-    ? Expected '.' at '+ns.'
+    ? expected '.' at '+ns.'
 
 Not that (for now) `/`'s cannot be nested.  But you can make a sub-production
 for this purpose.
@@ -1315,7 +1315,7 @@ pattern.
 
     | main = what(hel+lo).
     | what(he+llo) = 'yes'.
-    ? Expected ')'
+    ? expected ')'
 
 Advanced Scanning
 -----------------

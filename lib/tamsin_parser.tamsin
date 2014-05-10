@@ -54,7 +54,10 @@ tamsin_parser {
   expr2    = expr3 → L & ["using" & prodref → P & L ← using(L, P)
                          | "@" & texpr → T & L ← on(L, T)] & L.
   expr3    = expr4 → L & [("→" | "->") & variable → V & L ← send(L, V)] & L.
-  expr4    = expr5 → L & ("/" & texpr → T & return fold(L, T) | return L).
+  expr4    = expr5 → L & ("/" & texpr → T &
+                           ("/" & term → T2 & return fold(L, T, T2)
+                            | return fold(L, T, nil))
+                          | return L).
   expr5    = "(" & expr0 → E & ")" & E
            | "[" & expr0 → E & "]" &
              return or(E, call(prodref('$', return), list(atom(nil), nil)))

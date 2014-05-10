@@ -82,10 +82,10 @@ class Desugarer(EventProducer):
             set_ = Set(under1, ast.initial)
             send_ = Send(self.desugar(ast.rule), under2)
             acc_ = Set(under1, Concat(under1, under2))
-            if ast.constratom is not None:
-                assert isinstance(ast.constratom, AtomNode)
+            if ast.tag is not None:
+                assert isinstance(ast.tag, AtomNode)
                 acc_ = Set(under1,
-                           ConstructorNode(ast.constratom.text,
+                           ConstructorNode(ast.tag.text,
                                            [under2, under1]))
             return_ = Call(Prodref('$', 'return'), [under1])
             return And(And(set_, While(And(send_, acc_))), return_)

@@ -322,22 +322,23 @@ class On(AST):
 
 
 class Fold(AST):
-    def __init__(self, rule, initial, constratom):
+    def __init__(self, rule, initial, tag):
         self.rule = rule
         self.initial = initial
-        self.constratom = constratom
+        self.tag = tag
 
     def __repr__(self):
         return u"Fold(%r, %r, %r)" % (
             self.rule,
             self.initial,
-            self.constratum
+            self.tag
         )
 
     def __str__(self):
-        return "fold(%s, %s)" % (
+        return "fold(%s, %s, %s)" % (
             self.rule,
-            self.initial
+            self.initial,
+            self.tag or 'nil',
         )
 
 

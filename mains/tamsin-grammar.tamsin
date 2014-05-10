@@ -26,7 +26,7 @@ expr0      = expr1 & {("|" | "||") & expr1}.
 expr1      = expr2 & {("&" | "&&") & expr2}.
 expr2      = expr3 & ["using" & prodref | "@" & texpr].
 expr3      = expr4 & [("→" | "->") & variable].
-expr4      = expr5 & ["/" & texpr].
+expr4      = expr5 & ["/" & texpr & ["/" & term]].
 expr5      = "(" & expr0 & ")"
            | "[" & expr0 & "]"
            | "{" & expr0 & "}"

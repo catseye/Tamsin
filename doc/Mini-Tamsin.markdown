@@ -863,3 +863,62 @@ Oh, and since we were speaking of sentinels earlier...
     = do let's ))) put &c. in this string
     = and!this!one
     = ok
+
+### folds ###
+
+The following idiom is essentially a *fold* from functional programming.
+
+    | main = T ← '' & {$:alnum → S & T ← T + S} & return T.
+    + dogwood
+    = dogwood
+
+It is so common, that Tamsin supports a special form for it.  The infix
+operator `/` takes a rule on the left-hand side, and a term (used as the
+initial value) on the right-hand side, and expands to the above.
+
+    | main = $:alnum/''.
+    + dogwood
+    = dogwood
+
+    | main = $:alnum/'prefix'.
+    + dogwood.
+    = prefixdogwood
+
+You can use any rule you desire, not just a non-terminal, on the LHS of `/`.
+
+    | main = ("0" | "1")/'%'.
+    + 0110110110.
+    = %0110110110
+
+Note that the RHS of `/` is a term expression, so it can contain a `+`.
+
+    | main = ("0" | "1")/'%' + '&'.
+    + 0110110110.
+    = %&0110110110
+
+If there is an additional `/`, it must be followed by an atom.  This atom
+will be used as a constructor, instead of the concat operation.
+
+    | main = $:alnum/nil/cons.
+    + dog.
+    = cons(g, cons(o, cons(d, nil)))
+
+Note that the middle of `//` is a term expression.
+
+    | main = $:alnum/cat+food/cons.
+    + dog.
+    = cons(g, cons(o, cons(d, catfood)))
+
+Note that the RHS of `//` is *not* a term expression.
+
+    | main = $:alnum/ni+l/co+ns.
+    + dog.
+    ? expected
+
+Not that (for now) `/`'s cannot be nested.  But you can make a sub-production
+for this purpose.
+
+    | main = ("*" & string)/nil/cons.
+    | string = $:alnum/''.
+    + *hi*there*nice*day*isnt*it
+    = cons(it, cons(isnt, cons(day, cons(nice, cons(there, cons(hi, nil))))))
