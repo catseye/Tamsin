@@ -657,3 +657,209 @@ This would also work, and is more similar to conventional programming
 languages; however, in my opinion, it is not as clear either, because in
 the rules which parse the sub-expressions, it is `expr` that is the focus
 of the logic, rather than the variables the results are being sent into.
+
+Static Checking
+---------------
+
+Note that the production named by a non-terminal must exist in the program,
+even if it is never evaluated.
+
+    | main = "k" | something_undefined.
+    + k
+    ? something_undefined
+
+Advanced Parsing
+----------------
+
+### eof ###
+
+If there is more input available than what we wrote the program to consume,
+the program still succeeds.
+
+    | main = "a" & "p".
+    + apparently
+    = p
+
+The built-in production `eof` may be used to match against the end of the
+input (colloquially called "EOF".)
+
+    | main = "a" & "p" & eof.
+    + ap
+    = EOF
+
+This is how you can make it error out if there is extra input remaining.
+
+    | main = "a" & "p" & eof.
+    + apt
+    ? expected EOF found 't'
+
+The end of the input is a virtual infinite stream of EOF's.  You can match
+against them until the cows come home.  The cows never come home.
+
+    | main = "a" & "p" & eof & eof & eof.
+    + ap
+    = EOF
+
+### any ###
+
+The built-in production `any` matches any token defined by the scanner
+except for EOF.  (Remember that for now "token defined by the scanner"
+means "character", but that that can be changed, as you'll see below.)
+
+    | main = any & any & any.
+    + (@)
+    = )
+
+    | main = any & any.
+    + a
+    ? expected any token, found EOF
+
+### Optional rules ###
+
+The rule `[FOO]` is a short form for `(FOO | return nil)`.
+
+    | main = ["0"].
+    + 0
+    = 0
+
+    | main = ["0"].
+    + 
+    = nil
+
+So we can rewrite the "zeroes" example to be simpler:
+
+    | main = zeroes.
+    | zeroes = ["0" & zeroes → E & return zero(E)].
+    + 0000
+    = zero(zero(zero(zero(nil))))
+
+### Iterated rules ###
+
+The rule `{FOO}` is what it is in EBNF, and/or a while loop.  Like `[]`,
+we don't strictly need it, because we could just write it as recursive
+BNF.  But it's handy.  Like while loops are handy.  It returns the result
+of the last successful rule applied, or `nil` if none were successful.
+
+    | main = {"0"}.
+    + 0 0 0 0
+    = 0
+
+    | main = {"0"}.
+    + 1 2 3 4
+    = nil
+
+Backtracking applies to `{}` too.
+
+    | zeroesone = {"0"} & "1".
+    | zeroestwo = {"0"} & "2".
+    | main = zeroesone | zeroestwo.
+    + 000002
+    = 2
+
+So we can rewrite the "zeroes" example to be even... I hesistate to use
+the word "simpler", but we can... write it differently.
+
+    | main = zeroes.
+    | zeroes = set Z = nil & {"0" && set Z = zero(Z)} & return Z.
+    + 0000
+    = zero(zero(zero(zero(nil))))
+
+### fail ###
+
+The built-in production `fail` always fails.  This lets you establish
+global flags, of a sort.  It takes a term, which it uses as the failure message.
+
+    | debug = return ok.
+    | main = (debug & return walla | "0").
+    + 0
+    = walla
+
+    | debug = fail notdebugging.
+    | main = (debug & return walla | "0").
+    + 0
+    = 0
+
+    | main = set E = 'Goodbye, world!' & fail E.
+    + hsihdsihdsih
+    ? Goodbye, world!
+
+### ! ###
+
+The `!` ("not") keyword is followed by a rule.  If the rule succeeds, the `!`
+expression fails.  If the rule fails, the `!` expression succeeds.  In
+*neither* case is input consumed — anything the rule matched, is backtracked.
+Thus `!` should almost always be followed by `&` and something which consumes
+input, such as `any`.
+
+    | main = !"k" & any.
+    + l
+    = l
+
+    | main = !"k" & any.
+    + k
+    ? expected anything except
+
+    | main = !("k" | "r") & any.
+    + l
+    = l
+
+    | main = !("k" | "r") & any.
+    + k
+    ? expected anything except
+
+    | main = !("k" | "r") & any.
+    + r
+    ? expected anything except
+
+This is particularly useful for parsing strings and comments and anything
+that contains arbitrary text terminated by a sentinel.
+
+    | main = "'" & T ← '' & {!"'" & any → S & T ← T + S} & "'" & return T.
+    + 'any bloody
+    +   gobbledegook *!^*(^@)(@* (*@#(*^*(^(!^
+    + you like.'
+    = any bloody
+    =   gobbledegook *!^*(^@)(@* (*@#(*^*(^(!^
+    = you like.
+
+### Dynamic Terminals ###
+
+As mentioned, the terminal `"foo"` matches a literal token `foo` in the buffer.
+But what if you want to match something dynamic, something you have in a
+variable?  You can do that with `«»`:
+
+    | main = set E = f & «E».
+    + f
+    = f
+
+    | main = set E = f & «E».
+    + b
+    ? expected 'f' found 'b'
+
+Note that you don't have to use the Latin-1 guillemets.  You can use the ASCII
+digraphs instead.
+
+    | main = set E = f & <<E>>.
+    + b
+    ? expected 'f' found 'b'
+
+Terms are flattened for use in `«»`.  So in fact, the `"foo"` syntax is just
+syntactic sugar for `«'foo'»`.
+
+    | main = «'f'».
+    + f
+    = f
+
+Oh, and since we were speaking of sentinels earlier...
+
+    | main = {sentineled → A & print A & {" "}} & return ok.
+    | sentineled =
+    |    "(" &
+    |    any → S &
+    |    T ← '' & {!«S» & any → A & T ← T + A} & «S» &
+    |    ")" &
+    |    T.
+    + (!do let's ))) put &c. in this string!)   (&and!this!one&)
+    = do let's ))) put &c. in this string
+    = and!this!one
+    = ok

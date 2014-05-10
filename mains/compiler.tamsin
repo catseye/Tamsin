@@ -122,6 +122,13 @@ compile_r(P,B,Nm, call(prodref('$', 'return'), list(T, nil))) =
     emitln(';') &
     emitln('ok = 1;').
 
+compile_r(P,B,Nm, call(prodref('$', 'fail'), list(T, nil))) =
+    compile_r(P,B,Nm, T) → TNm &
+    emit('result = ') &
+    emit(TNm) &
+    emitln(';') &
+    emitln('ok = 0;').
+
 compile_r(P,B,Nm, call(prodref('$', 'print'), list(T, nil))) =
     compile_r(P,B,Nm, T) → TNm &
     emit('result = ') &
@@ -130,6 +137,15 @@ compile_r(P,B,Nm, call(prodref('$', 'print'), list(T, nil))) =
     emitln('term_fput(result, stdout);') &
     emitln('fprintf(stdout, "\\n");') &
     emitln('ok = 1;').
+
+compile_r(P,B,Nm, call(prodref('$', 'eof'), nil)) =
+    emitln('tamsin_eof(scanner);').
+compile_r(P,B,Nm, call(prodref('$', 'any'), nil)) =
+    emitln('tamsin_any(scanner);').
+compile_r(P,B,Nm, call(prodref('$', 'alnum'), nil)) =
+    emitln('tamsin_alnum(scanner);').
+compile_r(P,B,Nm, call(prodref('$', 'upper'), nil)) =
+    emitln('tamsin_upper(scanner);').
 
 compile_r(P,B,Nm, call(prodref(M, N), A)) =
     emit('prod_main_') &
@@ -154,6 +170,27 @@ compile_r(P,B,Nm, or(L, R)) =
     indent &
     emit_restore_state(B) &
     compile_r(P,B,Nm, R) &
+    outdent &
+    emitln('}') &
+    outdent &
+    emitln('}').
+
+compile_r(P,B,Nm, not(R)) =
+    emitln('{') &
+    indent &
+    emit_decl_state(B) &
+    emit_save_state(B) &
+    compile_r(P,B,Nm, R) &
+    emit_restore_state(B) &
+    emitln('if (ok) {') &
+    indent &
+    emitln('ok = 0;') &
+    emitln('result = term_new_from_cstring("expected anything except");') &
+    outdent &
+    emitln('} else {') &
+    indent &
+    emitln('ok = 1;') &
+    emitln('result = term_new_from_cstring("nil");') &
     outdent &
     emitln('}') &
     outdent &
