@@ -235,18 +235,16 @@ class While(AST):
 
 
 class Call(AST):
-    def __init__(self, prodref, args, ibuf):
+    def __init__(self, prodref, args):
         self.prodref = prodref
         for a in args:
             assert isinstance(a, AST)
         self.args = args
-        self.ibuf = ibuf
 
     def __repr__(self):
-        return u"Call(%r, %r, %r)" % (
+        return u"Call(%r, %r)" % (
             self.prodref,
             self.args,
-            self.ibuf
         )
 
     def __str__(self):        
@@ -309,6 +307,18 @@ class Using(AST):
 
     def __str__(self):
         return "using(%s, %s)" % (self.rule, self.prodref)
+
+
+class On(AST):
+    def __init__(self, rule, texpr):
+        self.rule = rule
+        self.texpr = texpr
+
+    def __repr__(self):
+        return u"On(%r, %r)" % (self.rule, self.texpr)
+
+    def __str__(self):
+        return "on(%s, %s)" % (self.rule, self.texpr)
 
 
 class Fold(AST):

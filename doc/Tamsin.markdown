@@ -1331,9 +1331,91 @@ pattern.
 Advanced Scanning
 -----------------
 
-### Changing the scanner in use ###
+### Implicit Buffer ###
 
-There is an implicit scanner in effect at any given point in the program.
+Object-oriented languages sometimes have an "implicit self".  That means
+when you say just `foo`, it's (generally) assumed to refer to a method or
+field on the current object that is in context.
+
+Tamsin, clearly, has an _implicit buffer_.  This is the buffer on which
+scanning/parsing operations like terminals operate.  When you call another
+production from a production, that production you call gets the same
+implicit buffer you were working on.  And `main` gets its implicit buffer
+from some implementation-defined place (in the reference interpreter, it
+gets its from Python's idea of "standard input" to the program.)
+
+So, also clearly, there should be some way to alter the implicit buffer
+when you call another production.  And there is.
+
+The syntax for this is postfix `@`, because you're pointing the production
+"at" some other text...
+
+    | main = set T = 't(a,t(b,c))' & tree @ T.
+    | tree = "t" & "(" & tree → L & "," & tree → R & ")" & return fwee(L, R)
+    |      | "a" | "b" | "c".
+    + doesn't matter
+    = fwee(a, fwee(b, c))
+
+This is a good way to process atoms in Tamsin.
+
+    | main = print_each_char @ 'Hello'.
+    | print_each_char = any → C & print C & print_each_char | return 'ok'.
+    + doesn't matter
+    = H
+    = e
+    = l
+    = l
+    = o
+    = ok
+
+The term doesn't have to be an atom.  The term expression will be flattened.
+
+    | main = print_each_char @ f(b).
+    | print_each_char = any → C & print C & print_each_char | return 'ok'.
+    + doesn't matter
+    = f
+    = (
+    = b
+    = )
+    = ok
+
+This can be wrapped up to make the term an argument to a production call:
+
+    | main = print_each_char(fo+ob+ar).
+    | print_each_char(X) = print_each_char_r @ X.
+    | print_each_char_r = any → C & print C & print_each_char_r | return 'ok'.
+    + doesn't matter
+    = f
+    = o
+    = o
+    = b
+    = a
+    = r
+    = ok
+
+The rule being applied to the specified buffer doesn't have to be a
+non-terminal, either.  It can be any rule (but watch the precedence.)
+
+    | main = $:alnum @ 'Hi!'.
+    = H
+
+    | main = {$:alnum} @ 'Hi!'.
+    = i
+
+`@`'s nest.
+
+    | main = one @ 'I process this string until ! where I digress a bit' & ''.
+    | one = {"!" & two @ 'Here I digress' | any → C & $:emit(C)}.
+    | two = {any → C & $:emit(C)}.
+    = I process this string until Here I digress where I digress a bit
+
+### Implicit Scanner ###
+
+Actually, the implicit buffer is just one component of the _implicit scanner_
+that is in effect at any given point in a Tamsin program.  Not only may its
+buffer be changed, but its scanning rules, and thus the set of tokens it
+returns, may be changed as well.
+
 As you have seen, the default scanner returns single characters.
 
     | main = "a" & "b" & "c".
@@ -1726,6 +1808,32 @@ its own scanner.  It switches back to the production scanner when done.
     | subprogram = "stu" & "uuu".
     + abc    stu   uuu bac
     = bac
+
+### Combining `using` and `@` ###
+
+It is entirely possible to do so.
+
+    | main = {any → T using scanner & print T} & 'ok'.
+    | scanner = scan using $:utf8.
+    | scan = S ← '' & {$:alnum → C & S ← S + C} & {" " | "," | "."} & return S.
+    + This, this is my string.
+    = This
+    = this
+    = is
+    = my
+    = string
+    = ok
+
+    | main = {any → T using scanner & print T} @ 'This, this is my string.' &
+    |        'ok'.
+    | scanner = scan using $:utf8.
+    | scan = S ← '' & {$:alnum → C & S ← S + C} & {" " | "," | "."} & return S.
+    = This
+    = this
+    = is
+    = my
+    = string
+    = ok
 
 Implementation-Defined Matters
 ------------------------------

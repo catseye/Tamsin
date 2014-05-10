@@ -9,7 +9,7 @@
 
 from tamsin.ast import (
     Production, ProdBranch,
-    And, Or, Not, While, Call, Send, Set, Concat, Using, Prodref,
+    And, Or, Not, While, Call, Send, Set, Concat, Using, On, Prodref,
     TermNode, VariableNode
 )
 from tamsin.term import Atom, Constructor, Variable
@@ -346,7 +346,7 @@ class Compiler(object):
             self.emit("}")
         elif isinstance(ast, Using):
             prodref = ast.prodref
-            scanner_mod = prodref.module or 'main'
+            scanner_mod = prodref.module
             scanner_name = prodref.name
             if scanner_mod == '$':
                 if scanner_name == 'utf8':
@@ -359,6 +359,22 @@ class Compiler(object):
                 ))
             self.compile_r(ast.rule)
             self.emit("scanner_pop_engine(scanner);")
+        elif isinstance(ast, On):
+            self.emit("{")
+            self.indent()
+            name = self.compile_r(ast.texpr)
+            flat_name = self.new_name()
+            self.emit("struct term *%s = term_flatten(%s);" % (flat_name, name))
+            self.emit_decl_state()
+            self.emit_save_state()
+            self.emit("scanner->buffer = %s->atom;" % flat_name);
+            self.emit("scanner->size = %s->size;" % flat_name);
+            self.emit("scanner->position = 0;");
+            self.emit("scanner->reset_position = 0;");
+            self.compile_r(ast.rule);
+            self.emit_restore_state()
+            self.outdent()
+            self.emit("}")
         elif isinstance(ast, Concat):
             name_lhs = self.compile_r(ast.lhs);
             name_rhs = self.compile_r(ast.rhs);
@@ -388,16 +404,22 @@ class Compiler(object):
             self.emit("struct term *save_%s;" % local)
         self.emit("int position;")
         self.emit("int reset_position;")
+        self.emit("const char *buffer;")
+        self.emit("int buffer_size;")
 
     def emit_save_state(self):
         for local in self.current_branch.locals_:
             self.emit("save_%s = %s;" % (local, local))
         self.emit("position = scanner->position;")
         self.emit("reset_position = scanner->reset_position;")
+        self.emit("buffer = scanner->buffer;")
+        self.emit("buffer_size = scanner->size;")
 
     def emit_restore_state(self):
         self.emit("scanner->position = position;")
         self.emit("scanner->reset_position = reset_position;")
+        self.emit("scanner->buffer = buffer;")
+        self.emit("scanner->size = buffer_size;")
         for local in self.current_branch.locals_:
             self.emit("%s = save_%s;" % (local, local))
 

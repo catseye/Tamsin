@@ -6,7 +6,7 @@
 from tamsin.ast import (
     Program, Module, Production, ProdBranch,
     And, Or, Not, While, Call, Send, Set,
-    Variable, Using, Concat, Fold, Prodref,
+    Variable, Using, On, Concat, Fold, Prodref,
     TermNode, VariableNode, AtomNode, ConstructorNode
 )
 from tamsin.term import Term, Atom, Constructor
@@ -60,6 +60,8 @@ class Desugarer(EventProducer):
             return And(self.desugar(ast.lhs), self.desugar(ast.rhs))
         elif isinstance(ast, Using):
             return Using(self.desugar(ast.rule), ast.prodref)
+        elif isinstance(ast, On):
+            return On(self.desugar(ast.rule), self.desugar(ast.texpr))
         elif isinstance(ast, Call):
             return ast
         elif isinstance(ast, Send):
@@ -85,7 +87,7 @@ class Desugarer(EventProducer):
                 acc_ = Set(under1,
                            ConstructorNode(ast.constratom.text,
                                            [under2, under1]))
-            return_ = Call(Prodref('$', 'return'), [under1], None)
+            return_ = Call(Prodref('$', 'return'), [under1])
             return And(And(set_, While(And(send_, acc_))), return_)
         else:
             raise NotImplementedError(repr(ast))

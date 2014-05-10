@@ -89,30 +89,6 @@ productions in the `$` module, and they may be unaliased.
     | main = $.return(ok).
     = ok
 
-### Implicit Buffer ###
-
-Object-oriented languages sometimes have an "implicit self".  That means
-when you say just `foo`, it's assumed (at least, to begin with,) to be a
-method or field on the current object that is in context.
-
-Tamsin, clearly, has an _implicit buffer_.  This is the buffer on which
-scanning/parsing operations like terminals operate.  When you call another
-production from a production, that production you call gets the same
-implicit buffer you were working on.  And `main` gets standard input as
-its implicit buffer.
-
-So, also clearly, there should be some way to alter the implicit buffer
-when you call another production.  And there is.
-
-The syntax for this is postfix `@`, because you're pointing the production
-"at" some other text...
-
-    | main = set T = 't(a,t(b,c))' & tree @ T.
-    | tree = "t" & "(" & tree → L & "," & tree → R & ")" & return fwee(L, R)
-    |      | "a" | "b" | "c".
-    + doesn't matter
-    = fwee(a, fwee(b, c))
-
 ### Rule Formals ###
 
 Then we no longer pattern-match terms.  They're just strings.  So we... we

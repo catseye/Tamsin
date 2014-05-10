@@ -6,7 +6,7 @@
 from tamsin.ast import (
     Program, Module, Production, ProdBranch,
     And, Or, Not, While, Call, Send, Set,
-    Variable, Using, Concat, Prodref,
+    Variable, Using, On, Concat, Prodref,
     TermNode, VariableNode, AtomNode, ConstructorNode
 )
 from tamsin.term import Term, Constructor, Atom
@@ -65,8 +65,10 @@ class Analyzer(EventProducer):
             return And(self.analyze(ast.lhs), self.analyze(ast.rhs))
         elif isinstance(ast, Using):
             return Using(self.analyze(ast.rule), self.analyze(ast.prodref))
+        elif isinstance(ast, On):
+            return On(self.analyze(ast.rule), self.analyze(ast.texpr))
         elif isinstance(ast, Call):
-            return Call(self.analyze(ast.prodref), ast.args, ast.ibuf)
+            return Call(self.analyze(ast.prodref), ast.args)
         elif isinstance(ast, Send):
             assert isinstance(ast.variable, VariableNode), ast
             return Send(self.analyze(ast.rule), ast.variable)
@@ -101,6 +103,9 @@ class Analyzer(EventProducer):
             self.collect_locals(ast.rhs, locals_)
         elif isinstance(ast, Using):
             self.collect_locals(ast.rule, locals_)
+        elif isinstance(ast, On):
+            self.collect_locals(ast.rule, locals_)
+            self.collect_locals(ast.texpr, locals_)
         elif isinstance(ast, Call):
             pass
         elif isinstance(ast, Send):
@@ -142,6 +147,8 @@ class Analyzer(EventProducer):
         elif isinstance(ast, Using):
             self.analyze_prodrefs(ast.rule)
             self.analyze_prodrefs(ast.prodref)
+        elif isinstance(ast, On):
+            self.analyze_prodrefs(ast.rule)
         elif isinstance(ast, Call):
             self.analyze_prodrefs(ast.prodref)
         elif isinstance(ast, Send):

@@ -6,7 +6,7 @@
 import sys
 
 from tamsin.ast import (
-    Production, ProdBranch, And, Or, Not, While, Call, Send, Set, Using,
+    Production, ProdBranch, And, Or, Not, While, Call, Send, Set, Using, On,
     Prodref, Concat, TermNode
 )
 from tamsin.term import Term, EOF, Atom, Constructor
@@ -184,12 +184,6 @@ class Interpreter(EventProducer):
                     if bindings != False:
                         branch = b
                         break
-                        # if ibuf is not None:
-                        #     return self.interpret_on_buffer(
-                        #         prod, unicode(ibuf.expand(self.context)),
-                        #         bindings=bindings
-                        #     )
-                        # else:
                 # else:
                 #     self.event('call_newfangled_parsing_args', prod)
                 #     # start a new scope.  arg bindings will appear here.
@@ -246,7 +240,6 @@ class Interpreter(EventProducer):
             prodref = ast.prodref
             name = prodref.name
             args = ast.args
-            ibuf = ast.ibuf
             prod = self.program.find_production(prodref)
             if prod is None:
                 raise ValueError("internal error: unresolved: " + repr(prodref))
@@ -280,6 +273,17 @@ class Interpreter(EventProducer):
             self.event('leave_with', succeeded, result)
             self.scanner.pop_engine()
             return (succeeded, result)
+        elif isinstance(ast, On):
+            (success, result) = self.interpret(ast.texpr)
+            buffer = str(result.expand(self.context))
+            self.event('interpret_on_buffer', buffer)
+            saved_scanner_state = self.scanner.get_state()
+            self.scanner.buffer = buffer
+            self.scanner.position = 0
+            self.scanner.reset_position = 0
+            (success, result) = self.interpret(ast.rule)
+            self.scanner.install_state(saved_scanner_state)
+            return (success, result)
         elif isinstance(ast, Set):
             (success, variable) = self.interpret(ast.variable)
             (success, term) = self.interpret(ast.texpr)
@@ -327,13 +331,3 @@ class Interpreter(EventProducer):
             return (True, ast.to_term())
         else:
             raise NotImplementedError(repr(ast))
-
-    def interpret_on_buffer(self, ast, buffer, bindings=None):
-        self.event('interpret_on_buffer', buffer)
-        saved_scanner_state = self.scanner.get_state()
-        self.scanner.buffer = buffer
-        self.scanner.position = 0
-        self.scanner.reset_position = 0
-        result = self.interpret(ast, bindings=bindings)
-        self.scanner.install_state(saved_scanner_state)
-        return result

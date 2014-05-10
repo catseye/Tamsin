@@ -6,7 +6,7 @@
 from tamsin.ast import (
     AST, Module, Program, Production, ProdBranch,
     And, Or, Not, While, Call, Prodref,
-    Send, Set, Concat, Using, Fold,
+    Send, Set, Concat, Using, On, Fold,
     AtomNode, VariableNode, ConstructorNode,
 )
 from tamsin.term import (
@@ -131,6 +131,9 @@ class Parser(EventProducer):
         if self.consume('using'):
             prodref = self.prodref()
             lhs = Using(lhs, prodref)
+        elif self.consume('@'):
+            texpr = self.texpr()
+            lhs = On(lhs, texpr)
         return lhs
 
     def expr3(self):
@@ -159,7 +162,7 @@ class Parser(EventProducer):
             e = self.expr0()
             self.expect(']')
             return Or(e,
-                Call(Prodref('$', 'return'), [AtomNode('nil')], None)
+                Call(Prodref('$', 'return'), [AtomNode('nil')])
             )
         elif self.consume('{'):
             e = self.expr0()
@@ -167,11 +170,11 @@ class Parser(EventProducer):
             return While(e)
         elif self.peek()[0] == '"':
             s = self.consume_any()[1:-1]
-            return Call(Prodref('$', 'expect'), [AtomNode(s)], None)
+            return Call(Prodref('$', 'expect'), [AtomNode(s)])
         elif self.consume(u'«') or self.consume('<<'):
             t = self.texpr()
             if self.consume(u'»') or self.consume('>>'):
-                return Call(Prodref('$', 'expect'), [t], None)
+                return Call(Prodref('$', 'expect'), [t])
             else:
                 self.error("'>>'")
         elif self.consume('!'):
@@ -188,13 +191,13 @@ class Parser(EventProducer):
             if self.consume(u'←') or self.consume('<-'):
                 t = self.texpr()
             else:
-                return Call(Prodref('$', 'return'), [v], None)
+                return Call(Prodref('$', 'return'), [v])
             return Set(v, t)
         else:
             # implied return of term
             if self.peek()[0].isupper() or self.peek()[0] == "'":
                 t = self.texpr()
-                return Call(Prodref('$', 'return'), [t], None)
+                return Call(Prodref('$', 'return'), [t])
             prohibit_aliases = False
             if self.peek() == ':':
                 # bleah
@@ -217,10 +220,7 @@ class Parser(EventProducer):
                         while self.consume(','):
                             args.append(self.texpr())
                     self.expect(')')
-            ibuf = None
-            if self.consume('@'):
-                ibuf = self.texpr()
-            return Call(prodref, args, ibuf)
+            return Call(prodref, args)
 
     def prodref(self):
         if self.consume('$'):
