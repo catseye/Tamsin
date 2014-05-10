@@ -78,29 +78,35 @@ outdent = 'ok'.
 
 compile(program(Ms)) =
     prelude &
-    find_main_module_prods(Ms) → MMPs &
-    emit_prototypes(MMPs) &
-    emit_functions(program(Ms), MMPs) &
+    tamsin_parser:find_module('main', Ms) → MainMod &
+    get_prods(MainMod) → MMPs &
+    compile_all(program(Ms), MMPs) &
     postlude &
     ''.
 
+get_prods(module(N, Ps)) = Ps.
+
 emit_prototypes(nil) = 'ok'.
-emit_prototypes(list(production(N, F, E), MMPs)) =
+emit_prototypes(list(production(N, Bs), MMPs)) =
+    emit('void ') &
     emit(N) &
+    emit('();') &
     emit_prototypes(MMPs).
 
-emit_functions(P, nil) = 'ok'.
-emit_functions(P, list(production(N, F, E), MMPs)) =
+compile_all(P, nil) = 'ok'.
+compile_all(P, list(H,T)) = compile_r(P, H) & compile_all(P, T).
+
+compile_r(P, production(N, Bs)) =
     emit('void ') &
     emit(N) &
     emit('() {') &
     indent &
-    compile_r(P, E) &
+    compile_all(P, Bs) &
     outdent &
-    emit('}') &    
-    emit_functions(P, MMPs).
+    emit('}').
 
-compile_r(P, production(N, F, E)) =
+compile_r(P, prodbranch(Fs, Ls, E)) =
+    emit('/* formals and locals... */') &
     compile_r(P, E).
 
 compile_r(P, call(prodref(M, N), A)) =
@@ -160,15 +166,6 @@ compile_r(P, while(R)) =
     emit('ok = 1;') &
     outdent &
     emit('}').
-
-find_main_module_prods(list(module(main, Ps),T)) = Ps.
-find_main_module_prods(list(H,T)) = find_main_module_prods(T).
-find_main_module_prods(nil) = fail 'no main module'.
-
-find_prod(N1, list(production(N2, F, E),T)) =
-    $:equal(N1, N2) & return production(N2, F, E) | find_prod(N1, T).
-find_prod(N, list(H,T)) = find_prod(N, T).
-find_prod(N, nil) = fail 'no ' + N + ' production'.
 
 emit_decl_state = 'ok'.
 emit_save_state = 'ok'.

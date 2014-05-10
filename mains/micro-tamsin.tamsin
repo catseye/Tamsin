@@ -9,30 +9,21 @@ main = tamsin_parser:parse → AST & tamsin_scanner:skippable & "/" &
        interpret(AST, AST).
 
 interpret(P, program(L)) =
-    find_main_module_prods(L) → MMPs &
-    find_prod(main, MMPs) → Main &
+    tamsin_parser:find_production_global('main', 'main', P) → Main &
     interpret(P, Main).
 
 interpret(P, production(N, list(prodbranch(Fs, Ls, E), nil))) = interpret(P, E).
+
 interpret(P, call(prodref('$', 'return'), list(atom(X), nil))) = return X.
 interpret(P, call(prodref('$', 'expect'), list(atom(X), nil))) = «X».
 interpret(P, call(prodref('$', 'print'), list(atom(X), nil))) = print X.
-
-interpret(program(L), call(prodref(M, N), A)) =
-    find_main_module_prods(L) → MMP &
-    find_prod(N, MMP) → Prod &
-    interpret(program(L), Prod).
+interpret(P, call(prodref('', N), A)) =
+    interpret(P, call(prodref('main', N), A)).
+interpret(P, call(prodref(M, N), A)) =
+    tamsin_parser:find_production_global(M, N, P) → Prod &
+    interpret(P, Prod).
 
 interpret(P, or(L, R)) = interpret(P, L) | interpret(P, R).
 interpret(P, and(L, R)) = interpret(P, L) & interpret(P, R).
 interpret(P, not(X)) = !interpret(P, X).
 interpret(P, while(X)) = {interpret(P, X)}.
-
-find_main_module_prods(list(module(main, Ps), T)) = Ps.
-find_main_module_prods(list(H, T)) = find_main_module_prods(T).
-find_main_module_prods(nil) = fail 'no main module'.
-
-find_prod(N1, list(production(N2, Bs), T)) =
-    $:equal(N1, N2) & return production(N2, Bs) | find_prod(N1, T).
-find_prod(N, list(H, T)) = find_prod(N, T).
-find_prod(N, nil) = fail 'no ' + N + ' production'.

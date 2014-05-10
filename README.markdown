@@ -140,8 +140,11 @@ Design Goals
 *   Allow writing these things very compactly.
 *   Allow writing anything using only recursive-descent parsing techniques
     (insofar as this is possible.)
+*   Allow writing parsers that look very similar to the grammar of the
+    language being parsed, so that the structure of the language can be
+    clearly seen.
 *   Provide means to solve practical problems.
-*   Keep the language simple (grammar should fit on a page.)
+*   Keep the language simple — the grammar should fit on a page, ideally.
 *   Recognize that the preceding two goals are in tension.
 *   Have a relatively simple reference implementation (currently less than
     3500 lines of code, including everything — debugging and the C runtime

@@ -108,4 +108,31 @@ tamsin_parser {
   variable = $:upper → V & return variable(V).
   sq_string = $:startswith('\'').
   dq_string = $:startswith('"').
+  
+  ## utility functions on the AST ##
+
+  # Given the name of a module and a program AST, return the named
+  # module AST found within that program, or fail.
+
+  find_module(N, program(Ms)) = find_module(N, Ms).
+  find_module(N1, list(module(N2, Ps), T)) =
+      $:equal(N1, N2) & return module(N2, Ps) | find_module(N1, T).
+  find_module(N, list(H, T)) = find_module(N, T).
+  find_module(N, nil) = fail 'no ' + N + ' module'.
+
+  # Given the name of a production and a module AST, return the named
+  # production AST found within that module, or fail.
+
+  find_production(N, module(MN, Ps)) = find_production(N, Ps).
+  find_production(N1, list(production(N2, Bs), T)) =
+      $:equal(N1, N2) & return production(N2, Bs) | find_production(N1, T).
+  find_production(N, list(H, T)) = find_production(N, T).
+  find_production(N, nil) = fail 'no ' + N + ' production'.
+
+  # Given the name of a module and the name of a production,
+  # return the production AST for module:production in the program, or fail.
+
+  find_production_global(MN, PN, P) =
+      find_module(MN, P) → M & find_production(PN, M).
+
 }
