@@ -14,6 +14,7 @@ from tamsin.event import EventProducer
 from tamsin.scanner import (
     ByteScannerEngine, UTF8ScannerEngine, ProductionScannerEngine
 )
+import tamsin.sysmod
 
 
 class Context(EventProducer):
@@ -82,97 +83,6 @@ class Interpreter(EventProducer):
         self.event('interpret_ast', ast)
         if isinstance(ast, Production):
             name = ast.name
-            if name == '$.expect':
-                upcoming_token = self.scanner.peek()
-                term = args[0]
-                token = str(term)
-                if self.scanner.consume(token):
-                    return (True, term)
-                else:
-                    self.event('fail_term', ast.name, self.scanner)
-                    s = ("expected '%s' found '%s' (at '%s')" %
-                         (token, upcoming_token,
-                          self.scanner.report_buffer(self.scanner.position, 20)))
-                    return (False, Atom(s))
-            elif name == '$.return':
-                return (True, args[0])
-            elif name == '$.eof':
-                if self.scanner.peek() is EOF:
-                    return (True, EOF)
-                else:
-                    return (False, Atom("expected EOF found '%s'" %
-                            self.scanner.peek()))
-            elif name == '$.any':
-                if self.scanner.peek() is EOF:
-                    return (False, Atom("expected any token, found EOF"))
-                else:
-                    return (True, Atom(self.scanner.consume_any()))
-            elif name == '$.alnum':
-                if (self.scanner.peek() is not EOF and
-                    self.scanner.peek()[0].isalnum()):
-                    return (True, Atom(self.scanner.consume_any()))
-                else:
-                    return (False, Atom("expected alphanumeric, found '%s'" %
-                                        self.scanner.peek()))
-            elif name == '$.upper':
-                if (self.scanner.peek() is not EOF and
-                    self.scanner.peek()[0].isupper()):
-                    return (True, Atom(self.scanner.consume_any()))
-                else:
-                    return (False, Atom("expected uppercase alphabetic, found '%s'" %
-                                        self.scanner.peek()))
-            elif name == '$.startswith':
-                if (self.scanner.peek() is not EOF and
-                    self.scanner.peek()[0].startswith((str(args[0]),))):
-                    return (True, Atom(self.scanner.consume_any()))
-                else:
-                    return (False, Atom("expected '%s, found '%s'" %
-                                        (args[0], self.scanner.peek())))
-            elif name == '$.equal':
-                if args[0].match(args[1]) != False:
-                    return (True, args[0])
-                else:
-                    return (False, Atom("term '%s' does not equal '%s'" %
-                                        (args[0], args[1])))
-            elif name == '$.unquote':
-                x = str(args[0])
-                if (x.startswith((str(args[1]),)) and
-                    x.endswith((str(args[2]),))):
-                    return (True, Atom(x[1:-1]))
-                else:
-                    return (False, Atom("term '%s' is not quoted with '%s' and '%s'" %
-                                        (args[0], args[1], args[2])))
-            elif name == '$.mkterm':
-                t = args[0]
-                l = args[1]
-                contents = []
-                while isinstance(l, Constructor) and l.tag == 'list':
-                    contents.append(l.contents[0])
-                    l = l.contents[1]
-                if contents:
-                    return (True, Constructor(t.text, contents))
-                else:
-                    return (True, t)
-            elif name == '$.reverse':
-                return (True, args[0].reversed(args[1]))
-            elif name == '$.print':
-                val = args[0]
-                sys.stdout.write(str(val))
-                sys.stdout.write("\n")
-                return (True, val)
-            elif name == '$.emit':
-                val = args[0]
-                sys.stdout.write(str(val))
-                return (True, val)
-            elif name == '$.repr':
-                val = args[0]
-                val = Atom(val.repr())
-                return (True, val)
-            elif name == '$.fail':
-                return (False, args[0])
-            elif name.startswith('$.'):
-                raise ValueError("No '%s' production defined" % name)
-
             bindings = False
             branch = None
             for b in ast.branches:
@@ -239,15 +149,16 @@ class Interpreter(EventProducer):
         elif isinstance(ast, Call):
             prodref = ast.prodref
             name = prodref.name
-            args = ast.args
+            args = [self.interpret(x)[1] for x in ast.args]
+            args = [x.expand(self.context) for x in args]
+            for a in args:
+                assert isinstance(a, Term)
+            if prodref.module == '$':
+                return tamsin.sysmod.call(name, self, args)
             prod = self.program.find_production(prodref)
             if prod is None:
                 raise ValueError("internal error: unresolved: " + repr(prodref))
             self.event('call_candidates', prod)
-            args = [self.interpret(x)[1] for x in args]
-            args = [x.expand(self.context) for x in args]
-            for a in args:
-                assert isinstance(a, Term)
             return self.interpret(prod, args=args)
         elif isinstance(ast, Send):
             (success, variable) = self.interpret(ast.variable)

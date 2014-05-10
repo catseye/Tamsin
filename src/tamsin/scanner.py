@@ -318,7 +318,7 @@ class ProductionScannerEngine(ScannerEngine):
 
         if success:
             self.interpreter.event('production_scan', self.production, token)
-            assert isinstance(token, Term)
+            assert isinstance(token, Term), repr(token)
             if token is EOF:
                 return token
             return str(token)

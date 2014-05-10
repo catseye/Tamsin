@@ -13,6 +13,8 @@ from tamsin.ast import (
     TermNode, VariableNode
 )
 from tamsin.term import Atom, Constructor, Variable
+import tamsin.sysmod
+
 
 PRELUDE = r'''
 /*
@@ -230,23 +232,23 @@ class Compiler(object):
             args = ast.args
 
             if prodmod == '$':
+                argnames = []
+                arity = tamsin.sysmod.arity(name)
+                for i in xrange(0, arity):
+                    argnames.insert(0, self.compile_r(args[i]))
+
                 if name == 'expect':
-                    self.emit_term(args[0].to_term(), "temp")
-                    self.emit('tamsin_expect(scanner, temp);')
+                    self.emit('tamsin_expect(scanner, %s);' % argnames[0])
                 elif name == 'return':
-                    # TODO: make 'em all like this!
-                    name = self.compile_r(args[0])
-                    self.emit("result = %s;" % name)
+                    self.emit("result = %s;" % argnames[0])
                     self.emit("ok = 1;")
                 elif name == 'print':
-                    self.emit_term(args[0].to_term(), "temp")
-                    self.emit("result = temp;")
+                    self.emit("result = %s;" % argnames[0])
                     self.emit("term_fput(result, stdout);")
                     self.emit(r'fwrite("\n", 1, 1, stdout);')
                     self.emit("ok = 1;")
                 elif name == 'emit':
-                    self.emit_term(args[0].to_term(), "temp")
-                    self.emit("result = temp;")
+                    self.emit("result = %s;" % argnames[0])
                     self.emit("term_fput(result, stdout);")
                     self.emit("ok = 1;")
                 elif name == 'eof':
@@ -258,33 +260,30 @@ class Compiler(object):
                 elif name == 'upper':
                     self.emit('tamsin_upper(scanner);')
                 elif name == 'startswith':
-                    self.emit_term(args[0].to_term(), "temp")
-                    self.emit('tamsin_startswith(scanner, term_flatten(temp)->atom);')
+                    self.emit('tamsin_startswith(scanner, '
+                              'term_flatten(%s)->atom);' % argnames[0])
                 elif name == 'unquote':
-                    self.emit_term(args[0].to_term(), "temp")
-                    self.emit_term(args[1].to_term(), "lquote")
-                    self.emit_term(args[2].to_term(), "rquote")
-                    self.emit('result = tamsin_unquote(temp, lquote, rquote);')
+                    self.emit('result = tamsin_unquote(%s, %s, %s);' %
+                        (argnames[2], argnames[1], argnames[0])
+                    )
                 elif name == 'equal':
-                    self.emit_term(args[0].to_term(), "templ")
-                    self.emit_term(args[1].to_term(), "tempr")
-                    self.emit('result = tamsin_equal(templ, tempr);')
+                    self.emit('result = tamsin_equal(%s, %s);' %
+                        (argnames[1], argnames[0])
+                    )
                 elif name == 'repr':
-                    self.emit_term(args[0].to_term(), "temp")
-                    self.emit('result = term_repr(temp);')
+                    self.emit('result = term_repr(%s);' % argnames[0])
                     self.emit('ok = 1;')
                 elif name == 'reverse':
-                    self.emit_term(args[0].to_term(), "templist")
-                    self.emit_term(args[1].to_term(), "tempsentinel")
-                    self.emit('result = tamsin_reverse(templist, tempsentinel);')
+                    self.emit('result = tamsin_reverse(%s, %s);' %
+                        (argnames[1], argnames[0])
+                    )
                 elif name == 'mkterm':
-                    self.emit_term(args[0].to_term(), "temp_atom")
-                    self.emit_term(args[1].to_term(), "temp_list")
-                    self.emit('result = tamsin_mkterm(temp_atom, temp_list);')
+                    self.emit('result = tamsin_mkterm(%s, %s);' %
+                        (argnames[1], argnames[0])
+                    )
                     self.emit('ok = 1;')
                 elif name == 'fail':
-                    name = self.compile_r(args[0])
-                    self.emit("result = %s;" % name)
+                    self.emit("result = %s;" % argnames[0])
                     self.emit('ok = 0;')
                 else:
                     raise NotImplementedError(name)

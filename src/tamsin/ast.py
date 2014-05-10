@@ -38,31 +38,15 @@ class Program(AST):
         module_name = prodref.module
         prod_name = prodref.name
         assert module_name != ''
-        if module_name == '$':
-            formals = {
-                'emit': [VariableNode('X')],
-                'equal': [VariableNode('L'), VariableNode('R')],
-                'expect': [VariableNode('X')],
-                'fail': [VariableNode('X')],
-                'mkterm': [VariableNode('T'), VariableNode('L')],
-                'print': [VariableNode('X')],
-                'repr': [VariableNode('X')],
-                'return': [VariableNode('X')],
-                'reverse': [VariableNode('X'), VariableNode('E')],
-                'startswith': [VariableNode('X')],
-                'unquote': [VariableNode('X'), VariableNode('L'), VariableNode('R')],
-            }.get(prod_name, [])
-            return Production('$.' + prod_name, [ProdBranch(formals, [], None)])
-        else:
-            module = self.find_module(module_name)
-            if not module:
-                raise KeyError("no '%s' module defined" % module_name)
-            production = module.find_production(prod_name)
-            if not production:
-                raise KeyError("no '%s:%s' production defined" %
-                    (module_name, prod_name)
-                )
-            return production
+        module = self.find_module(module_name)
+        if not module:
+            raise KeyError("no '%s' module defined" % module_name)
+        production = module.find_production(prod_name)
+        if not production:
+            raise KeyError("no '%s:%s' production defined" %
+                (module_name, prod_name)
+            )
+        return production
 
     def incorporate(self, other):
         """Add all Modules from other to self.  Changes self.
