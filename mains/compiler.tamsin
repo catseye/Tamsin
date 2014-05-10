@@ -116,13 +116,17 @@ compile_r(P,B,Nm, call(prodref('$', 'expect'), list(T, nil))) =
     emitln(');').
 
 compile_r(P,B,Nm, call(prodref('$', 'return'), list(T, nil))) =
-    emit_term(T, 'temp') &
-    emitln('result = temp;') &
+    compile_r(P,B,Nm, T) → TNm &
+    emit('result = ') &
+    emit(TNm) &
+    emitln(';') &
     emitln('ok = 1;').
 
 compile_r(P,B,Nm, call(prodref('$', 'print'), list(T, nil))) =
-    emit_term(T, 'temp') &
-    emitln('result = temp;') &
+    compile_r(P,B,Nm, T) → TNm &
+    emit('result = ') &
+    emit(TNm) &
+    emitln(';') &
     emitln('term_fput(result, stdout);') &
     emitln('fprintf(stdout, "\\n");') &
     emitln('ok = 1;').
@@ -161,8 +165,10 @@ compile_r(P,B,Nm, send(R, variable(VN))) =
     emitln(' = result;').
 
 compile_r(P,B,Nm, set(variable(VN), T)) =
-    emit_term(T, 'temp') &
-    emitln('result = temp;') &
+    compile_r(P,B,Nm, T) → Nm &
+    emit('result = ') &
+    emit(Nm) &
+    emitln(';') &
     emit(VN) &
     emitln(' = result;') &
     emitln('ok = 1;').
@@ -171,7 +177,7 @@ compile_r(P,B,Nm, while(R)) =
     emitln('{') &
     indent &
     emit_decl_state(B) &
-    emit_term(atom(nil), 'successful_result') &
+    compile_r(P,B,'successful_result', atom(nil)) &
     emitln('ok = 1;') &
     emitln('while (ok) {') &
     indent &
@@ -179,29 +185,69 @@ compile_r(P,B,Nm, while(R)) =
     compile_r(P,B,Nm, R) &
     emitln('if (ok) {') &
     indent &
-    emitln('successful_result = result;') &
+    emitln('successful_resultx = result;') &
     outdent &
     emitln('}') &
     outdent &
     emitln('}') &     # endwhile
     emit_restore_state(B) &
-    emitln('result = successful_result;') &
+    emitln('result = successful_resultx;') &
     emitln('ok = 1;') &
     outdent &
     emitln('}').
 
 compile_r(P,B,Nm, concat(L, R)) =
-    # TODO make this more general
     compile_r(P,B,Nm, L) → NmL &
-    compile_r(P,B,Nm, R) → NmR &
-    emit('struct term *tempc = term_concat(term_flatten(') &
+    compile_r(P,B,NmL, R) → NmR &
+    Nm ← NmR + 'x' &
+    emit('struct term *') &
+    emit(Nm) &
+    emit(' = term_concat(term_flatten(') &
     emit(NmL) &
     emit('), term_flatten(') &
     emit(NmR) &
-    emitln('));').
+    emitln('));') &
+    Nm.
 
 compile_r(P,B,Nm, atom(T)) =
-    emit_term(atom(T), Nm).
+    emit('struct term *') &
+    Nm ← Nm + 'x' &
+    emit(Nm) &
+    emit(' = term_new_from_cstring("') &
+    emit(T) &   # TODO -- escaped
+    emitln('");') &
+    Nm.
+
+# TODO: this is only one way to compile a variable; there are others
+compile_r(P,B,Nm, variable(VN)) =
+    emit('struct term *') &
+    Nm ← Nm + 'x' &
+    emit(Nm) &
+    emit(' = ') &
+    emit(VN) &
+    emitln(';') &
+    Nm.
+
+compile_r(P,B,Nm, constructor(T,Ts)) =
+    emit('struct term *') &
+    Nm ← Nm + 'x' &
+    emit(Nm) &
+    emit(' = term_new_from_cstring("') &
+    emit(T) &   # TODO -- escaped
+    emitln('");') &
+    list:reverse(Ts, nil) → Ts &
+    emit_subterms(P,B,Nm, Nm, Ts) &
+    Nm.
+
+emit_subterms(P,B,Nm, ON, nil) = Nm.
+emit_subterms(P,B,Nm, ON, list(H,T)) =
+    compile_r(P,B,Nm, H) → Nm &
+    emit('term_add_subterm(') &
+    emit(ON) &
+    emit(', ') &
+    emit(Nm) &
+    emitln(');') &
+    emit_subterms(P,B,Nm, ON, T).
 
 ############### misc helpers ##############
 
@@ -262,42 +308,3 @@ emit_restore_state_locals(list(H,T)) =
     emit(H) &
     emitln(';') &
     emit_restore_state_locals(T).
-
-############### term emitting ##############
-
-emit_term(variable(VN), N) =
-    emit('struct term *') &
-    emit(N) &
-    emit(' = ') &
-    emit(VN) &
-    emitln(';') &
-    return N.
-
-emit_term(atom(T), N) =
-    emit('struct term *') &
-    emit(N) &
-    emit(' = term_new_from_cstring("') &
-    emit(T) &   # TODO -- escaped
-    emitln('");') &
-    return N.
-
-emit_term(constructor(T,Ts), N) =
-    emit('struct term *') &
-    emit(N) &
-    emit(' = term_new_from_cstring("') &
-    emit(T) &   # TODO -- escaped
-    emitln('");') &
-    list:reverse(Ts, nil) → Ts &
-    emit_subterms(N,'x',Ts).
-
-emit_subterms(N,Count,nil) = 'ok'.
-emit_subterms(N,Count,list(H,T)) =
-    SubN ← N + Count &
-    Count ← Count + 'x' &
-    emit_term(H, SubN) &
-    emit('term_add_subterm(') &
-    emit(N) &
-    emit(', ') &
-    emit(SubN) &
-    emitln(');') &
-    emit_subterms(N,Count,T).

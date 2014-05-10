@@ -1,0 +1,3 @@
+main = zeroes.
+zeroes = ("0" & zeroes → E & return E + 'Z') | return ''.
+
