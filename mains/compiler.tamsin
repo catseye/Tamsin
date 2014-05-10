@@ -11,6 +11,8 @@
 # REQUIRES lib/tamsin_parser.tamsin
 
 main = tamsin_parser:parse → AST & tamsin_scanner:skippable & eof &
+       tamsin_analyzer:desugar(AST) → AST &
+       tamsin_analyzer:analyze(nil, AST) → AST &
        compile(AST).
 
 prelude = $:emit('
@@ -80,6 +82,7 @@ compile(program(Ms)) =
     prelude &
     tamsin_parser:find_module('main', Ms) → MainMod &
     get_prods(MainMod) → MMPs &
+    emit_prototypes(MMPs) &
     compile_all(program(Ms), nil, MMPs) &
     postlude &
     ''.
@@ -92,6 +95,13 @@ emit_prototypes(list(production(N, Bs), MMPs)) =
     emit(N) &
     emitln('();') &
     emit_prototypes(MMPs).
+
+emit_locals(nil) = 'ok'.
+emit_locals(list(H,T)) =
+    emit('struct term *') &
+    emit(H) &
+    emitln(';') &
+    emit_locals(T).
 
 compile_all(P, B, nil) = 'ok'.
 compile_all(P, B, list(H,T)) = compile_r(P, B, H) & compile_all(P, B, T).
@@ -106,7 +116,7 @@ compile_r(P, B, production(N, Bs)) =
     emitln('}').
 
 compile_r(P, B, prodbranch(Fs, Ls, E)) =
-    emitln('/* formals and locals go here... */') &
+    emit_locals(Ls) &
     compile_r(P, prodbranch(Fs, Ls, E), E).
 
 compile_r(P, B, call(prodref('$', 'expect'), list(T, nil))) =
@@ -152,16 +162,19 @@ compile_r(P, B, or(L, R)) =
     emitln('}') &
     outdent &
     emitln('}').
-compile_r(P, B, send(R, V)) =
+
+compile_r(P, B, send(R, variable(VN))) =
     compile_r(P, B, R) &
-    emit(V) &
+    emit(VN) &
     emitln(' = result;').
-compile_r(P, B, set(V, T)) =
+
+compile_r(P, B, set(variable(VN), T)) =
     emit_term(T, 'temp') &
     emitln('result = temp;') &
-    emit(V) &
+    emit(VN) &
     emitln(' = result;') &
     emitln('ok = 1;').
+
 compile_r(P, B, while(R)) =
     emitln('{') &
     indent &
