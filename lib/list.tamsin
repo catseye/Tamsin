@@ -13,4 +13,8 @@ list {
   union(list(H,T), L2) =
     add_elem(H, L2) → L2 &
     union(T, L2).
+
+  append(nil, L) = L.
+  append(list(H, T), L) =
+    append(T, L) → T & return list(H, T).
 }

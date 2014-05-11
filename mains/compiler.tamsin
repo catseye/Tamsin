@@ -120,7 +120,6 @@ compile_branches(P,B,Mod,FmlNms, list(H,T)) =
     compile_branch(P,B,Mod,FmlNms, H) & compile_branches(P,B,Mod,FmlNms, T).
 
 compile_branch(P,B,Mod,FmlNms, prodbranch(Fs, Ls, E)) =
-
     emitln('{') &
     indent &
     emit_formal_match_patterns(FmlNms, Fs, nil) → PatNms &
@@ -128,51 +127,14 @@ compile_branch(P,B,Mod,FmlNms, prodbranch(Fs, Ls, E)) =
     emit_pattern_match_expression(PatNms, FmlNms) &
     emitln('    1) {') &
     indent &
-    emit_matched_variables(Fs, PatNms) &
-    emit_locals(Ls) &
+    emit_matched_variables(Fs, PatNms, nil) → VarNms &
+    emit_locals(Ls, VarNms) &
     compile_r(P, prodbranch(Fs, Ls, E), Mod, E) &
-
     emit('return;') &
     outdent &
     emitln('}') &
     outdent() &
     emitln('}').
-
-emit_formal_match_patterns(nil, nil, PatNms) = list:reverse(PatNms, nil).
-emit_formal_match_patterns(list(Nm, Nms), list(F, Fs), PatNms) =
-    emit_pattern(F) → PatNm &
-    PatNms ← list(PatNm, PatNms) &
-    emit_formal_match_patterns(Nms, Fs, PatNms).
-
-emit_pattern_match_expression(nil, nil) = 'ok'.
-emit_pattern_match_expression(list(PatNm, PatNms), list(FmlNm, FmlNms)) =
-    emit('    term_match(') &
-    emit(PatNm) &
-    emit(', ') &
-    emit(FmlNm) &
-    emitln(') &&') &
-    emit_pattern_match_expression(PatNms, FmlNms).
-
-# declare and get variables which are found in patterns for this branch
-emit_matched_variables(nil, nil) = 'ok'.
-emit_matched_variables(list(F, Fs), list(PatNm, PatNms)) =
-    collect_variables(F, nil) → Vars &
-    list:reverse(Vars, nil) → Vars &
-    emit_assign_matched_variables(PatNm, Vars) &
-    emit_matched_variables(Fs, PatNms).
-
-emit_assign_matched_variables(PatNm, nil) = 'ok'.
-emit_assign_matched_variables(PatNm, list(variable(VN), T)) =
-    emit('struct term *') &
-    emit(VN) &
-    emit(' = term_find_variable(') &
-    emit(PatNm) &
-    emit(', "') &
-    emit(VN) &
-    emitln('");') &
-    emit_assign_matched_variables(PatNm, T).
-
-# .... general compiler continues ....
 
 compile_r(P,B,Mod, call(prodref('$', 'expect'), list(T, nil))) =
     compile_r(P,B,Mod, T) → TNm &
@@ -532,16 +494,16 @@ emit_pattern_subterms(ON, list(H,T)) =
 
 ########### finding variables in patterns ###########
 
-collect_variables_all(nil, L) = L.
-collect_variables_all(list(H, T), L) =
-    collect_variables(H, L) → L &
-    collect_variables_all(T, L).
+collect_variable_names_all(nil, L) = L.
+collect_variable_names_all(list(H, T), L) =
+    collect_variable_names(H, L) → L &
+    collect_variable_names_all(T, L).
 
-collect_variables(atom(T), L) = L.
-collect_variables(constructor(T, Ts), L) =
-    collect_variables_all(Ts, L).
-collect_variables(variable(VN), L) =
-    return list(variable(VN), L).
+collect_variable_names(atom(T), L) = L.
+collect_variable_names(constructor(T, Ts), L) =
+    collect_variable_names_all(Ts, L).
+collect_variable_names(variable(VN), L) =
+    return list(VN, L).
 
 ############### misc helpers ##############
 
@@ -576,12 +538,48 @@ emit_formals(list(H,T)) =
     emit(', ') &
     emit_formals(T).
 
-emit_locals(nil) = 'ok'.
-emit_locals(list(H,T)) =
+emit_formal_match_patterns(nil, nil, PatNms) = list:reverse(PatNms, nil).
+emit_formal_match_patterns(list(Nm, Nms), list(F, Fs), PatNms) =
+    emit_pattern(F) → PatNm &
+    PatNms ← list(PatNm, PatNms) &
+    emit_formal_match_patterns(Nms, Fs, PatNms).
+
+emit_pattern_match_expression(nil, nil) = 'ok'.
+emit_pattern_match_expression(list(PatNm, PatNms), list(FmlNm, FmlNms)) =
+    emit('    term_match(') &
+    emit(PatNm) &
+    emit(', ') &
+    emit(FmlNm) &
+    emitln(') &&') &
+    emit_pattern_match_expression(PatNms, FmlNms).
+
+# declare and get variables which are found in patterns for this branch
+emit_matched_variables(nil, nil, Acc) = Acc.
+emit_matched_variables(list(F, Fs), list(PatNm, PatNms), Acc) =
+    collect_variable_names(F, nil) → VarNms &
+    list:reverse(VarNms, nil) → VarNms &
+    emit_assign_matched_variables(PatNm, VarNms) &
+    list:append(Acc, VarNms) → Acc &
+    emit_matched_variables(Fs, PatNms, Acc).
+
+emit_assign_matched_variables(PatNm, nil) = 'ok'.
+emit_assign_matched_variables(PatNm, list(VN, T)) =
     emit('struct term *') &
-    emit(H) &
-    emitln(';') &
-    emit_locals(T).
+    emit(VN) &
+    emit(' = term_find_variable(') &
+    emit(PatNm) &
+    emit(', "') &
+    emit(VN) &
+    emitln('");') &
+    emit_assign_matched_variables(PatNm, T).
+
+emit_locals(nil, Dont) = 'ok'.
+emit_locals(list(H,T), Dont) =
+    (list:member(H, Dont) |
+      emit('struct term *') &
+      emit(H) &
+      emitln(';')) &
+    emit_locals(T, Dont).
 
 ############### escaped #############
 
