@@ -1,14 +1,16 @@
-# Compiler for a subset of Tamsin, written in Tamsin.
+# Compiler for Tamsin, to C, written in Tamsin.
 
 # Copyright (c)2014 Chris Pressey, Cat's Eye Technologies.
 # Distributed under a BSD-style license; see LICENSE.
 
-# NOTE, VERY INCOMPLETE: it could use:
-#   database -- for indent/outdent (minor)
-#   $:format or similar, for emitting
+# For even greater justice, this could use:
+#   module-level variable or another parameter(!) -- for indent/outdent (minor)
+#   a format function for emit_format('%s = save_%s;', list(H, list(H, nil)))
 
+# REQUIRES lib/list.tamsin
 # REQUIRES lib/tamsin_scanner.tamsin
 # REQUIRES lib/tamsin_parser.tamsin
+# REQUIRES lib/tamsin_analyzer.tamsin
 
 main = tamsin_parser:parse → AST & tamsin_scanner:skippable & eof &
        tamsin_analyzer:desugar(AST) → AST &

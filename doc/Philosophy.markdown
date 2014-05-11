@@ -55,7 +55,7 @@ Tamsin is one, because:
         reverse(nil, A) = A.
 
 *   It's Turing-complete.
-*   It can be bootrapped.
+*   It can be, and in fact has been, bootstrapped.
 
 Tamsin isn't one, because:
 

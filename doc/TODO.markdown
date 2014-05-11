@@ -1,31 +1,25 @@
 TODO
 ----
 
-*   actual bootstrap
 *   EOF is not a value.  $:eof is just a pass/fail test.  prod scanner
     inherits by failing.
-
-### escape sequences and such ###
-
-*   use Tamsin repr in error messages
-*   __str__ should be Tamsin repr()?
-*   `format`, using `@` -- in Tamsin
-*   `\s` production for whitespace
-*   `\f` escape for form feed
+*   `ctype` module, with `alpha` and `digit` and etc.
+*   PROLOG/ERLANG'S LIST SUGAR.  would be really really nice.
+*   `using` production x: x's scanner defaults to utf8, not x
+*   `list` module: `deep_reverse`
+*   find different way to match variables in libtamsin, so that
+    struct term's can be const all the way down — then share terms
 
 ### testing ###
 
 *   comment at end of source
 *   prodcall must have >0 args
-*   tests that `'V'` is not a variable and that `'EOF'` is not EOF
+*   tests that `'V'` is not a variable
 *   tests for failing when utf8 scanner hits badly-encoded utf8
-*   test that `$:alpha` and `$:digit` are not locale-dependent (hard)
 *   tests for invalid escape codes
 
 ### support for simulating machines and vms ###
 
-*   `$:alpha`
-*   `$:digit`
 *   `$:add`, `$:sub`, `$:mul`, `$:div`, `$:rem`, for atoms which look like
     integers: `["-"] & {$:digit}`.
 *   `$:tell` and `$:seek` the implicit buffer -- for VM's etc -- although
@@ -34,15 +28,14 @@ TODO
 
 ### lower-priority ###
 
-*   PROLOG/ERLANG'S LIST SUGAR.  would be really really nice.
-*   `using` production x: x's scanner defaults to utf8, not x
-*   `list` module, containing `deep_reverse`, `append`, etc, written in
-    Tamsin --
+*   use Tamsin repr in error messages
+*   __str__ should be Tamsin repr()?
+*   `format`, using `@` -- in Tamsin
+*   `\s` production for whitespace
+*   `\f` escape for form feed
 *   have compiler replace calls to `list` functions
     by "more efficient" versions written in C -- if they really are...
-*   find different way to match variables in libtamsin, so that
-    struct term's can be const all the way down — then share terms
-*   and maybe even garbage-collect them, ooh.
+*   and maybe even garbage-collect terms in libtamsin
 *   figure out why reading a 4M file in a compiled program TAKES DOWN UBUNTU
 *   make it possible to recover from more errors using `|` (don't throw
     exceptions so often)
@@ -97,6 +90,8 @@ TODO
 
 ### wild ideas ###    
 
+*   algebraically cool version of `|`, perhaps as a worked example
+    (implement Bakerloo in Tamsin)
 *   analysis: always_succeeds(Rule)
 *   analysis: may_backtrack(Rule)
 *   regex-like shortcuts: `\w` for "word", `\s` for "whitespace", etc.
