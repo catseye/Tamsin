@@ -110,7 +110,7 @@ compile_r(P,B,Mod, production(N, Bs)) =
     compile_branches(P,B,Mod,FmlNms, Bs) &
     emit('result = term_new_from_cstring("No \'') &
     emit(N) &
-    emitln(' matched arguments");') &
+    emitln('\' production matched arguments");') &
     emitln('ok = 0;') &
     outdent &
     emitln('}').
@@ -157,6 +157,7 @@ emit_pattern_match_expression(list(PatNm, PatNms), list(FmlNm, FmlNms)) =
 emit_matched_variables(nil, nil) = 'ok'.
 emit_matched_variables(list(F, Fs), list(PatNm, PatNms)) =
     collect_variables(F, nil) → Vars &
+    list:reverse(Vars, nil) → Vars &
     emit_assign_matched_variables(PatNm, Vars) &
     emit_matched_variables(Fs, PatNms).
 
@@ -170,9 +171,6 @@ emit_assign_matched_variables(PatNm, list(variable(VN), T)) =
     emit(VN) &
     emitln('");') &
     emit_assign_matched_variables(PatNm, T).
-
-# TODO should be like compile_r(term) but... different
-collect_variables(F, L) = L.
 
 # .... general compiler continues ....
 
@@ -279,6 +277,7 @@ compile_r(P,B,Mod, call(prodref('$', 'reverse'), list(L, list(R, nil)))) =
     emit(RNm) &
     emitln(');').
 
+# TODO: ARGUMENTS!
 compile_r(P,B,Mod, call(prodref(M, N), A)) =
     emit('prod_') &
     emit(M) &
@@ -471,6 +470,19 @@ emit_pattern_subterms(ON, list(H,T)) =
     emit(Nm) &
     emitln(');') &
     emit_pattern_subterms(ON, T).
+
+########### finding variables in patterns ###########
+
+collect_variables_all(nil, L) = L.
+collect_variables_all(list(H, T), L) =
+    collect_variables(H, L) → L &
+    collect_variables_all(T, L).
+
+collect_variables(atom(T), L) = L.
+collect_variables(constructor(T, Ts), L) =
+    collect_variables_all(Ts, L).
+collect_variables(variable(VN), L) =
+    return list(variable(VN), L).
 
 ############### misc helpers ##############
 
