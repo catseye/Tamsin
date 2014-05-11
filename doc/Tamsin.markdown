@@ -499,10 +499,10 @@ So I might not leave this feature in, or, at least, not quite like this.
 
 The escape sequence \x must be followed by two hex digits.
 
-    # | main = "a" & "\x4a" & "b" & print 'don\x4at'.
-    # + aJb
-    # = donJt
-    # = donJt
+    | main = "a" & "\x4a" & "b" & print 'don\x4at'.
+    + aJb
+    = donJt
+    = donJt
 
 Note also that you can print a constructor.
 
@@ -1051,8 +1051,8 @@ is meant for debugging, `$:emit` does not append a newline, and is 8-bit-clean.
 `$:emit` does not try to make them readable by UTF-8 or any other encoding.
 (`print` may or may not do this, depending on the implementation.)
 
-    # | main = $:emit('\x00\x01\x02\xfd\xfe\xff') & ''.
-    # = 000102fdfeff0a
+    | main = $:emit('\x00\x01\x02\xfd\xfe\xff') & ''.
+    = 000102fdfeff0a
 
     -> Tests for functionality "Intepret Tamsin program"
 
@@ -1083,8 +1083,8 @@ result of reprifying that term (see section on Terms, above.)
     | main = $:repr(a(b(c('qu\'are\\')))).
     = a(b(c('qu\'are\\')))
 
-    # | main = $:repr('\x99').
-    # = '\x99'
+    | main = $:repr('\x99').
+    = '\x99'
 
 Here's `$:reverse`, which takes a term E, and a term of the form
 `X(a, X(b, ... X(z, E)) ... )`, and returns a term of the form
@@ -1141,6 +1141,14 @@ Here's gensym.
 
     | main = $:gensym('foo') → F & $:gensym('foo') → G & $:equal(F, G).
     ? 'foo1' does not equal 'foo2'
+
+Here's hexbyte.
+
+    | main = $:hexbyte('5', '0').
+    = P
+
+    | main = $:hexbyte('f', 'f') → C & $:repr(C).
+    = '\xff'
 
 ### Back to Modules in General ###
 

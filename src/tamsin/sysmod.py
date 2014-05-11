@@ -166,3 +166,8 @@ def gensym(self, args):
     counter += 1
     return (True, Atom(str(args[0]) + str(counter)))
 gensym.arity = 1
+
+
+def hexbyte(self, args):
+    return (True, Atom(chr(int(args[0].text + args[1].text, 16))))
+hexbyte.arity = 2

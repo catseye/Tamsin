@@ -215,3 +215,21 @@ struct term *tamsin_gensym(struct term *base) {
 
     return t;
 }
+
+int hexdigit_to_int(char hd) {
+    if (hd >= '0' && hd <= '9') return hd-'0';
+    if (hd >= 'a' && hd <= 'f') return hd-'a' + 10;
+    if (hd >= 'A' && hd <= 'F') return hd-'A' + 10;
+    assert(0);
+    return 0;
+}
+
+struct term *tamsin_hexbyte(struct term *high, struct term *low) {
+    struct term *h = term_flatten(high);
+    struct term *l = term_flatten(low);
+    int hi = hexdigit_to_int(h->atom[0]);
+    int lo = hexdigit_to_int(l->atom[0]);
+    char chr = (char)(hi * 16 + lo);
+
+    return term_new_from_char(chr);
+}

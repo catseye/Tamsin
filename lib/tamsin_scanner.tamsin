@@ -12,16 +12,18 @@ tamsin_scanner {
          | ">" & ">" & '>>'
          | "=" | "(" | ")" | "[" | "]" | "{" | "}" | "!" | "|" | "&" | ":"
          | "/" | "," | "." | "@" | "+" | "$" | "→" | "←" | "«" | "»".
-  str(Q) = «Q» → T & {(escape | !«Q» & any) → S & T ← T + S} & «Q» &
+  str(Q) = «Q» → T & {("\\" & escape | !«Q» & any) → S & T ← T + S} & «Q» &
            return T + Q.
-  # TODO: don't unescape these here yet -- scanner should return what it sees
-  # TODO: when you do unescape them -- handle `\xXX` sequences too
-  escape = "\\" & "n" & '\n'
-         | "\\" & "r" & '\r'
-         | "\\" & "t" & '\t'
-         | "\\" & "\\" & '\\'
-         | "\\" & "'" & '\''
-         | "\\" & "\"" & '"'.
+  # TODO: handle `\xXX` sequences properly
+  escape = "n" & '\n'
+         | "r" & '\r'
+         | "t" & '\t'
+         | "x" & hexdigit → H & hexdigit → L & $:hexbyte(H, L)
+         | "\\" & '\\'
+         | "'" & '\''
+         | "\"" & '"'.
+  hexdigit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" |
+             "a" | "b" | "c" | "d" | "e" | "f".
   word = $:alnum → T & { ($:alnum | "_") → S & T ← T + S } & T.
   skippable = {whitespace | comment}.
   whitespace = " " | "\t" | "\r" | "\n".
