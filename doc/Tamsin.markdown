@@ -1323,7 +1323,7 @@ pattern.
 
     | main = what(hel+lo).
     | what(he+llo) = 'yes'.
-    ? expected ')'
+    ? expected
 
 Advanced Scanning
 -----------------

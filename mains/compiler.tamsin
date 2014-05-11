@@ -386,6 +386,31 @@ compile_r(P,B,Mod, while(R)) =
     outdent &
     emitln('}').
 
+compile_r(P,B,Mod, on(R, T)) =
+    emitln('{') &
+    indent &
+    compile_r(P,B,Mod, T) → Nm &
+    $:gensym('flat') → FlatNm &
+    emit('struct term *') &
+    emit(FlatNm) &
+    emit(' = term_flatten(') &
+    emit(Nm) &
+    emitln(');') &
+    emit_decl_state(B) &
+    emit_save_state(B) &
+    emit('scanner->buffer = ') &
+    emit(FlatNm) &
+    emitln('->atom;') &
+    emit('scanner->size = ') &
+    emit(FlatNm) &
+    emitln('->size;') &
+    emitln('scanner->position = 0;') &
+    emitln('scanner->reset_position = 0;') &
+    compile_r(P,B,Mod, R) &
+    emit_restore_state(B) &
+    outdent &
+    emitln('}').
+
 compile_r(P,B,Mod, concat(L, R)) =
     compile_r(P,B,Mod, L) → NmL &
     compile_r(P,B,Mod, R) → NmR &
