@@ -102,15 +102,65 @@ compile_r(P,B,Mod, production(N, Bs)) =
     emit(Mod) &
     emit('_') &
     emit(N) &
-    emitln('() {') &
+    emit('(') &
+    emit_formals(Bs) &
+    emitln(') {') &
     indent &
     compile_all(P,B,Mod, Bs) &
+
+    # self.emit('result = term_new_from_cstring'
+    #           '("No \'%s\' production matched arguments ");' %
+    #           self.current_prod.name)
+    # for i in xrange(0, len(branch.formals)):
+    #     self.emit('result = term_concat(result, term_flatten(i%d));' % i)
+    #     self.emit('result = term_concat(result, term_new_from_cstring(", "));')
+    # self.emit("ok = 0;")
+
     outdent &
     emitln('}').
 
 compile_r(P,B,Mod, prodbranch(Fs, Ls, E)) =
+
+    # branch = ast
+    # all_pattern_variables = set()
+
+    emitln('{') &
+    indent &
+
+    # for fml_num in xrange(0, len(branch.formals)):
+    #     self.emit_term(branch.formals[fml_num].to_term(),
+    #                    "pattern%s" % fml_num, pattern=True)
+
+    emitln('if (') &
+
+    # for fml_num in xrange(0, len(branch.formals)):
+    #     self.emit("    term_match(pattern%s, i%s) &&" %
+    #         (fml_num, fml_num)
+    #     )
+    
+    emitln('    1) {') &
+    indent &
+
+    # # declare and get variables which are found in patterns for this branch
+    # for fml_num in xrange(0, len(branch.formals)):
+    #     variables = []
+    #     formal = branch.formals[fml_num]
+    #     formal.to_term().collect_variables(variables)
+    #     for variable in variables:
+    #         self.emit('struct term *%s = '
+    #                   'term_find_variable(pattern%s, "%s");' %
+    #             (variable.name, fml_num, variable.name)
+    #         )
+    #         all_pattern_variables.add(variable.name)
+
     emit_locals(Ls) &
-    compile_r(P, prodbranch(Fs, Ls, E), Mod, E).
+    compile_r(P, prodbranch(Fs, Ls, E), Mod, E) &
+
+    emit('return;') &
+    outdent &
+    emitln('}') &
+    outdent() &
+    emitln('}').
 
 compile_r(P,B,Mod, call(prodref('$', 'expect'), list(T, nil))) =
     compile_r(P,B,Mod, T) → TNm &
@@ -375,6 +425,12 @@ emit_prototypes(Mod, list(production(N, Bs), Tail)) =
 emit_prototypes(Mod, list(module(N, Ps), Tail)) =
     emit_prototypes(N, Ps) &
     emit_prototypes(Mod, Tail).
+
+emit_formals(list(prodbranch(Fs, Ls, E), Tail)) = emit_formals_r(Fs).
+
+emit_formals_r(nil) = 'ok'.
+emit_formals_r(list(H,T)) =
+    emit_formals_r(T).
 
 emit_locals(nil) = 'ok'.
 emit_locals(list(H,T)) =
