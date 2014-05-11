@@ -277,13 +277,30 @@ compile_r(P,B,Mod, call(prodref('$', 'reverse'), list(L, list(R, nil)))) =
     emit(RNm) &
     emitln(');').
 
-# TODO: ARGUMENTS!
 compile_r(P,B,Mod, call(prodref(M, N), A)) =
+    emit_arguments(P,B,Mod, A, nil) → ArgNms &
     emit('prod_') &
     emit(M) &
     emit('_') &
     emit(N) &
-    emitln('();').
+    emit('(') &
+    emit_arguments_call(ArgNms) &
+    emitln(');').
+
+emit_arguments(P,B,Mod, nil, Nms) = list:reverse(Nms, nil).
+emit_arguments(P,B,Mod, list(A, Tail), Nms) =
+    compile_r(P,B,Mod, A) → Nm &
+    Nms ← list(Nm, Nms) &
+    emit_arguments(P,B,Mod, Tail, Nms).
+
+emit_arguments_call(nil) = 'ok'.
+emit_arguments_call(list(H, nil)) =
+    emit(H).
+emit_arguments_call(list(H, T)) =
+    emit(H) &
+    emit(', ') &
+    emit_arguments_call(T).
+
 
 compile_r(P,B,Mod, and(L, R)) =
     compile_r(P,B,Mod, L) &
