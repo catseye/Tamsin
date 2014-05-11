@@ -138,6 +138,28 @@ compile_r(P,B,Nm, call(prodref('$', 'print'), list(T, nil))) =
     emitln('fprintf(stdout, "\\n");') &
     emitln('ok = 1;').
 
+compile_r(P,B,Nm, call(prodref('$', 'emit'), list(T, nil))) =
+    compile_r(P,B,Nm, T) → TNm &
+    emit('result = ') &
+    emit(TNm) &
+    emitln(';') &
+    emitln('term_fput(result, stdout);') &
+    emitln('ok = 1;').
+
+compile_r(P,B,Nm, call(prodref('$', 'gensym'), list(T, nil))) =
+    compile_r(P,B,Nm, T) → TNm &
+    emit('result = tamsin_gensym(') &
+    emit(TNm) &
+    emitln(');') &
+    emitln('ok = 1;').
+
+compile_r(P,B,Nm, call(prodref('$', 'repr'), list(T, nil))) =
+    compile_r(P,B,Nm, T) → TNm &
+    emit('result = term_repr(') &
+    emit(TNm) &
+    emitln(');') &
+    emitln('ok = 1;').
+
 compile_r(P,B,Nm, call(prodref('$', 'eof'), nil)) =
     emitln('tamsin_eof(scanner);').
 compile_r(P,B,Nm, call(prodref('$', 'any'), nil)) =

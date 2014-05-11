@@ -929,8 +929,7 @@ The module `$` contains a number of built-in productions which would not
 be possible or practical to implement in Tamsin.  See Appendix C for a list.
 
 In fact, we have been using the `$` module already!  But our usage of it
-has been hidden under some syntactic sugar.  The following examples are
-the same as `main = "k".`
+has been hidden under some syntactic sugar.
 
     | main = $:expect(k).
     + k
@@ -1020,7 +1019,52 @@ same number of subterms, and all of their corresponding subterms are equal.
     | main = $:equal(hi(there), hi(there, there)).
     ? term 'hi(there)' does not equal 'hi(there, there)'
 
-........................................................
+Here's `$:emit`, which takes an atom and outputs it.  Unlike `print`, which
+is meant for debugging, `$:emit` does not append a newline, and is 8-bit-clean.
+
+    | main = $:emit('`') & $:emit('wo') & ''.
+    = `wo
+
+    -> Tests for functionality "Intepret Tamsin program (pre- & post-processed)"
+    
+`$:emit` is 8-bit-clean: if the atom contains unprintable characters,
+`$:emit` does not try to make them readable by UTF-8 or any other encoding.
+(`print` may or may not do this, depending on the implementation.)
+
+    # | main = $:emit('\x00\x01\x02\xfd\xfe\xff') & ''.
+    # = 000102fdfeff0a
+
+    -> Tests for functionality "Intepret Tamsin program"
+
+Here's `$:repr`, which takes a term and results in an atom which is the
+result of reprifying that term (see section on Terms, above.)
+
+    | main = $:repr(hello).
+    = hello
+
+    | main = $:repr('016fo_oZZ').
+    = 016fo_oZZ
+
+    | main = $:repr('016fo$oZZ').
+    = '016fo$oZZ'
+
+    | main = $:repr('').
+    = ''
+
+    | main = $:repr('016\n016').
+    = '016\x0a016'
+
+    | main = $:repr(hello(there, world)).
+    = hello(there, world)
+
+    | main = V ← '♡' & $:repr('□'(there, V)).
+    = '\xe2\x96\xa1'(there, '\xe2\x99\xa1')
+
+    | main = $:repr(a(b(c('qu\'are\\')))).
+    = a(b(c('qu\'are\\')))
+
+    # | main = $:repr('\x99').
+    # = '\x99'
 
 Here's `$:reverse`, which takes a term E, and a term of the form
 `X(a, X(b, ... X(z, E)) ... )`, and returns a term of the form
@@ -1069,3 +1113,11 @@ This is a shallow reverse.  Embedded lists are not reversed.
 
     | main = $:reverse(list(a, list(list(1, list(2, nil)), list(c, nil))), nil).
     = list(c, list(list(1, list(2, nil)), list(a, nil)))
+
+Here's gensym.
+
+    | main = $:gensym('foo').
+    = foo1
+
+    | main = $:gensym('foo') → F & $:gensym('foo') → G & $:equal(F, G).
+    ? 'foo1' does not equal 'foo2'

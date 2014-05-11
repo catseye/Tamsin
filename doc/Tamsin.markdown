@@ -951,11 +951,11 @@ be possible or practical to implement in Tamsin.  See Appendix C for a list.
 In fact, we have been using the `$` module already!  But our usage of it
 has been hidden under some syntactic sugar.
 
-    | main = $:expect(k).     # same as "k"
+    | main = $:expect(k).
     + k
     = k
 
-    | main = $:expect(k).     # same as "k"
+    | main = $:expect(k).
     + l
     ? expected 'k' found 'l'
 
