@@ -606,10 +606,15 @@ escaped_r = A ← '' &
         "\\" & A ← A + '\\\\'
       | "\"" & A ← A + '\\"'
       | "\n" & A ← A + '\\n'
-      | any → B & A ← A + B
-      # TODO: do this only for unprintable chars
-      # | any → B & $:format_octal(B) → B & A ← A + '\\' + B
+      | $:alnum → B & A ← A + B
+      | any → B & $:format_octal(B) → B & A ← A + '\\' + B
+      # | any → B & (many_format_octal @ B) → B & A ← A + '\\' + B
     } & A.
+
+many_format_octal =
+    S ← '' &
+    {any → B & $:format_octal(B) → B & S ← S + '\\' + B} using $:byte &
+    S.
 
 ############### saving and restoring state for backtracking ##############
 

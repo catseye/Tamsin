@@ -241,13 +241,11 @@ struct term *tamsin_hexbyte(struct term *high, struct term *low) {
 /* uses same buffer as gensym because to do otherwise would be less awesome */
 struct term *tamsin_format_octal(struct term *chr) {
     struct term *t = term_flatten(chr);
-    unsigned int c;
 
     assert(t->size > 0);
-    c = (unsigned char)t->atom[0];
 
-    /* snprintf(buffer, 79, "%04o", c); */
-    sprintf(buffer, "%04o", c);
+    /* snprintf(buffer, 79, "%o", (unsigned char)t->atom[0]); */
+    sprintf(buffer, "%o", (unsigned char)t->atom[0]);
 
     return term_new_from_cstring(buffer);
 }

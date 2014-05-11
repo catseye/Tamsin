@@ -1153,13 +1153,20 @@ Here's `$:hexbyte`.
 Here's `$:format_octal`, which makes me feel ill.
 
     | main = $:format_octal('P').
-    = 0120
-
-    | main = $:format_octal('\n').
-    = 0012
+    = 120
 
     | main = $:format_octal('\xff').
-    = 0377
+    = 377
+
+There are never any leading zeroes.
+
+    | main = $:format_octal('\n').
+    = 12
+
+It works on the first byte of the string only.
+
+    | main = $:format_octal('«').
+    = 302
 
 ### Back to Modules in General ###
 

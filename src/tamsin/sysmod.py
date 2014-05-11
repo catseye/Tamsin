@@ -174,5 +174,5 @@ hexbyte.arity = 2
 
 
 def format_octal(self, args):
-    return (True, Atom("%04o" % ord(args[0].text[0])))
+    return (True, Atom("%o" % ord(args[0].text[0])))
 format_octal.arity = 1
