@@ -411,6 +411,23 @@ compile_r(P,B,Mod, on(R, T)) =
     outdent &
     emitln('}').
 
+compile_r(P,B,Mod, using(R, prodref('$', 'utf8'))) =
+    emitln('scanner_push_engine(scanner, &scanner_utf8_engine);') &
+    compile_r(P,B,Mod, R) &
+    emitln('scanner_pop_engine(scanner);').
+compile_r(P,B,Mod, using(R, prodref('$', 'byte'))) =
+    emitln('scanner_push_engine(scanner, &scanner_byte_engine);') &
+    compile_r(P,B,Mod, R) &
+    emitln('scanner_pop_engine(scanner);').
+compile_r(P,B,Mod, using(R, prodref(SMNm, SPNm))) =
+    emit('scanner_push_engine(scanner, &prod_') &
+    emit(SMNm) &
+    emit('_') &
+    emit(SPNm) &
+    emitln(');') &
+    compile_r(P,B,Mod, R) &
+    emitln('scanner_pop_engine(scanner);').
+
 compile_r(P,B,Mod, concat(L, R)) =
     compile_r(P,B,Mod, L) → NmL &
     compile_r(P,B,Mod, R) → NmR &
