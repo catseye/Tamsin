@@ -157,12 +157,6 @@ emit_formal_match_patterns(list(Nm, Nms), list(F, Fs)) =
     emit_pattern(F) &
     emit_formal_match_patterns(Nms, Fs).
 
-# should be like compile_r(term), except... with differences
-emit_pattern(F) =
-    emitln('/* pattern for formal */').
-    #     self.emit_term(branch.formals[fml_num].to_term(),
-    #                    "pattern%s" % fml_num, pattern=True)
-
 emit_pattern_match_expression(nil, nil) = 'ok'.
 emit_pattern_match_expression(list(Nm, Nms), list(F, Fs)) =
     #     self.emit("    term_match(pattern%s, i%s) &&" %
@@ -421,6 +415,52 @@ emit_subterms(P,B,Mod, ON, list(H,T)) =
     emit(Nm) &
     emitln(');') &
     emit_subterms(P,B,Mod, ON, T).
+
+############### emitting pattern terms ###############
+
+# should be like compile_r(term), except... with differences
+
+emit_pattern(atom(T)) =
+    emit('struct term *') &
+    $:gensym('temp') → Nm &
+    emit(Nm) &
+    emit(' = term_new_from_cstring("') &
+    escaped(T) → T &
+    emit(T) &
+    emitln('");') &
+    Nm.
+
+# TODO: THIS IS WHERE IT SHOULD BE DIFFERENT
+emit_pattern(variable(VN)) =
+    emit('struct term *') &
+    $:gensym('temp') → Nm &
+    emit(Nm) &
+    emit(' = ') &
+    emit(VN) &
+    emitln(';') &
+    Nm.
+
+emit_pattern(constructor(T,Ts)) =
+    emit('struct term *') &
+    $:gensym('temp') → Nm &
+    emit(Nm) &
+    emit(' = term_new_from_cstring("') &
+    escaped(T) → T &
+    emit(T) &
+    emitln('");') &
+    list:reverse(Ts, nil) → Ts &
+    emit_pattern_subterms(Nm, Ts) &
+    Nm.
+
+emit_pattern_subterms(ON, nil) = 'ok'.
+emit_pattern_subterms(ON, list(H,T)) =
+    emit_pattern(H) → Nm &
+    emit('term_add_subterm(') &
+    emit(ON) &
+    emit(', ') &
+    emit(Nm) &
+    emitln(');') &
+    emit_pattern_subterms(ON, T).
 
 ############### misc helpers ##############
 
