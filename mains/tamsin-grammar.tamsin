@@ -18,8 +18,8 @@
 main = grammar using tamsin_scanner:scanner.
 
 grammar    = {"@" & pragma & "."} &
-             production & "." &
-             {production & "."} & eof & 'ok'.
+             {module | production & "."} & eof & 'ok'.
+module     = word & "{" & {production & "."} & "}".
 production = word & ["(" & term & {"," & term} & ")"
                     | "[" & expr0 & "]"] & "=" & expr0.
 expr0      = expr1 & {("|" | "||") & expr1}.
@@ -45,7 +45,9 @@ term       = atom & ["(" & [term & {"," & term}] & ")"]
 atom       = word | sq_string.
 terminal   = dq_string
            | ("«" | "<<") & texpr & ("»" | ">>").
-prodref    = [modref & ":"] & word.
+prodref    = modref & ":" & word
+           | ":" & word
+           | word.
 modref     = "$" | word.
 pragma     = "alias" & word & word & "=" & prodref
            | "unalias" & word.

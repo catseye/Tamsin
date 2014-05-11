@@ -80,57 +80,60 @@ outdent = 'ok'.
 
 compile(program(Ms)) =
     prelude &
-    tamsin_parser:find_module('main', Ms) → MainMod &
-    get_prods(MainMod) → MMPs &
-    emit_prototypes(MMPs) &
-    compile_all(program(Ms), nil, 'temp', MMPs) &
+    emit_prototypes(nil, Ms) &
+    compile_all(program(Ms), nil, 'temp', Ms) &
     postlude &
     ''.
 
 # P is the current program()
 # B is the current prodbranch()
-# Nm is the current temporary name -- which might not be used now.
+# Nm (or Mod) is the current module name
 # Returns the name of where the latest result is stored, or nil.
 
-compile_all(P,B,Nm, nil) = 'nil'.
-compile_all(P,B,Nm, list(H,T)) =
-    compile_r(P,B,Nm, H) & compile_all(P,B,Nm, T).
+compile_all(P,B,Mod, nil) = 'nil'.
+compile_all(P,B,Mod, list(H,T)) =
+    compile_r(P,B,Mod, H) & compile_all(P,B,Mod, T).
 
-compile_r(P,B,Nm, production(N, Bs)) =
-    emit('void prod_main_') &
+compile_r(P,B,Mod, module(N, Ps)) =
+    compile_all(P,B,N, Ps).
+
+compile_r(P,B,Mod, production(N, Bs)) =
+    emit('void prod_') &
+    emit(Mod) &
+    emit('_') &
     emit(N) &
     emitln('() {') &
     indent &
-    compile_all(P,B,Nm, Bs) &
+    compile_all(P,B,Mod, Bs) &
     outdent &
     emitln('}').
 
-compile_r(P,B,Nm, prodbranch(Fs, Ls, E)) =
+compile_r(P,B,Mod, prodbranch(Fs, Ls, E)) =
     emit_locals(Ls) &
-    compile_r(P, prodbranch(Fs, Ls, E), Nm, E).
+    compile_r(P, prodbranch(Fs, Ls, E), Mod, E).
 
-compile_r(P,B,Nm, call(prodref('$', 'expect'), list(T, nil))) =
-    compile_r(P,B,Nm, T) → TNm &
+compile_r(P,B,Mod, call(prodref('$', 'expect'), list(T, nil))) =
+    compile_r(P,B,Mod, T) → TNm &
     emit('tamsin_expect(scanner, ') &
     emit(TNm) &
     emitln(');').
 
-compile_r(P,B,Nm, call(prodref('$', 'return'), list(T, nil))) =
-    compile_r(P,B,Nm, T) → TNm &
+compile_r(P,B,Mod, call(prodref('$', 'return'), list(T, nil))) =
+    compile_r(P,B,Mod, T) → TNm &
     emit('result = ') &
     emit(TNm) &
     emitln(';') &
     emitln('ok = 1;').
 
-compile_r(P,B,Nm, call(prodref('$', 'fail'), list(T, nil))) =
-    compile_r(P,B,Nm, T) → TNm &
+compile_r(P,B,Mod, call(prodref('$', 'fail'), list(T, nil))) =
+    compile_r(P,B,Mod, T) → TNm &
     emit('result = ') &
     emit(TNm) &
     emitln(';') &
     emitln('ok = 0;').
 
-compile_r(P,B,Nm, call(prodref('$', 'print'), list(T, nil))) =
-    compile_r(P,B,Nm, T) → TNm &
+compile_r(P,B,Mod, call(prodref('$', 'print'), list(T, nil))) =
+    compile_r(P,B,Mod, T) → TNm &
     emit('result = ') &
     emit(TNm) &
     emitln(';') &
@@ -138,54 +141,54 @@ compile_r(P,B,Nm, call(prodref('$', 'print'), list(T, nil))) =
     emitln('fprintf(stdout, "\\n");') &
     emitln('ok = 1;').
 
-compile_r(P,B,Nm, call(prodref('$', 'emit'), list(T, nil))) =
-    compile_r(P,B,Nm, T) → TNm &
+compile_r(P,B,Mod, call(prodref('$', 'emit'), list(T, nil))) =
+    compile_r(P,B,Mod, T) → TNm &
     emit('result = ') &
     emit(TNm) &
     emitln(';') &
     emitln('term_fput(result, stdout);') &
     emitln('ok = 1;').
 
-compile_r(P,B,Nm, call(prodref('$', 'gensym'), list(T, nil))) =
-    compile_r(P,B,Nm, T) → TNm &
+compile_r(P,B,Mod, call(prodref('$', 'gensym'), list(T, nil))) =
+    compile_r(P,B,Mod, T) → TNm &
     emit('result = tamsin_gensym(') &
     emit(TNm) &
     emitln(');') &
     emitln('ok = 1;').
 
-compile_r(P,B,Nm, call(prodref('$', 'repr'), list(T, nil))) =
-    compile_r(P,B,Nm, T) → TNm &
+compile_r(P,B,Mod, call(prodref('$', 'repr'), list(T, nil))) =
+    compile_r(P,B,Mod, T) → TNm &
     emit('result = term_repr(') &
     emit(TNm) &
     emitln(');') &
     emitln('ok = 1;').
 
-compile_r(P,B,Nm, call(prodref('$', 'eof'), nil)) =
+compile_r(P,B,Mod, call(prodref('$', 'eof'), nil)) =
     emitln('tamsin_eof(scanner);').
-compile_r(P,B,Nm, call(prodref('$', 'any'), nil)) =
+compile_r(P,B,Mod, call(prodref('$', 'any'), nil)) =
     emitln('tamsin_any(scanner);').
-compile_r(P,B,Nm, call(prodref('$', 'alnum'), nil)) =
+compile_r(P,B,Mod, call(prodref('$', 'alnum'), nil)) =
     emitln('tamsin_alnum(scanner);').
-compile_r(P,B,Nm, call(prodref('$', 'upper'), nil)) =
+compile_r(P,B,Mod, call(prodref('$', 'upper'), nil)) =
     emitln('tamsin_upper(scanner);').
-compile_r(P,B,Nm, call(prodref('$', 'startswith'), list(T, nil))) =
-    compile_r(P,B,Nm, T) → TNm &
+compile_r(P,B,Mod, call(prodref('$', 'startswith'), list(T, nil))) =
+    compile_r(P,B,Mod, T) → TNm &
     emit('tamsin_startswith(scanner, ') &
     emit(TNm) &
     emitln('->atom);').
-compile_r(P,B,Nm, call(prodref('$', 'mkterm'), list(T, list(L, nil)))) =
-    compile_r(P,B,Nm, T) → TNm &
-    compile_r(P,B,Nm, L) → LNm &
+compile_r(P,B,Mod, call(prodref('$', 'mkterm'), list(T, list(L, nil)))) =
+    compile_r(P,B,Mod, T) → TNm &
+    compile_r(P,B,Mod, L) → LNm &
     emit('result = tamsin_mkterm(') &
     emit(TNm) &
     emit(', ') &
     emit(LNm) &
     emitln(');') &
     emitln('ok = 1;').
-compile_r(P,B,Nm, call(prodref('$', 'unquote'), list(T, list(L, list(R, nil))))) =
-    compile_r(P,B,Nm, T) → TNm &
-    compile_r(P,B,Nm, L) → LNm &
-    compile_r(P,B,Nm, R) → RNm &
+compile_r(P,B,Mod, call(prodref('$', 'unquote'), list(T, list(L, list(R, nil))))) =
+    compile_r(P,B,Mod, T) → TNm &
+    compile_r(P,B,Mod, L) → LNm &
+    compile_r(P,B,Mod, R) → RNm &
     emit('result = tamsin_unquote(') &
     emit(TNm) &
     emit(', ') &
@@ -194,58 +197,60 @@ compile_r(P,B,Nm, call(prodref('$', 'unquote'), list(T, list(L, list(R, nil)))))
     emit(RNm) &
     emitln(');').
 
-compile_r(P,B,Nm, call(prodref('$', 'equal'), list(L, list(R, nil)))) =
-    compile_r(P,B,Nm, L) → LNm &
-    compile_r(P,B,LNm, R) → RNm &
+compile_r(P,B,Mod, call(prodref('$', 'equal'), list(L, list(R, nil)))) =
+    compile_r(P,B,Mod, L) → LNm &
+    compile_r(P,B,Mod, R) → RNm &
     emit('result = tamsin_equal(') &
     emit(LNm) &
     emit(', ') &
     emit(RNm) &
     emitln(');').
 
-compile_r(P,B,Nm, call(prodref('$', 'reverse'), list(L, list(R, nil)))) =
-    compile_r(P,B,Nm, L) → LNm &
-    compile_r(P,B,LNm, R) → RNm &
+compile_r(P,B,Mod, call(prodref('$', 'reverse'), list(L, list(R, nil)))) =
+    compile_r(P,B,Mod, L) → LNm &
+    compile_r(P,B,Mod, R) → RNm &
     emit('result = tamsin_reverse(') &
     emit(LNm) &
     emit(', ') &
     emit(RNm) &
     emitln(');').
 
-compile_r(P,B,Nm, call(prodref(M, N), A)) =
-    emit('prod_main_') &
+compile_r(P,B,Mod, call(prodref(M, N), A)) =
+    emit('prod_') &
+    emit(M) &
+    emit('_') &
     emit(N) &
     emitln('();').
 
-compile_r(P,B,Nm, and(L, R)) =
-    compile_r(P,B,Nm, L) &
+compile_r(P,B,Mod, and(L, R)) =
+    compile_r(P,B,Mod, L) &
     emitln('if (ok) {') &
     indent &
-    compile_r(P,B,Nm, R) &
+    compile_r(P,B,Mod, R) &
     outdent &
     emitln('}').
 
-compile_r(P,B,Nm, or(L, R)) =
+compile_r(P,B,Mod, or(L, R)) =
     emitln('{') &
     indent &
     emit_decl_state(B) &
     emit_save_state(B) &
-    compile_r(P,B,Nm, L) &
+    compile_r(P,B,Mod, L) &
     emitln('if (!ok) {') &
     indent &
     emit_restore_state(B) &
-    compile_r(P,B,Nm, R) &
+    compile_r(P,B,Mod, R) &
     outdent &
     emitln('}') &
     outdent &
     emitln('}').
 
-compile_r(P,B,Nm, not(R)) =
+compile_r(P,B,Mod, not(R)) =
     emitln('{') &
     indent &
     emit_decl_state(B) &
     emit_save_state(B) &
-    compile_r(P,B,Nm, R) &
+    compile_r(P,B,Mod, R) &
     emit_restore_state(B) &
     emitln('if (ok) {') &
     indent &
@@ -261,13 +266,13 @@ compile_r(P,B,Nm, not(R)) =
     outdent &
     emitln('}').
 
-compile_r(P,B,Nm, send(R, variable(VN))) =
-    compile_r(P,B,Nm, R) &
+compile_r(P,B,Mod, send(R, variable(VN))) =
+    compile_r(P,B,Mod, R) &
     emit(VN) &
     emitln(' = result;').
 
-compile_r(P,B,Nm, set(variable(VN), T)) =
-    compile_r(P,B,Nm, T) → Nm &
+compile_r(P,B,Mod, set(variable(VN), T)) =
+    compile_r(P,B,Mod, T) → Nm &
     emit('result = ') &
     emit(Nm) &
     emitln(';') &
@@ -275,16 +280,16 @@ compile_r(P,B,Nm, set(variable(VN), T)) =
     emitln(' = result;') &
     emitln('ok = 1;').
 
-compile_r(P,B,Nm, while(R)) =
+compile_r(P,B,Mod, while(R)) =
     emitln('{') &
     indent &
     emit_decl_state(B) &
-    compile_r(P,B,Nm, atom(nil)) → SRNm &   # 'successful_result'
+    compile_r(P,B,Mod, atom(nil)) → SRNm &   # 'successful_result'
     emitln('ok = 1;') &
     emitln('while (ok) {') &
     indent &
     emit_save_state(B) &
-    compile_r(P,B,Nm, R) &
+    compile_r(P,B,Mod, R) &
     emitln('if (ok) {') &
     indent &
     emit(SRNm) &
@@ -301,9 +306,9 @@ compile_r(P,B,Nm, while(R)) =
     outdent &
     emitln('}').
 
-compile_r(P,B,Nm, concat(L, R)) =
-    compile_r(P,B,Nm, L) → NmL &
-    compile_r(P,B,Nm, R) → NmR &
+compile_r(P,B,Mod, concat(L, R)) =
+    compile_r(P,B,Mod, L) → NmL &
+    compile_r(P,B,Mod, R) → NmR &
     $:gensym('temp') → Nm &
     emit('struct term *') &
     emit(Nm) &
@@ -314,7 +319,7 @@ compile_r(P,B,Nm, concat(L, R)) =
     emitln('));') &
     Nm.
 
-compile_r(P,B,Nm, atom(T)) =
+compile_r(P,B,Mod, atom(T)) =
     emit('struct term *') &
     $:gensym('temp') → Nm &
     emit(Nm) &
@@ -325,7 +330,7 @@ compile_r(P,B,Nm, atom(T)) =
     Nm.
 
 # TODO: this is only one way to compile a variable; there are others
-compile_r(P,B,Nm, variable(VN)) =
+compile_r(P,B,Mod, variable(VN)) =
     emit('struct term *') &
     $:gensym('temp') → Nm &
     emit(Nm) &
@@ -334,7 +339,7 @@ compile_r(P,B,Nm, variable(VN)) =
     emitln(';') &
     Nm.
 
-compile_r(P,B,Nm, constructor(T,Ts)) =
+compile_r(P,B,Mod, constructor(T,Ts)) =
     emit('struct term *') &
     $:gensym('temp') → Nm &
     emit(Nm) &
@@ -346,26 +351,30 @@ compile_r(P,B,Nm, constructor(T,Ts)) =
     emit_subterms(P,B,Nm, Nm, Ts) &
     Nm.
 
-emit_subterms(P,B,Nm, ON, nil) = Nm.
-emit_subterms(P,B,Nm, ON, list(H,T)) =
-    compile_r(P,B,Nm, H) → Nm &
+emit_subterms(P,B,Mod, ON, nil) = 'ok'.
+emit_subterms(P,B,Mod, ON, list(H,T)) =
+    compile_r(P,B,Mod, H) → Nm &
     emit('term_add_subterm(') &
     emit(ON) &
     emit(', ') &
     emit(Nm) &
     emitln(');') &
-    emit_subterms(P,B,Nm, ON, T).
+    emit_subterms(P,B,Mod, ON, T).
 
 ############### misc helpers ##############
 
-get_prods(module(N, Ps)) = Ps.
-
-emit_prototypes(nil) = 'ok'.
-emit_prototypes(list(production(N, Bs), MMPs)) =
-    emit('void prod_main_') &
+emit_prototypes(Mod, nil) = 'ok'.
+emit_prototypes(Mod, list(production(N, Bs), Tail)) =
+    emit('void prod_') &
+    emit(Mod) &
+    emit('_') &
     emit(N) &
     emitln('();') &
-    emit_prototypes(MMPs).
+    emit_prototypes(Mod, Tail).
+
+emit_prototypes(Mod, list(module(N, Ps), Tail)) =
+    emit_prototypes(N, Ps) &
+    emit_prototypes(Mod, Tail).
 
 emit_locals(nil) = 'ok'.
 emit_locals(list(H,T)) =

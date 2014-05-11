@@ -25,8 +25,8 @@ tamsin_parser {
              # list constructor.  or might not...
              # ...so we include in directly in the next constructor
              #
-             LM ← list(module(main, LP), LM) &
              list:reverse(LM, nil) → LM &
+             LM ← list(module(main, LP), LM) &
              return program(LM).
   module   = word → N &
              LP ← nil &
@@ -103,7 +103,9 @@ tamsin_parser {
   terminal0 = dq_string → T & $:unquote(T, '"', '"') → T & return atom(T)
            | ("«" | "<<") & texpr → T & ("»" | ">>") & return T.
 
-  prodref  = M ← '' & [modref → M & ":"] & word → P & return prodref(M, P).
+  prodref  = modref → M & ":" & word → P & return prodref(M, P)
+           | ":" & word → P & return prodref('', P)
+           | word → P & return prodref('', P).
   modref   = "$" | word.
   pragma   = "alias" & word & word & "=" & prodref
            | "unalias" & word.
