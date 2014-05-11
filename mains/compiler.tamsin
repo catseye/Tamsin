@@ -121,8 +121,6 @@ compile_branches(P,B,Mod,FmlNms, list(H,T)) =
 
 compile_branch(P,B,Mod,FmlNms, prodbranch(Fs, Ls, E)) =
 
-    # all_pattern_variables = set()
-
     emitln('{') &
     indent &
     emit_formal_match_patterns(FmlNms, Fs, nil) → PatNms &
@@ -130,19 +128,7 @@ compile_branch(P,B,Mod,FmlNms, prodbranch(Fs, Ls, E)) =
     emit_pattern_match_expression(PatNms, FmlNms) &
     emitln('    1) {') &
     indent &
-
-    # # declare and get variables which are found in patterns for this branch
-    # for fml_num in xrange(0, len(branch.formals)):
-    #     variables = []
-    #     formal = branch.formals[fml_num]
-    #     formal.to_term().collect_variables(variables)
-    #     for variable in variables:
-    #         self.emit('struct term *%s = '
-    #                   'term_find_variable(pattern%s, "%s");' %
-    #             (variable.name, fml_num, variable.name)
-    #         )
-    #         all_pattern_variables.add(variable.name)
-
+    emit_matched_variables(Fs, PatNms) &
     emit_locals(Ls) &
     compile_r(P, prodbranch(Fs, Ls, E), Mod, E) &
 
@@ -167,6 +153,26 @@ emit_pattern_match_expression(list(PatNm, PatNms), list(FmlNm, FmlNms)) =
     emitln(') &&') &
     emit_pattern_match_expression(PatNms, FmlNms).
 
+# declare and get variables which are found in patterns for this branch
+emit_matched_variables(nil, nil) = 'ok'.
+emit_matched_variables(list(F, Fs), list(PatNm, PatNms)) =
+    collect_variables(F, nil) → Vars &
+    emit_assign_matched_variables(PatNm, Vars) &
+    emit_matched_variables(Fs, PatNms).
+
+emit_assign_matched_variables(PatNm, nil) = 'ok'.
+emit_assign_matched_variables(PatNm, list(variable(VN), T)) =
+    emit('struct term *') &
+    emit(VN) &
+    emit(' = term_find_variable(') &
+    emit(PatNm) &
+    emit(', "') &
+    emit(VN) &
+    emitln('");') &
+    emit_assign_matched_variables(PatNm, T).
+
+# TODO should be like compile_r(term) but... different
+collect_variables(F, L) = L.
 
 # .... general compiler continues ....
 
@@ -421,7 +427,7 @@ emit_subterms(P,B,Mod, ON, list(H,T)) =
 
 ############### emitting pattern terms ###############
 
-# should be like compile_r(term), except... with differences
+# should be like compile_r(term), except variables are different
 
 emit_pattern(atom(T)) =
     emit('struct term *') &
@@ -433,14 +439,15 @@ emit_pattern(atom(T)) =
     emitln('");') &
     Nm.
 
-# TODO: THIS IS WHERE IT SHOULD BE DIFFERENT
 emit_pattern(variable(VN)) =
     emit('struct term *') &
     $:gensym('pattern') → Nm &
     emit(Nm) &
-    emit(' = ') &
+    emit(' = term_new_variable("') &
     emit(VN) &
-    emitln(';') &
+    emit('", term_new_from_cstring("nil_') &
+    emit(VN) &
+    emitln('"));') &
     Nm.
 
 emit_pattern(constructor(T,Ts)) =
