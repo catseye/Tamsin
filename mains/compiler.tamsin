@@ -616,7 +616,9 @@ escaped_r = A ← '' &
 emit_decl_state(prodbranch(Fs, Ls, E)) =
     emit_decl_state_locals(Ls) &
     emitln('int position;') &
-    emitln('int reset_position;').
+    emitln('int reset_position;') &
+    emitln('const char *buffer;') &
+    emitln('int buffer_size;').
 
 emit_decl_state_locals(nil) = 'ok'.
 emit_decl_state_locals(list(H,T)) =
@@ -628,7 +630,9 @@ emit_decl_state_locals(list(H,T)) =
 emit_save_state(prodbranch(Fs, Ls, E)) =
     emit_save_state_locals(Ls) &
     emitln('position = scanner->position;') &
-    emitln('reset_position = scanner->reset_position;').
+    emitln('reset_position = scanner->reset_position;') &
+    emitln('buffer = scanner->buffer;') &
+    emitln('buffer_size = scanner->size;').
 
 emit_save_state_locals(nil) = 'ok'.
 emit_save_state_locals(list(H,T)) =
@@ -642,6 +646,8 @@ emit_save_state_locals(list(H,T)) =
 emit_restore_state(prodbranch(Fs, Ls, E)) =
     emitln('scanner->position = position;') &
     emitln('scanner->reset_position = reset_position;') &
+    emitln('scanner->buffer = buffer;') &
+    emitln('scanner->size = buffer_size;') &
     emit_restore_state_locals(Ls).
 
 emit_restore_state_locals(nil) = 'ok'.
