@@ -171,3 +171,8 @@ gensym.arity = 1
 def hexbyte(self, args):
     return (True, Atom(chr(int(args[0].text + args[1].text, 16))))
 hexbyte.arity = 2
+
+
+def format_octal(self, args):
+    return (True, Atom("%04o" % ord(args[0].text[0])))
+format_octal.arity = 1

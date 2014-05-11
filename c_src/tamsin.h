@@ -139,6 +139,7 @@ struct term *tamsin_equal(struct term *, struct term *);
 struct term *tamsin_reverse(struct term *, struct term *);
 struct term *tamsin_gensym(struct term *);
 struct term *tamsin_hexbyte(struct term *, struct term *);
+struct term *tamsin_format_octal(struct term *);
 
 int tamsin_isalpha(char);
 int tamsin_isupper(char);

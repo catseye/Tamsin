@@ -1134,7 +1134,7 @@ This is a shallow reverse.  Embedded lists are not reversed.
     | main = $:reverse(list(a, list(list(1, list(2, nil)), list(c, nil))), nil).
     = list(c, list(list(1, list(2, nil)), list(a, nil)))
 
-Here's gensym.
+Here's `$:gensym`.
 
     | main = $:gensym('foo').
     = foo1
@@ -1142,13 +1142,24 @@ Here's gensym.
     | main = $:gensym('foo') → F & $:gensym('foo') → G & $:equal(F, G).
     ? 'foo1' does not equal 'foo2'
 
-Here's hexbyte.
+Here's `$:hexbyte`.
 
     | main = $:hexbyte('5', '0').
     = P
 
     | main = $:hexbyte('f', 'f') → C & $:repr(C).
     = '\xff'
+
+Here's `$:format_octal`, which makes me feel ill.
+
+    | main = $:format_octal('P').
+    = 0120
+
+    | main = $:format_octal('\n').
+    = 0012
+
+    | main = $:format_octal('\xff').
+    = 0377
 
 ### Back to Modules in General ###
 

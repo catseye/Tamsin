@@ -1,0 +1,3 @@
+main = print_each_char(fo+ob+ar).
+print_each_char(X) = print_each_char_r @ X.
+print_each_char_r = any → C & print C & print_each_char_r | return 'ok'.

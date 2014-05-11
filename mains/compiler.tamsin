@@ -239,6 +239,23 @@ compile_r(P,B,Mod, call(prodref('$', 'reverse'), list(L, list(R, nil)))) =
     emit(RNm) &
     emitln(');').
 
+compile_r(P,B,Mod, call(prodref('$', 'hexbyte'), list(L, list(R, nil)))) =
+    compile_r(P,B,Mod, L) → LNm &
+    compile_r(P,B,Mod, R) → RNm &
+    emit('result = tamsin_hexbyte(') &
+    emit(LNm) &
+    emit(', ') &
+    emit(RNm) &
+    emitln(');') &
+    emitln('ok = 1;').
+
+compile_r(P,B,Mod, call(prodref('$', 'format_octal'), list(T, nil))) =
+    compile_r(P,B,Mod, T) → TNm &
+    emit('result = tamsin_format_octal(') &
+    emit(TNm) &
+    emitln(');') &
+    emitln('ok = 1;').
+
 compile_r(P,B,Mod, call(prodref(M, N), A)) =
     emit_arguments(P,B,Mod, A, nil) → ArgNms &
     emit('prod_') &
@@ -590,6 +607,8 @@ escaped_r = A ← '' &
       | "\"" & A ← A + '\\"'
       | "\n" & A ← A + '\\n'
       | any → B & A ← A + B
+      # TODO: do this only for unprintable chars
+      # | any → B & $:format_octal(B) → B & A ← A + '\\' + B
     } & A.
 
 ############### saving and restoring state for backtracking ##############

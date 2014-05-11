@@ -227,9 +227,27 @@ int hexdigit_to_int(char hd) {
 struct term *tamsin_hexbyte(struct term *high, struct term *low) {
     struct term *h = term_flatten(high);
     struct term *l = term_flatten(low);
-    int hi = hexdigit_to_int(h->atom[0]);
-    int lo = hexdigit_to_int(l->atom[0]);
-    char chr = (char)(hi * 16 + lo);
+    int hi, lo;
+    
+    assert(h->size > 0);
+    assert(l->size > 0);
 
-    return term_new_from_char(chr);
+    hi = hexdigit_to_int(h->atom[0]);
+    lo = hexdigit_to_int(l->atom[0]);
+
+    return term_new_from_char((char)(hi * 16 + lo));
+}
+
+/* uses same buffer as gensym because to do otherwise would be less awesome */
+struct term *tamsin_format_octal(struct term *chr) {
+    struct term *t = term_flatten(chr);
+    unsigned int c;
+
+    assert(t->size > 0);
+    c = (unsigned char)t->atom[0];
+
+    /* snprintf(buffer, 79, "%04o", c); */
+    sprintf(buffer, "%04o", c);
+
+    return term_new_from_cstring(buffer);
 }
