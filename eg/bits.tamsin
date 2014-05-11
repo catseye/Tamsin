@@ -1,4 +1,5 @@
 # This example Tamsin program was written by Chris Pressey, and is
 # hereby placed in the public domain.  It comes with NO WARRANTY.
 
-main = ("." & '!' | "?" & '?!' | any)/''.
+main = bit & {"," & bit} & ".".
+bit = "0" | "1".

@@ -8,7 +8,8 @@ import subprocess
 import sys
 
 from tamsin.event import DebugEventListener
-from tamsin.scanner import EOF, Scanner, UTF8ScannerEngine, TamsinScannerEngine
+from tamsin.term import EOF, Atom
+from tamsin.scanner import Scanner, UTF8ScannerEngine, TamsinScannerEngine
 from tamsin.parser import Parser
 from tamsin.interpreter import Interpreter
 from tamsin.desugarer import Desugarer
@@ -65,7 +66,7 @@ def main(args, tamsin_dir='.'):
         while tok is not EOF:
             tok = scanner.consume_any()
             if tok is not EOF:
-                print tok
+                print Atom(tok).repr()
         print
     elif args[0] == 'parse':
         with open(args[1], 'r') as f:

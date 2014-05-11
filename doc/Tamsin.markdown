@@ -1071,6 +1071,9 @@ result of reprifying that term (see section on Terms, above.)
     | main = $:repr('').
     = ''
 
+    | main = $:repr(' ').
+    = ' '
+
     | main = $:repr('016\n016').
     = '016\x0a016'
 

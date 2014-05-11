@@ -1,4 +1,4 @@
 main = print
        '\n' +
-       # '\xA0' +
+       '\xa0' +
        'r'.

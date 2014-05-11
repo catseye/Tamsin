@@ -17,16 +17,9 @@ tamsin_parser {
                  | module → M & LM ← list(M, LM)
              } &
              list:reverse(LP, nil) → LP &
-             #
-             # If we leave this line like this:
-             # MM ← module(main, LP) &
-             # we have *some* sort of problem in the desugarer, which
-             # *might* have to do with a conflict between uses of the
-             # list constructor.  or might not...
-             # ...so we include in directly in the next constructor
-             #
+             MM ← module(main, LP) &
              list:reverse(LM, nil) → LM &
-             LM ← list(module(main, LP), LM) &
+             ($:equal(LP, nil) | LM ← list(module(main, LP), LM)) &
              return program(LM).
   module   = word → N &
              LP ← nil &

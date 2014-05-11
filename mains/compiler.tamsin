@@ -105,6 +105,27 @@ compile_all(P,B,Mod, nil) = 'nil'.
 compile_all(P,B,Mod, list(H,T)) =
     compile_r(P,B,Mod, H) & compile_all(P,B,Mod, T).
 
+compile_branches(P,B,Mod,FmlNms, nil) = 'nil'.
+compile_branches(P,B,Mod,FmlNms, list(H,T)) =
+    compile_branch(P,B,Mod,FmlNms, H) & compile_branches(P,B,Mod,FmlNms, T).
+
+compile_branch(P,B,Mod,FmlNms, prodbranch(Fs, Ls, E)) =
+    emitln('{') &
+    indent &
+    emit_formal_match_patterns(FmlNms, Fs, nil) → PatNms &
+    emitln('if (') &
+    emit_pattern_match_expression(PatNms, FmlNms) &
+    emitln('    1) {') &
+    indent &
+    emit_matched_variables(Fs, PatNms, nil) → VarNms &
+    emit_locals(Ls, VarNms) &
+    compile_r(P, prodbranch(Fs, Ls, E), Mod, E) &
+    emit('return;') &
+    outdent &
+    emitln('}') &
+    outdent &
+    emitln('}').
+
 compile_r(P,B,Mod, module(N, Ps)) =
     compile_all(P,B,N, Ps).
 
@@ -124,27 +145,6 @@ compile_r(P,B,Mod, production(N, Bs)) =
     emitln('\' production matched arguments");') &
     emitln('ok = 0;') &
     outdent &
-    emitln('}').
-
-compile_branches(P,B,Mod,FmlNms, nil) = 'nil'.
-compile_branches(P,B,Mod,FmlNms, list(H,T)) =
-    compile_branch(P,B,Mod,FmlNms, H) & compile_branches(P,B,Mod,FmlNms, T).
-
-compile_branch(P,B,Mod,FmlNms, prodbranch(Fs, Ls, E)) =
-    emitln('{') &
-    indent &
-    emit_formal_match_patterns(FmlNms, Fs, nil) → PatNms &
-    emitln('if (') &
-    emit_pattern_match_expression(PatNms, FmlNms) &
-    emitln('    1) {') &
-    indent &
-    emit_matched_variables(Fs, PatNms, nil) → VarNms &
-    emit_locals(Ls, VarNms) &
-    compile_r(P, prodbranch(Fs, Ls, E), Mod, E) &
-    emit('return;') &
-    outdent &
-    emitln('}') &
-    outdent() &
     emitln('}').
 
 compile_r(P,B,Mod, call(prodref('$', 'expect'), list(T, nil))) =
@@ -283,21 +283,6 @@ compile_r(P,B,Mod, call(prodref(M, N), A)) =
     emit('(') &
     emit_arguments_call(ArgNms) &
     emitln(');').
-
-emit_arguments(P,B,Mod, nil, Nms) = list:reverse(Nms, nil).
-emit_arguments(P,B,Mod, list(A, Tail), Nms) =
-    compile_r(P,B,Mod, A) → Nm &
-    Nms ← list(Nm, Nms) &
-    emit_arguments(P,B,Mod, Tail, Nms).
-
-emit_arguments_call(nil) = 'ok'.
-emit_arguments_call(list(H, nil)) =
-    emit(H).
-emit_arguments_call(list(H, T)) =
-    emit(H) &
-    emit(', ') &
-    emit_arguments_call(T).
-
 
 compile_r(P,B,Mod, and(L, R)) =
     compile_r(P,B,Mod, L) &
@@ -618,6 +603,22 @@ emit_locals(list(H,T), Dont) =
       emit(H) &
       emitln(';')) &
     emit_locals(T, Dont).
+
+### for calls...
+
+emit_arguments(P,B,Mod, nil, Nms) = list:reverse(Nms, nil).
+emit_arguments(P,B,Mod, list(A, Tail), Nms) =
+    compile_r(P,B,Mod, A) → Nm &
+    Nms ← list(Nm, Nms) &
+    emit_arguments(P,B,Mod, Tail, Nms).
+
+emit_arguments_call(nil) = 'ok'.
+emit_arguments_call(list(H, nil)) =
+    emit(H).
+emit_arguments_call(list(H, T)) =
+    emit(H) &
+    emit(', ') &
+    emit_arguments_call(T).
 
 ############### escaped #############
 

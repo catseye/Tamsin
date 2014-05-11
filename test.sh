@@ -24,8 +24,6 @@ fi
 if [ x$1 = x ]; then
    $0 interpreter &&
    $0 compiler &&
-   $0 compiled analyzer &&
-   $0 micro &&
    $0 tcompiler &&
    echo "All tests passed!"
    exit $?
@@ -64,9 +62,6 @@ if [ x$1 = xthorough ]; then
    exit $?
 fi
 
-#MODE=compiled
-#if [ 
-
 ok() {
     echo 'ok'
 }
@@ -89,20 +84,20 @@ test_it() {
            gcc -g -Ic_src -Lc_src tmp/foo.c -o $BIN -ltamsin || exit 1
         for EG in $GLOB; do
             echo $EG
-            $CMD $EG > tmp/1.txt
-            $BIN <$EG > tmp/2.txt || exit 1
-            diff -ru tmp/1.txt tmp/2.txt > tmp/output.diff
-            diff -ru tmp/1.txt tmp/2.txt || exit 1
+            $CMD $EG | bin/wrap > tmp/python-cmd.txt
+            $BIN <$EG | bin/wrap > tmp/tamsin-cmd.txt
+            diff -ru tmp/python-cmd.txt tmp/tamsin-cmd.txt > tmp/output.diff
+            diff -ru tmp/python-cmd.txt tmp/tamsin-cmd.txt || exit 1
         done
     elif [ $MODE = "interpreted" ]; then
         echo "*** Interpreting $SRC (with $LIBS)"
         echo "*** and testing it against '$CMD'..."
         for EG in $GLOB; do
             echo $EG
-            $CMD $EG > tmp/1.txt
-            bin/tamsin $LIBS $SRC <$EG > tmp/2.txt || exit 1
-            diff -ru tmp/1.txt tmp/2.txt > tmp/output.diff
-            diff -ru tmp/1.txt tmp/2.txt || exit 1
+            $CMD $EG | bin/wrap > tmp/python-cmd.txt
+            bin/tamsin $LIBS $SRC <$EG | bin/wrap > tmp/tamsin-cmd.txt
+            diff -ru tmp/python-cmd.txt tmp/tamsin-cmd.txt > tmp/output.diff
+            diff -ru tmp/python-cmd.txt tmp/tamsin-cmd.txt || exit 1
         done
         echo "Passed."
         exit 0
@@ -142,6 +137,8 @@ elif [ x$1 = xdesugarer ]; then
                   "./bin/tamsin desugar" \
                   "bin/tamsin-desugarer"
 elif [ x$1 = xanalyzer ]; then
+    # libs and mains need libs
+    GLOB="eg/*.tamsin"
     test_it $MODE "mains/analyzer.tamsin" \
                   "lib/list.tamsin lib/tamsin_scanner.tamsin lib/tamsin_parser.tamsin lib/tamsin_analyzer.tamsin" \
                   "./bin/tamsin analyze" \

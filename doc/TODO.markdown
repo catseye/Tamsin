@@ -2,6 +2,8 @@ TODO
 ----
 
 *   actual bootstrap
+*   EOF is not a value.  $:eof is just a pass/fail test.  prod scanner
+    inherits by failing.
 
 ### escape sequences and such ###
 
@@ -13,6 +15,8 @@ TODO
 
 ### testing ###
 
+*   comment at end of source
+*   prodcall must have >0 args
 *   tests that `'V'` is not a variable and that `'EOF'` is not EOF
 *   tests for failing when utf8 scanner hits badly-encoded utf8
 *   test that `$:alpha` and `$:digit` are not locale-dependent (hard)
