@@ -617,8 +617,7 @@ escaped_r = A ← '' &
       | "\"" & A ← A + '\\"'
       | "\n" & A ← A + '\\n'
       | $:alnum → B & A ← A + B
-      | any → B & $:format_octal(B) → B & A ← A + '\\' + B
-      # | any → B & (many_format_octal @ B) → B & A ← A + '\\' + B
+      | any → B & (many_format_octal @ B) → B & A ← A + B
     } & A.
 
 many_format_octal =

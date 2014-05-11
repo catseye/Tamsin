@@ -121,3 +121,22 @@ Evaluate a trivial S-expression-based language.
     | reverse(X, A) = X.
     + (head (tail (cons (cons a nil) (cons b nil))))
     = b
+
+Escape characters in a string, for use in a C program source.
+
+    | main = escaped('"♥\n«"').
+    | escaped(S) = escaped_r @ S.
+    | escaped_r = A ← '' &
+    |     {
+    |         "\\" & A ← A + '\\\\'
+    |       | "\"" & A ← A + '\\"'
+    |       | "\n" & A ← A + '\\n'
+    |       | $:alnum → B & A ← A + B
+    |       | any → B & (many_format_octal @ B) → B & A ← A + B
+    |     } & A.
+    | 
+    | many_format_octal =
+    |     S ← '' &
+    |     {any → B & $:format_octal(B) → B & S ← S + '\\' + B} using $:byte &
+    |     S.
+    = \"\342\231\245\n\302\253\"
