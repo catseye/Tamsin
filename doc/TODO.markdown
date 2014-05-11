@@ -2,6 +2,7 @@ TODO
 ----
 
 *   input to compiled Tamsin programs -- process argv[]
+*   compiler in Tamsin is using term_new_from_cstring for "\0" which doesn't work
 
 ### escape sequences and such ###
 
@@ -12,7 +13,6 @@ TODO
 *   `format`, using `@`
 *   `\s` production for whitespace
 *   `\f` escape for form feed
-*   `$:hexchar` cheat for handling `\xXX` for now
 
 ### testing ###
 
