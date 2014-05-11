@@ -103,23 +103,23 @@ compile_r(P,B,Mod, production(N, Bs)) =
     emit('_') &
     emit(N) &
     emit('(') &
-    emit_formals(Bs) &
+    make_formals_names(Bs) → FmlNms &
+    emit_formals(FmlNms) &
     emitln(') {') &
     indent &
-    compile_all(P,B,Mod, Bs) &
-
-    # self.emit('result = term_new_from_cstring'
-    #           '("No \'%s\' production matched arguments ");' %
-    #           self.current_prod.name)
-    # for i in xrange(0, len(branch.formals)):
-    #     self.emit('result = term_concat(result, term_flatten(i%d));' % i)
-    #     self.emit('result = term_concat(result, term_new_from_cstring(", "));')
-    # self.emit("ok = 0;")
-
+    compile_branches(P,B,Mod,FmlNms, Bs) &
+    emit('result = term_new_from_cstring("No \'') &
+    emit(N) &
+    emitln(' matched arguments");') &
+    emitln('ok = 0;') &
     outdent &
     emitln('}').
 
-compile_r(P,B,Mod, prodbranch(Fs, Ls, E)) =
+compile_branches(P,B,Mod,FmlNms, nil) = 'nil'.
+compile_branches(P,B,Mod,FmlNms, list(H,T)) =
+    compile_branch(P,B,Mod,FmlNms, H) & compile_branches(P,B,Mod,FmlNms, T).
+
+compile_branch(P,B,Mod,FmlNms, prodbranch(Fs, Ls, E)) =
 
     # branch = ast
     # all_pattern_variables = set()
@@ -426,11 +426,23 @@ emit_prototypes(Mod, list(module(N, Ps), Tail)) =
     emit_prototypes(N, Ps) &
     emit_prototypes(Mod, Tail).
 
-emit_formals(list(prodbranch(Fs, Ls, E), Tail)) = emit_formals_r(Fs).
+make_formals_names(list(prodbranch(Fs, Ls, E), Tail)) = make_fmlnms(Fs, nil).
 
-emit_formals_r(nil) = 'ok'.
-emit_formals_r(list(H,T)) =
-    emit_formals_r(T).
+make_fmlnms(nil, Nms) = list:reverse(Nms, nil).
+make_fmlnms(list(H,T), Nms) =
+    $:gensym('formal') → Nm &
+    Nms ← list(Nm, Nms) &
+    make_fmlnms(T, Nms).
+
+emit_formals(nil) = 'ok'.
+emit_formals(list(H,nil)) =
+    emit('struct term *') &
+    emit(H).
+emit_formals(list(H,T)) =
+    emit('struct term *') &
+    emit(H) &
+    emit(', ') &
+    emit_formals(T).
 
 emit_locals(nil) = 'ok'.
 emit_locals(list(H,T)) =
