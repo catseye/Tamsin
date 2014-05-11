@@ -1,16 +1,13 @@
 TODO
 ----
 
-*   input to compiled Tamsin programs -- process argv[]
-*   compiler in Tamsin is using term_new_from_cstring for "\0" which doesn't work
+*   actual bootstrap
 
 ### escape sequences and such ###
 
-*   unescape scanned atoms/""'s in tamsin_parser -- write in Tamsin
-*   unescape must support `\xXX` codes
 *   use Tamsin repr in error messages
 *   __str__ should be Tamsin repr()?
-*   `format`, using `@`
+*   `format`, using `@` -- in Tamsin
 *   `\s` production for whitespace
 *   `\f` escape for form feed
 

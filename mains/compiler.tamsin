@@ -33,25 +33,36 @@ struct term *result;
 ').
 
 postlude = $:emit('
-int main(int argc, char **argv) {
-    FILE *input = NULL;
-    char *filename = argv[1];
-    char *buffer = malloc(8193);
-    struct term *bufterm = NULL;
+struct term *bufterm = NULL;
 
-    if (filename == NULL) {
-        input = stdin;
-    } else {
-        input = fopen(filename, "r");
-    }
+int read_file(FILE *input) {
+    char *buffer = malloc(8193);
 
     assert(input != NULL);
+
     while (!feof(input)) {
         int num_read = fread(buffer, 1, 8192, input);
         if (bufterm == NULL) {
             bufterm = term_new(buffer, num_read);
         } else {
             bufterm = term_concat(bufterm, term_new(buffer, num_read));
+        }
+    }
+
+    free(buffer);
+}
+
+int main(int argc, char **argv) {
+
+    if (argc == 1) {
+        read_file(stdin);
+    } else {
+        int i;
+
+        for (i = 1; i < argc; i++) {
+            FILE *input = fopen(argv[i], "r");
+            read_file(input);
+            fclose(input);
         }
     }
 
