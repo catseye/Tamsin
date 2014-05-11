@@ -176,3 +176,8 @@ hexbyte.arity = 2
 def format_octal(self, args):
     return (True, Atom("%o" % ord(args[0].text[0])))
 format_octal.arity = 1
+
+
+def length(self, args):
+    return (True, Atom(str(len(str(args[0])))))
+length.arity = 1

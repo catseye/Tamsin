@@ -256,6 +256,13 @@ compile_r(P,B,Mod, call(prodref('$', 'format_octal'), list(T, nil))) =
     emitln(');') &
     emitln('ok = 1;').
 
+compile_r(P,B,Mod, call(prodref('$', 'length'), list(T, nil))) =
+    compile_r(P,B,Mod, T) → TNm &
+    emit('result = tamsin_length(') &
+    emit(TNm) &
+    emitln(');') &
+    emitln('ok = 1;').
+
 compile_r(P,B,Mod, call(prodref(M, N), A)) =
     emit_arguments(P,B,Mod, A, nil) → ArgNms &
     emit('prod_') &
@@ -424,10 +431,13 @@ compile_r(P,B,Mod, atom(T)) =
     emit('struct term *') &
     $:gensym('temp') → Nm &
     emit(Nm) &
-    emit(' = term_new_from_cstring("') &
+    emit(' = term_new("') &
+    $:length(T) → Len &
     escaped(T) → T &
     emit(T) &
-    emitln('");') &
+    emit('", ') &
+    emit(Len) &
+    emitln(');') &
     Nm.
 
 # TODO: this is only one way to compile a variable; there are others

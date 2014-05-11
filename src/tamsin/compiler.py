@@ -242,6 +242,9 @@ class Compiler(object):
                 elif name == 'return':
                     self.emit("result = %s;" % argnames[0])
                     self.emit("ok = 1;")
+                elif name == 'fail':
+                    self.emit("result = %s;" % argnames[0])
+                    self.emit('ok = 0;')
                 elif name == 'print':
                     self.emit("result = %s;" % argnames[0])
                     self.emit("term_fput(result, stdout);")
@@ -293,9 +296,9 @@ class Compiler(object):
                 elif name == 'format_octal':
                     self.emit('result = tamsin_format_octal(%s);' % argnames[0])
                     self.emit('ok = 1;')
-                elif name == 'fail':
-                    self.emit("result = %s;" % argnames[0])
-                    self.emit('ok = 0;')
+                elif name == 'length':
+                    self.emit('result = tamsin_length(%s);' % argnames[0])
+                    self.emit('ok = 1;')
                 else:
                     raise NotImplementedError(name)
             else:

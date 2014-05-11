@@ -1168,6 +1168,22 @@ It works on the first byte of the string only.
     | main = $:format_octal('«').
     = 302
 
+Here's `$:length`, which returns an atom representing the length, in bytes,
+of the given term (flattened.)  Note that this is an atom, not an integer,
+because Tamsin doesn't even have integers.
+
+    | main = $:length(abcde).
+    = 5
+
+    | main = $:length('').
+    = 0
+
+    | main = $:length('♥').
+    = 3
+
+    | main = $:length(a(   b  ,  c  )).
+    = 7
+
 ### Back to Modules in General ###
 
 `:foo` always means production `foo` in the current module.

@@ -249,3 +249,13 @@ struct term *tamsin_format_octal(struct term *chr) {
 
     return term_new_from_cstring(buffer);
 }
+
+/* uses same buffer as gensym because to do otherwise would be less awesome */
+struct term *tamsin_length(struct term *t) {
+    t = term_flatten(t);
+
+    /* snprintf(buffer, 79, "%lu", t->size); */
+    sprintf(buffer, "%lu", t->size);
+
+    return term_new_from_cstring(buffer);
+}
