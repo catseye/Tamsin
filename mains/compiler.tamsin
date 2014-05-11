@@ -121,23 +121,13 @@ compile_branches(P,B,Mod,FmlNms, list(H,T)) =
 
 compile_branch(P,B,Mod,FmlNms, prodbranch(Fs, Ls, E)) =
 
-    # branch = ast
     # all_pattern_variables = set()
 
     emitln('{') &
     indent &
-
-    # for fml_num in xrange(0, len(branch.formals)):
-    #     self.emit_term(branch.formals[fml_num].to_term(),
-    #                    "pattern%s" % fml_num, pattern=True)
-
+    emit_formal_match_patterns(FmlNms, Fs) &
     emitln('if (') &
-
-    # for fml_num in xrange(0, len(branch.formals)):
-    #     self.emit("    term_match(pattern%s, i%s) &&" %
-    #         (fml_num, fml_num)
-    #     )
-    
+    emit_pattern_match_expression(FmlNms, Fs) &
     emitln('    1) {') &
     indent &
 
@@ -161,6 +151,27 @@ compile_branch(P,B,Mod,FmlNms, prodbranch(Fs, Ls, E)) =
     emitln('}') &
     outdent() &
     emitln('}').
+
+emit_formal_match_patterns(nil, nil) = 'ok'.
+emit_formal_match_patterns(list(Nm, Nms), list(F, Fs)) =
+    emit_pattern(F) &
+    emit_formal_match_patterns(Nms, Fs).
+
+# should be like compile_r(term), except... with differences
+emit_pattern(F) =
+    emitln('/* pattern for formal */').
+    #     self.emit_term(branch.formals[fml_num].to_term(),
+    #                    "pattern%s" % fml_num, pattern=True)
+
+emit_pattern_match_expression(nil, nil) = 'ok'.
+emit_pattern_match_expression(list(Nm, Nms), list(F, Fs)) =
+    #     self.emit("    term_match(pattern%s, i%s) &&" %
+    #         (fml_num, fml_num)
+    #     )
+    emit_pattern_match_expression(Nms, Fs).
+
+
+# .... general compiler continues ....
 
 compile_r(P,B,Mod, call(prodref('$', 'expect'), list(T, nil))) =
     compile_r(P,B,Mod, T) → TNm &

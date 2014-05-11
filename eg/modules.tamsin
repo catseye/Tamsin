@@ -1,0 +1,9 @@
+# parses "(0)39".
+
+stuff {
+    junk = "(" & :return & ")".
+    return = "0".
+}
+main = stuff:junk & :return & :eof.
+return = "3".
+eof = "9".
