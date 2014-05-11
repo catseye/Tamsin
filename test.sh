@@ -156,12 +156,11 @@ elif [ x$1 = xtcompiler ]; then
 elif [ x$1 = xbootstrap ]; then
     echo "*** Compiling Bootstrapped Tamsin-in-Tamsin compiler..."
     ./build.sh
-    #bin/tamsin-compiler lib/list.tamsin lib/tamsin_scanner.tamsin \
-    #                    lib/tamsin_parser.tamsin lib/tamsin_analyzer.tamsin \
-    #                    mains/compiler.tamsin > tmp/foo.c && \
-    bin/tamsin-compiler mains/compiler.tamsin > tmp/foo.c && \
+    bin/tamsin-compiler lib/list.tamsin lib/tamsin_scanner.tamsin \
+                        lib/tamsin_parser.tamsin lib/tamsin_analyzer.tamsin \
+                        mains/compiler.tamsin > tmp/foo.c && \
        gcc -g -ansi -Werror \
-           -Ic_src -Lc_src tmp/foo.c -o bin/boostrapped-compiler -ltamsin || exit 1
+           -Ic_src -Lc_src tmp/foo.c -o bin/bootstrapped-compiler -ltamsin || exit 1
     echo "*** Testing Bootstrapped Tamsin-in-Tamsin compiler..."
     falderal $VERBOSE --substring-error fixture/bootstrapped.markdown $FILES
 elif [ x$1 = xmicro ]; then

@@ -2,5 +2,6 @@
 *.o
 *.a
 bin/tamsin-*
+bin/bootstrapped-*
 bin/micro-tamsin
 tmp/

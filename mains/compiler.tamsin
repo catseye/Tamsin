@@ -13,7 +13,9 @@
 main = tamsin_parser:parse → AST & tamsin_scanner:skippable & eof &
        tamsin_analyzer:desugar(AST) → AST &
        tamsin_analyzer:analyze(nil, AST) → AST &
-       compile(AST).
+       tamsin_compiler:compile(AST).
+
+tamsin_compiler {
 
 prelude = $:emit('
 /*
@@ -628,9 +630,12 @@ escaped_r = A ← '' &
         "\\" & A ← A + '\\\\'
       | "\"" & A ← A + '\\"'
       | "\n" & A ← A + '\\n'
+      | digit → B & (many_format_octal @ B) → B & A ← A + B
       | $:alnum → B & A ← A + B
       | any → B & (many_format_octal @ B) → B & A ← A + B
     } & A.
+
+digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9".
 
 many_format_octal =
     S ← '' &
@@ -684,3 +689,5 @@ emit_restore_state_locals(list(H,T)) =
     emit(H) &
     emitln(';') &
     emit_restore_state_locals(T).
+
+}
