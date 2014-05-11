@@ -1,8 +1,8 @@
 Tamsin Release History
 ======================
 
-0.4-PRE
--------
+0.4
+---
 
 ### language ###
 
@@ -11,6 +11,16 @@ Tamsin Release History
 ### modules ###
 
 *   Added `$:gensym`.
+*   Added `$:hexchar`.
+*   Added `$:format_octal`.
+*   Added `$:length`.
+*   Added `list:append`.
+
+### implementations ###
+
+*   Tamsin-to-C compiler written in Tamsin (`mains/compiler.tamsin`) passes
+    all tests, and can compile itself.
+*   Refactored `$` functions into `tamsin.sysmod` module in Python version.
 
 0.3
 ---

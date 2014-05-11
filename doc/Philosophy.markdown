@@ -1,3 +1,9 @@
+Philosophy of Tamsin
+====================
+
+I suppose that's a rather heavy-handed word to use, "philosophy".  But
+this is the document giving the _whys_ of Tamsin rather than the technical
+points.
 
 Why did you write Tamin?
 ------------------------
@@ -12,8 +18,10 @@ makes it easy to write recursive-descent parsers, and force all programs
 to be written as recursive-descent parsers?  Then *all* code will be pretty!
 (Yeah, sure, OK.)
 
-Meta-Language
--------------
+Why is it/is it not a...
+------------------------
+
+### Meta-Language ###
 
 (Also known, in their more practical incarnations, as "compiler-compilers"
 or "parser generators".)
@@ -35,8 +43,7 @@ Tamsin isn't one, because:
 
 *   There is no requirement that any input be processed at all.
 
-Programming Language
---------------------
+### Programming Language ###
 
 Tamsin is one, because:
 
@@ -55,8 +62,7 @@ Tamsin isn't one, because:
 *   The syntax is really geared to consuming input rather than general
     programming.
 
-Rubbish Lister
---------------
+### Rubbish Lister ###
 
 What does this even mean?  Well, there is that
 [one famous rubbish lister](http://perl.com/) that we can use as an example
@@ -76,5 +82,18 @@ Tamsin is one, because:
 Tamsin isn't one, because:
 
 *   It's possible to express its syntax in a form that humans can understand.
-*   In fact, it's possible to express its syntax in Tamsin.  It may therefore
-    (one day) be bootstrapped.
+*   In fact, it's possible to express its syntax in Tamsin.
+    In fact, it's possible to bootstrap Tamsin — a Tamsin-to-C compiler has
+    been written in Tamsin.  This is very un-rubbish-lister-ish.
+
+Batteries Included
+------------------
+
+Are batteries included?  Or rather, _what_ batteries are included?  By strange
+coincidence, the batteries that are included are almost exactly the ones
+you'd expect to be useful in bootstrapping a Tamsin-to-C compiler:
+
+*   `list` module — `reverse`, `append`, `member`, etc.
+*   `tamsin_scanner` module
+*   `tamsin_parser` module
+*   `tamsin_analyzer` module

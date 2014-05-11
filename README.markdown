@@ -11,9 +11,9 @@ Its primary goal is to allow the rapid development of **parsers**,
 to be expressed *compactly*.  Golf your grammar!  (Or write it like a decent
 human being, if you must.)
 
-The current released version of Tamsin is 0.3; the development version is
-0.4-PRE.  As indicated by the 0.x version number, it is a **work in progress**,
-with the usual caveat that things may change rapidly (and that version 0.4 might
+The current released version of Tamsin is 0.4; the development version is
+0.5-PRE.  As indicated by the 0.x version number, it is a **work in progress**,
+with the usual caveat that things may change rapidly (and that version 0.5 might
 look completely different.)  See [HISTORY](https://github.com/catseye/Tamsin/blob/master/HISTORY.markdown)
 for a list of major changes.
 
@@ -78,7 +78,11 @@ Evaluate an (admittedly trivial) S-expression based language in
 
 Interpret a small subset of Tamsin in
 **[30 lines of code](https://github.com/catseye/Tamsin/blob/master/mains/micro-tamsin.tamsin)**
-(not counting the included batteries.)
+(not counting the [included batteries](https://github.com/catseye/Tamsin/blob/master/doc/Philosophy.markdown#batteries-included).)
+
+Compile Tamsin to C in
+**[700 lines of code](https://github.com/catseye/Tamsin/blob/master/mains/compiler.tamsin)**
+(again, not counting the included batteries.)
 
 For more information
 --------------------
@@ -102,10 +106,8 @@ This repository contains the reference implementation of Tamsin, called
 `tamsin`, written in Python 2.7.  It can both interpret a Tamsin program and
 compile a program written in Tamsin to C.
 
-The distribution also contains a (tiny subset of) Tamsin interpreter written
-in Tamsin, and a (tiny subset of) Tamsin-to-C compiler written in Tamsin.
-We're still a ways from a fully bootrapped implementation, but we're getting
-closer.
+The distribution also contains a Tamsin-to-C compiler written in Tamsin.  It
+passes all the tests, and can compile itself.
 
 While the interpreter is fine for prototyping, note that some informal
 benchmarking revealed the compiled C programs to be about 30x faster.  **Note**
@@ -150,8 +152,8 @@ Design Goals
 *   Keep the language simple — the grammar should fit on a page, ideally.
 *   Recognize that the preceding two goals are in tension.
 *   Have a relatively simple reference implementation (currently less than
-    3500 lines of code, including everything — debugging and the C runtime
-    used by the compiler.)
+    5 KLoC, including everything — debugging support and the C runtime
+    used by the compiler and the Tamsin modules and implementations.)
 
 License
 -------

@@ -58,6 +58,7 @@ if [ x$1 = xthorough ]; then
    $0 compiled analyzer &&
    $0 micro &&
    $0 tcompiler &&
+   $0 bootstrap &&
    echo "All tests passed!"
    exit $?
 fi
