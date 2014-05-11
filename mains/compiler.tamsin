@@ -125,9 +125,9 @@ compile_branch(P,B,Mod,FmlNms, prodbranch(Fs, Ls, E)) =
 
     emitln('{') &
     indent &
-    emit_formal_match_patterns(FmlNms, Fs) &
+    emit_formal_match_patterns(FmlNms, Fs, nil) → PatNms &
     emitln('if (') &
-    emit_pattern_match_expression(FmlNms, Fs) &
+    emit_pattern_match_expression(PatNms, FmlNms) &
     emitln('    1) {') &
     indent &
 
@@ -152,17 +152,20 @@ compile_branch(P,B,Mod,FmlNms, prodbranch(Fs, Ls, E)) =
     outdent() &
     emitln('}').
 
-emit_formal_match_patterns(nil, nil) = 'ok'.
-emit_formal_match_patterns(list(Nm, Nms), list(F, Fs)) =
-    emit_pattern(F) &
-    emit_formal_match_patterns(Nms, Fs).
+emit_formal_match_patterns(nil, nil, PatNms) = list:reverse(PatNms, nil).
+emit_formal_match_patterns(list(Nm, Nms), list(F, Fs), PatNms) =
+    emit_pattern(F) → PatNm &
+    PatNms ← list(PatNm, PatNms) &
+    emit_formal_match_patterns(Nms, Fs, PatNms).
 
 emit_pattern_match_expression(nil, nil) = 'ok'.
-emit_pattern_match_expression(list(Nm, Nms), list(F, Fs)) =
-    #     self.emit("    term_match(pattern%s, i%s) &&" %
-    #         (fml_num, fml_num)
-    #     )
-    emit_pattern_match_expression(Nms, Fs).
+emit_pattern_match_expression(list(PatNm, PatNms), list(FmlNm, FmlNms)) =
+    emit('    term_match(') &
+    emit(PatNm) &
+    emit(', ') &
+    emit(FmlNm) &
+    emitln(') &&') &
+    emit_pattern_match_expression(PatNms, FmlNms).
 
 
 # .... general compiler continues ....
@@ -422,7 +425,7 @@ emit_subterms(P,B,Mod, ON, list(H,T)) =
 
 emit_pattern(atom(T)) =
     emit('struct term *') &
-    $:gensym('temp') → Nm &
+    $:gensym('pattern') → Nm &
     emit(Nm) &
     emit(' = term_new_from_cstring("') &
     escaped(T) → T &
@@ -433,7 +436,7 @@ emit_pattern(atom(T)) =
 # TODO: THIS IS WHERE IT SHOULD BE DIFFERENT
 emit_pattern(variable(VN)) =
     emit('struct term *') &
-    $:gensym('temp') → Nm &
+    $:gensym('pattern') → Nm &
     emit(Nm) &
     emit(' = ') &
     emit(VN) &
@@ -442,7 +445,7 @@ emit_pattern(variable(VN)) =
 
 emit_pattern(constructor(T,Ts)) =
     emit('struct term *') &
-    $:gensym('temp') → Nm &
+    $:gensym('pattern') → Nm &
     emit(Nm) &
     emit(' = term_new_from_cstring("') &
     escaped(T) → T &
