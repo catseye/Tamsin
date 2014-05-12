@@ -7,6 +7,7 @@ FILES="
 GLOB="eg/*.tamsin lib/*.tamsin mains/*.tamsin"
 
 mkdir -p tmp
+make all || exit 1
 
 if [ x$1 = 'x-f' ]; then
     shift
@@ -80,7 +81,6 @@ test_it() {
     if [ $MODE = "compiled" ]; then
         echo "*** Compiling $SRC (with $LIBS)"
         echo "*** and testing it against '$CMD'..."
-        ./build.sh
         bin/tamsin compile $LIBS $SRC > tmp/foo.c && \
            gcc -g -Ic_src -Lc_src tmp/foo.c -o $BIN -ltamsin || exit 1
         for EG in $GLOB; do
@@ -112,7 +112,6 @@ test_it() {
 
 if [ x$1 = xcompiler ]; then
     echo "*** Testing compiler..."
-    ./build.sh || exit 1
     falderal $VERBOSE --substring-error fixture/compiler.py.markdown $FILES
 elif [ x$1 = xinterpreter -o x$1 = xi ]; then
     echo "*** Testing Python interpreter..."
@@ -145,18 +144,10 @@ elif [ x$1 = xanalyzer ]; then
                   "./bin/tamsin analyze" \
                   "bin/tamsin-analyzer"
 elif [ x$1 = xtcompiler ]; then
-    echo "*** Compiling Tamsin-in-Tamsin compiler..."
-    ./build.sh
-    bin/tamsin compile lib/list.tamsin lib/tamsin_scanner.tamsin \
-                       lib/tamsin_parser.tamsin lib/tamsin_analyzer.tamsin \
-                       mains/compiler.tamsin > tmp/foo.c && \
-       gcc -g -ansi -Werror \
-           -Ic_src -Lc_src tmp/foo.c -o bin/tamsin-compiler -ltamsin || exit 1
     echo "*** Testing Tamsin-in-Tamsin compiler..."
     falderal $VERBOSE --substring-error fixture/compiler.tamsin.markdown $FILES
 elif [ x$1 = xbootstrap ]; then
     echo "*** Compiling Bootstrapped Tamsin-in-Tamsin compiler..."
-    ./build.sh
     bin/tamsin-compiler lib/list.tamsin lib/tamsin_scanner.tamsin \
                         lib/tamsin_parser.tamsin lib/tamsin_analyzer.tamsin \
                         mains/compiler.tamsin > tmp/foo.c && \
@@ -165,13 +156,6 @@ elif [ x$1 = xbootstrap ]; then
     echo "*** Testing Bootstrapped Tamsin-in-Tamsin compiler..."
     falderal $VERBOSE --substring-error fixture/bootstrapped.markdown $FILES
 elif [ x$1 = xmicro ]; then
-    echo "*** Compiling Micro-Tamsin interpreter..."
-    ./build.sh
-    bin/tamsin compile lib/list.tamsin lib/tamsin_scanner.tamsin \
-                       lib/tamsin_parser.tamsin \
-                       mains/micro-tamsin.tamsin > tmp/foo.c && \
-       gcc -g -ansi -Werror \
-           -Ic_src -Lc_src tmp/foo.c -o bin/micro-tamsin -ltamsin || exit 1
     echo "*** Testing Micro-Tamsin interpreter..."
     FILES="doc/Micro-Tamsin.markdown"
     falderal $VERBOSE --substring-error fixture/micro-tamsin.markdown $FILES
