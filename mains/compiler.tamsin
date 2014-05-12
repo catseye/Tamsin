@@ -415,7 +415,7 @@ tamsin_compiler {
       emitln('");') &
       Nm.
   
-  emit_pattern(variable(VN)) =
+  emit_pattern(patternvariable(VN)) =
       emit('struct term *') &
       $:gensym('pattern') → Nm &
       emit(Nm) &
@@ -455,6 +455,8 @@ tamsin_compiler {
   collect_variable_names(constructor(T, Ts), L) =
       collect_variable_names_all(Ts, L).
   collect_variable_names(variable(VN), L) =
+      return list(VN, L).
+  collect_variable_names(patternvariable(VN), L) =
       return list(VN, L).
   
   ############### misc helpers ##############

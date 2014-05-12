@@ -7,7 +7,7 @@ from tamsin.ast import (
     Program, Module, Production, ProdBranch,
     And, Or, Not, While, Call, Send, Set,
     Using, On, Concat, Fold, Prodref,
-    TermNode, VariableNode, AtomNode, ConstructorNode
+    TermNode, VariableNode, PatternVariableNode, AtomNode, ConstructorNode
 )
 from tamsin.event import EventProducer
 
@@ -18,11 +18,13 @@ class Desugarer(EventProducer):
 
     * Desugaring Fold() nodes.
     * Turning the list of Production() nodes into a linked list.
+    * Turning VariableNode() nodes into PatternVariableNodes in a pattern.
 
     """
     def __init__(self, program, listeners=None):
         self.listeners = listeners
         self.program = program
+        self.pattern = False
 
     def desugar(self, ast):
         if isinstance(ast, Program):
@@ -52,7 +54,10 @@ class Desugarer(EventProducer):
         elif isinstance(ast, Production):
             return Production(ast.name, [self.desugar(x) for x in ast.branches])
         elif isinstance(ast, ProdBranch):
-            return ProdBranch(ast.formals, [], self.desugar(ast.body))
+            self.pattern = True
+            formals = [self.desugar(f) for f in ast.formals]
+            self.pattern = False
+            return ProdBranch(formals, [], self.desugar(ast.body))
         elif isinstance(ast, Or):
             return Or(self.desugar(ast.lhs), self.desugar(ast.rhs))
         elif isinstance(ast, And):
@@ -73,7 +78,14 @@ class Desugarer(EventProducer):
             return While(self.desugar(ast.rule))
         elif isinstance(ast, Concat):
             return Concat(self.desugar(ast.lhs), self.desugar(ast.rhs))
-        elif isinstance(ast, TermNode):
+        elif isinstance(ast, AtomNode):
+            return ast
+        elif isinstance(ast, ConstructorNode):
+            return ConstructorNode(ast.text,
+                                   [self.desugar(x) for x in ast.contents])
+        elif isinstance(ast, VariableNode):
+            if self.pattern:
+                return PatternVariableNode(ast.name)
             return ast
         elif isinstance(ast, Fold):
             under1 = VariableNode('_1')

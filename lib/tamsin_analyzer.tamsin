@@ -9,6 +9,12 @@ tamsin_analyzer {
       return list(DH, DT).
   desugar_all(nil) = 'nil'.
 
+  desugar_pattern_all(list(H,T)) =
+      desugar_pattern(H) → DH &
+      desugar_pattern_all(T) → DT &
+      return list(DH, DT).
+  desugar_pattern_all(nil) = 'nil'.
+
   desugar(program(L)) = desugar_all(L) → DL & return program(DL).
   desugar(module(N, L)) =
       desugar_all(L) → DL &
@@ -18,8 +24,9 @@ tamsin_analyzer {
       desugar_all(PBs) → DPBs &
       return production(N, DPBs).
   desugar(prodbranch(Fs, Ls, B)) =
+      desugar_pattern_all(Fs) → DFs &
       desugar(B) → DB &
-      return prodbranch(Fs, Ls, DB).
+      return prodbranch(DFs, Ls, DB).
   desugar(call(PR, Args)) = return call(PR, Args).
   desugar(or(L, R)) = desugar(L) → DL & desugar(R) → DR & return or(DL, DR).
   desugar(and(L, R)) = desugar(L) → DL & desugar(R) → DR & return and(DL, DR).
@@ -46,6 +53,11 @@ tamsin_analyzer {
                                         list(variable('_1'), nil))))) &
       RET ← call(prodref('$', 'return'), list(variable('_1'), nil)) &
       return and(and(SET, while(and(SEND, ACC))), RET).
+
+  desugar_pattern(atom(T)) = return atom(T).
+  desugar_pattern(constructor(T, Ts)) =
+      desugar_pattern_all(Ts) → DTs & return constructor(T, DTs).
+  desugar_pattern(variable(N)) = return patternvariable(N).
 
   get_tag(atom(T)) = T.
 

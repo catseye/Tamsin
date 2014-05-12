@@ -5,12 +5,11 @@
 
 # Generates a C-language program which, when linked with -ltamsin, has
 # the same (we hope) behaviour as interpreting the input Tamsin program.
-# Does not support `using` or `@` at the moment.
 
 from tamsin.ast import (
     Production, ProdBranch,
     And, Or, Not, While, Call, Send, Set, Concat, Using, On, Prodref,
-    TermNode
+    TermNode, AtomNode, VariableNode, PatternVariableNode, ConstructorNode
 )
 from tamsin.term import Atom, Constructor, Variable
 import tamsin.sysmod
@@ -177,15 +176,15 @@ class Compiler(object):
             self.emit("{")
             self.indent()
             
+            pat_names = []
             for fml_num in xrange(0, len(branch.formals)):
-                self.emit_term(branch.formals[fml_num].to_term(),
-                               "pattern%s" % fml_num, pattern=True)
+                pat_names.append(self.compile_r(branch.formals[fml_num]))
             
             self.emit("if (")
             
             for fml_num in xrange(0, len(branch.formals)):
-                self.emit("    term_match(pattern%s, i%s) &&" %
-                    (fml_num, fml_num)
+                self.emit("    term_match(%s, i%s) &&" %
+                    (pat_names[fml_num], fml_num)
                 )
             self.emit("    1) {")
             self.indent()
@@ -197,8 +196,8 @@ class Compiler(object):
                 formal.to_term().collect_variables(variables)
                 for variable in variables:
                     self.emit('struct term *%s = '
-                              'term_find_variable(pattern%s, "%s");' %
-                        (variable.name, fml_num, variable.name)
+                              'term_find_variable(%s, "%s");' %
+                        (variable.name, pat_names[fml_num], variable.name)
                     )
                     all_pattern_variables.add(variable.name)
             
@@ -330,7 +329,7 @@ class Compiler(object):
             self.emit("{")
             self.indent()
             self.emit_decl_state()
-            self.emit_term(Atom('nil'), 'successful_result')
+            srname = self.compile_r(AtomNode('nil'))
             self.emit("ok = 1;")
             self.emit("while (ok) {")
             self.indent()
@@ -338,13 +337,13 @@ class Compiler(object):
             self.compile_r(ast.rule)
             self.emit("if (ok) {")
             self.indent()
-            self.emit("successful_result = result;")
+            self.emit("%s = result;" % srname)
             self.outdent()
             self.emit("}")
             self.outdent()
             self.emit("}") # endwhile
             self.emit_restore_state()
-            self.emit("result = successful_result;")
+            self.emit("result = %s;" % srname)
             self.emit("ok = 1;")
             self.outdent()
             self.emit("}")
@@ -406,10 +405,33 @@ class Compiler(object):
             self.emit('struct term *%s = term_concat(term_flatten(%s), term_flatten(%s));' %
                 (name, name_lhs, name_rhs)
             )
-            return name;
-        elif isinstance(ast, TermNode):
+            return name
+        elif isinstance(ast, AtomNode):
             name = self.new_name()
-            self.emit_term(ast.to_term(), name);
+            self.emit('struct term *%s = term_new("%s", %s);' %
+                (name, escaped(ast.text), len(ast.text))
+            )
+            return name
+
+        elif isinstance(ast, VariableNode):
+            name = self.new_name()
+            self.emit('struct term *%s = %s;' %
+                (name, ast.name)
+            )
+            return name
+        elif isinstance(ast, PatternVariableNode):
+            name = self.new_name()
+            self.emit('struct term *%s = term_new_variable("%s", %s);' %
+                 (name, ast.name, 'term_new_from_cstring("nil_%s")' % ast.name))
+            return name
+        elif isinstance(ast, ConstructorNode):
+            name = self.new_name()
+            self.emit('struct term *%s = term_new("%s", %s);' %
+                (name, escaped(ast.text), len(ast.text))
+            )
+            for c in reversed(ast.contents):
+                subname = self.compile_r(c)
+                self.emit('term_add_subterm(%s, %s);' % (name, subname))
             return name
         else:
             raise NotImplementedError(repr(ast))
@@ -446,31 +468,6 @@ class Compiler(object):
         self.emit("scanner->size = buffer_size;")
         for local in self.current_branch.locals_:
             self.emit("%s = save_%s;" % (local, local))
-
-    def emit_term(self, term, name, pattern=False):
-        if isinstance(term, Variable):
-            if pattern:
-                self.emit('struct term *%s = term_new_variable("%s", %s);' %
-                    (name, term.name, 'term_new_from_cstring("nil_%s")' % term.name))
-            else:
-                self.emit('struct term *%s = %s;' % (name, term.name))
-        elif isinstance(term, Atom):
-            self.emit('struct term *%s = term_new("%s", %s);' %
-                (name, escaped(term.text), len(term.text))
-            )
-        elif isinstance(term, Constructor):
-            self.emit('struct term *%s = term_new("%s", %s);' %
-                (name, escaped(term.tag), len(term.tag))
-            )
-            i = 0
-            # TODO: reversed() is provisional
-            for subterm in reversed(term.contents):
-                subname = name + str(i)
-                i += 1
-                self.emit_term(subterm, subname, pattern=pattern);
-                self.emit("term_add_subterm(%s, %s);" % (name, subname))
-        else:
-            raise NotImplementedError(repr(term))
 
 
 def escaped(s):

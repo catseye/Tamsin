@@ -1,6 +1,15 @@
 Tamsin Release History
 ======================
 
+0.5-PRE
+-------
+
+### language ###
+
+*   EOF is no longer a special kind of term; it is no longer exposed, as
+    a value, to Tamsin programs.  (`$:eof` returns `''` on success.)
+*   Prolog/Erlang-style list sugar for terms, in patterns as well.
+
 0.4
 ---
 

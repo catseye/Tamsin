@@ -26,6 +26,7 @@ if [ x$1 = x ]; then
    $0 interpreter &&
    $0 compiler &&
    $0 tcompiler &&
+   $0 bootstrap &&
    echo "All tests passed!"
    exit $?
 fi

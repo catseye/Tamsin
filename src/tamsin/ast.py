@@ -361,6 +361,20 @@ class VariableNode(TermNode):
         return Variable(self.name)
 
 
+class PatternVariableNode(TermNode):
+    def __init__(self, name):
+        self.name = name
+
+    def __repr__(self):
+        return u"PatternVariableNode(%r)" % self.name
+
+    def __str__(self):
+        return "patternvariable(%s)" % Atom(self.name).repr()
+
+    def to_term(self):
+        return Variable(self.name)
+
+
 class ConstructorNode(TermNode):
     def __init__(self, text, contents):
         self.text = text
