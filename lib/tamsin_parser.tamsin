@@ -81,6 +81,14 @@ tamsin_parser {
   texpr    = term → T & {"+" & term → S & T ← concat(T, S)} & T.
   term     = term0.
   term0    = variable
+           | "[" & L ← atom(nil) &
+                  [term → T & L ← constructor(list, list(T, list(L, nil))) &
+                  {"," & term → T & L ← constructor(list, list(T, list(L, nil)))}] &
+              Tail ← atom(nil) &
+                  ["|" & term → Tail] &
+              "]" &
+              reverse_c(L, Tail) → L &
+              return L
            | atom → A & L ← nil & ["(" &
                                     term0 → T & L ← list(T, L) &
                                       {"," & term0 → T & L ← list(T, L)} &
@@ -134,4 +142,8 @@ tamsin_parser {
   find_production_global(MN, PN, P) =
       find_module(MN, P) → M & find_production(PN, M).
 
+  reverse_c(constructor(list, list(Fst, list(Snd, nil))), Acc) =
+      Acc ← constructor(list, list(Fst, list(Acc, nil))) &
+      reverse_c(Snd, Acc).
+  reverse_c(Other, Acc) = Acc.
 }

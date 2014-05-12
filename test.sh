@@ -117,7 +117,7 @@ elif [ x$1 = xinterpreter -o x$1 = xi ]; then
     echo "*** Testing Python interpreter..."
     falderal $VERBOSE --substring-error fixture/tamsin.py.markdown $FILES
 elif [ x$1 = xgrammar ]; then
-    test_it $MODE "mains/tamsin-grammar.tamsin" \
+    test_it $MODE "mains/grammar.tamsin" \
                   "lib/tamsin_scanner.tamsin" \
                   "ok" \
                   "bin/tamsin-grammar"

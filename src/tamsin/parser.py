@@ -251,7 +251,25 @@ class Parser(EventProducer):
         return self.term1()
 
     def term1(self):
-        if self.peek()[0].isupper():
+        if self.consume('['):
+            t = AtomNode('nil')
+            if self.consume(']'):
+                return t
+            term = self.term()
+            t = ConstructorNode('list', [term, t])
+            while self.consume(","):
+                term = self.term()
+                t = ConstructorNode('list', [term, t])
+            new = AtomNode('nil')
+            if self.consume('|'):
+                new = self.term()
+            self.expect(']')
+            # reverse, with specified tail
+            while isinstance(t, ConstructorNode):
+                new = ConstructorNode('list', [t.contents[0], new])
+                t = t.contents[1]            
+            return new
+        elif self.peek()[0].isupper():
             return self.variable()
         elif (self.peek()[0].isalnum() or
               self.peek()[0] == "'"):

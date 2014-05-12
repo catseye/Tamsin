@@ -1,10 +1,11 @@
 TODO
 ----
 
-*   PROLOG/ERLANG'S LIST SUGAR.  would be really really nice.
 *   `using` production x: x's scanner defaults to utf8, not x
 *   find different way to match variables in libtamsin, so that
     struct term's can be const all the way down — then share terms
+*   don't consume stdin until asked to scan.  demand_buffer.  per-line loop.
+    or rather, per-inputconsumechunk
 
 ### testing ###
 
@@ -12,6 +13,7 @@ TODO
 *   tests that `'V'` is not a variable
 *   tests for failing when utf8 scanner hits badly-encoded utf8
 *   tests for invalid escape codes
+*   test for mismatched # of formals in prod branches
 
 ### support for simulating machines and vms ###
 
@@ -63,8 +65,6 @@ TODO
     *   `Table ← {} & fields → F@fields(H,T) & Table[H] ← T`
 *   on that topic — production values and/or lambda productions...
 *   pretty-print AST for error messages
-*   don't consume stdin until asked to scan.  demand_buffer.  per-line loop.
-    or rather, per-inputconsumechunk
 
 ### symbol fun ###
 
@@ -91,6 +91,7 @@ TODO
     (implement Bakerloo in Tamsin)
 *   analysis: always_succeeds(Rule)
 *   analysis: may_backtrack(Rule)
+*   analysis: may_consume_input(Rule)
 *   regex-like shortcuts: `\w` for "word", `\s` for "whitespace", etc.
 *   EOF and nil are the same?  it would make sense... call it `end`?
 *   productions with names with arbitrary characters in them.

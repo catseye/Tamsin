@@ -509,6 +509,31 @@ Note also that you can print a constructor.
     = hi(there(I'm(a(constructor))))
     = hi(there(I'm(a(constructor))))
 
+### List sugar ###
+
+In a term context, `[]` is sugar for a list structure.
+
+    | main = return [a, b, c].
+    = list(a, list(b, list(c, nil)))
+
+The tail of the list default to the atom `nil`, but an "improper" list can
+be given using the `|` syntax, like Prolog or Erlang.
+
+    | main = return [a, b | c].
+    = list(a, list(b, c))
+
+An empty list is just `nil`.
+
+    | main = return [].
+    = nil
+
+Only one term may appear after the `|`.
+
+    | main = return [a, b | c, d].
+    ? expected
+
+The list sugar syntax may also be used in match patterns (see far below.)
+
 ### Examples using Terms ###
 
 This program accepts a pair of bits and evaluates to a term, a constructor
@@ -1382,6 +1407,17 @@ parentheses.
     | main = what.
     | what() = "2".
     ? expected
+
+Note that the list sugar syntax can also be used in patterns.
+
+    | main = expr([a, b, c]) & 'ok'.
+    | expr([]) = print 'end'.
+    | expr([H|T]) = print H & expr(T).
+    = a
+    = b
+    = c
+    = end
+    = ok
 
 Advanced Scanning
 -----------------
