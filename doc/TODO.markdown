@@ -87,6 +87,7 @@ TODO
 
 ### wild ideas ###    
 
+*   term-rewriting library; a la Treacle; should make desugarer almost trivial
 *   algebraically cool version of `|`, perhaps as a worked example
     (implement Bakerloo in Tamsin)
 *   analysis: always_succeeds(Rule)

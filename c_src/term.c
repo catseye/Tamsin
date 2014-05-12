@@ -11,7 +11,7 @@
  * buffer overflows.
  */
 
-struct term tamsin_EOF = {"EOF", 3, NULL, NULL};
+struct term tamsin_EOF = {"EOF", 3, 0, NULL, NULL};
 
 struct term *term_new(const char *atom, size_t size) {
     struct term *t;
@@ -22,6 +22,7 @@ struct term *term_new(const char *atom, size_t size) {
     t->size = size;
     t->storing = NULL;
     t->subterms = NULL;
+    t->index = 0;
 
     return t;
 }
@@ -144,9 +145,9 @@ struct term *term_concat(const struct term *lhs, const struct term *rhs) {
     return t;
 }
 
-const struct term BRA = { "(", 1, NULL, NULL };
-const struct term KET = { ")", 1, NULL, NULL };
-const struct term COMMA = { ", ", 2, NULL, NULL };
+const struct term BRA = { "(", 1, 0, NULL, NULL };
+const struct term KET = { ")", 1, 0, NULL, NULL };
+const struct term COMMA = { ", ", 2, 0, NULL, NULL };
 
 struct term *term_flatten(const struct term *t) {
     struct term_list *tl;
@@ -291,6 +292,39 @@ int term_match(struct term *pattern, struct term *ground)
 
     if (pattern->storing != NULL) {
         pattern->storing = ground;
+        return 1;
+    }
+    if (!term_atoms_equal(pattern, ground)) {
+        return 0;
+    }
+    if (pattern->subterms == NULL && ground->subterms == NULL) {
+        return 1;
+    }
+
+    tl1 = pattern->subterms;
+    tl2 = ground->subterms;
+    while (tl1 != NULL && tl2 != NULL) {
+        if (!term_match(tl1->term, tl2->term)) {
+            return 0;
+        }
+        tl1 = tl1->next;
+        tl2 = tl2->next;
+    }
+    if (tl1 != NULL || tl2 != NULL) {
+        return 0;
+    }
+    return 1;
+}
+
+int term_match_unifier(const struct term *pattern, const struct term *ground,
+                       const struct term **variables)
+{
+    struct term_list *tl1, *tl2;
+
+    assert(ground->storing == NULL);
+
+    if (pattern->storing != NULL) {
+        variables[pattern->index] = ground;
         return 1;
     }
     if (!term_atoms_equal(pattern, ground)) {

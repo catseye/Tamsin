@@ -5,7 +5,6 @@
 
 # For even greater justice, this could use:
 #   module-level variable or another parameter(!) -- for indent/outdent (minor)
-#   a format function for emit_format('%s = save_%s;', list(H, list(H, nil)))
 
 # REQUIRES lib/list.tamsin
 # REQUIRES lib/tamsin_scanner.tamsin

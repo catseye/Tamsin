@@ -178,10 +178,14 @@ class Compiler(object):
             
             pat_names = []
             for fml_num in xrange(0, len(branch.formals)):
-                pat_names.append(self.compile_r(branch.formals[fml_num]))
+                formal = branch.formals[fml_num]
+                pat_names.append(self.compile_r(formal))
+                variables = []
+                formal.to_term().collect_variables(variables)
+                # print repr(variables)
             
             self.emit("if (")
-            
+
             for fml_num in xrange(0, len(branch.formals)):
                 self.emit("    term_match(%s, i%s) &&" %
                     (pat_names[fml_num], fml_num)

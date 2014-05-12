@@ -27,6 +27,7 @@
 struct term {
     char *atom;
     size_t size;
+    int index;
     struct term *storing;
     struct term_list *subterms;
 };
@@ -96,7 +97,18 @@ struct term *term_flatten(const struct term *);
 struct term *term_repr(const struct term *);
 
 void term_fput(const struct term *, FILE *);
+
+/*
+ * ...
+ */
 int term_match(struct term *, struct term *);
+
+/*
+ * The third argument is an array of struct term *'s.  It will
+ * be updated with bindings.
+ */
+int term_match_unifier(const struct term *, const struct term *,
+                       const struct term **);
 
 /*
  * This value is never (and should never be) exposed to Tamsin programs!
