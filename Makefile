@@ -34,6 +34,14 @@ bin/tamsin-compiler: c_src/libtamsin.a \
 	$(CC) $(CFLAGS) tmp/foo.c -o $@ -ltamsin
 
 
+bin/bootstrapped-compiler: c_src/libtamsin.a \
+                           bin/tamsin-compiler \
+                           $(TAMSIN_COMPILER_LIBS) \
+                          mains/compiler.tamsin
+	bin/tamsin-compiler $(TAMSIN_COMPILER_LIBS) mains/compiler.tamsin > tmp/foo.c
+	$(CC) $(CFLAGS) tmp/foo.c -o $@ -ltamsin
+
+
 MICRO_TAMSIN_LIBS=lib/list.tamsin lib/tamsin_scanner.tamsin \
                   lib/tamsin_parser.tamsin
 bin/micro-tamsin: c_src/libtamsin.a \

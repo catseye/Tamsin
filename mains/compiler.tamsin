@@ -130,8 +130,8 @@ tamsin_compiler {
       emit_pattern_match_expression(PatNms, FmlNms) &
       emitln('    1) {') &
       indent &
-      emit_matched_variables(AllPatVars) &
-      emit_locals(Ls, AllPatVars) &
+      emit_matched_variables(AllPatVars, nil) → PatVarNames &
+      emit_locals(Ls, PatVarNames) &
       compile_r(P, prodbranch(Fs, Ls, E), Mod, E) &
       emit('return;') &
       outdent &
@@ -465,11 +465,11 @@ tamsin_compiler {
       emit_pattern_match_expression(PatNms, FmlNms).
   
   # get variables which are found in patterns for this branch
-  emit_matched_variables(nil) = 'ok'.
-  emit_matched_variables([patternvariable(N,I)|Vars]) =
+  emit_matched_variables(nil, Acc) = Acc.
+  emit_matched_variables([patternvariable(N,I)|Vars], Acc) =
       emitln_fmt('const struct term *%s = unifier[%s];', [N,I]) &
       emitln_fmt('assert(%s != NULL);', [N]) &
-      emit_matched_variables(Vars).
+      emit_matched_variables(Vars, list(N,Acc)).
 
   emit_locals(nil, Dont) = 'ok'.
   emit_locals(list(H,T), Dont) =
