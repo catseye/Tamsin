@@ -377,9 +377,9 @@ tamsin_compiler {
 
   compile_r(P,B,Mod, patternvariable(VN, I)) =
       $:gensym('pattern') → Nm &
-      emitln_fmt('const struct term *%s = term_new_variable("%s", ' +
-                 'term_new_from_cstring("nil_%s"), %s);', [Nm, VN, VN, I]) &
-      Nm.
+      emitln_fmt('const struct term *%s = term_new_variable("%s", %s);',
+          [Nm, VN, I]
+      ) & Nm.
   
   compile_r(P,B,Mod, constructor(T,Ts)) =
       compile_r(P,B,Mod, atom(T)) → Nm &

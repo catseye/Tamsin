@@ -37,30 +37,6 @@ void termlist_add_term(struct term_list **tl, const struct term *term) {
     *tl = new_tl;
 }
 
-/*
- * Must be a ground term.
- */
-/*
-struct term *term_deep_copy(const struct term *term) {
-    struct term *new_term = term_new(term->atom, term->size);
-    struct term_list *new_tl = NULL, *tl;
-
-    assert(term->storing == NULL);
-
-    for (tl = term->subterms; tl != NULL; tl = tl->next) {
-        struct term *copy = term_deep_copy(tl->term);
-        termlist_add_term(&new_tl, copy);
-    }
-
-    for (tl = new_tl; tl != NULL; tl = tl->next) {
-        term_add_subterm(new_term, tl->term);
-    }
-
-    // termlist_free(new_tl);
-    return new_term;
-}
-*/
-
 struct term *term_new_from_char(char c) {
     char s[2];
 
@@ -74,7 +50,7 @@ struct term *term_new_from_cstring(const char *atom) {
     return term_new(atom, strlen(atom));
 }
 
-struct term *term_new_variable(const char *name, struct term *v, int index) {
+struct term *term_new_variable(const char *name, int index) {
     struct term *t = term_new(name, strlen(name));
 
     t->index = index;
@@ -106,25 +82,6 @@ int term_atom_cstring_equal(const struct term *lhs, const char *string) {
     return memcmp(lhs->atom, string, lhs->size) == 0;
 }
 
-/*
-struct term *term_find_variable(const struct term *t, const char *name) {
-    struct term_list * tl;
-
-    if (t->storing != NULL && term_atom_cstring_equal(t, name)) {
-        return t->storing;
-    }
-    
-    for (tl = t->subterms; tl != NULL; tl = tl->next) {
-        struct term *f = term_find_variable(tl->term, name);
-        if (f != NULL) {
-            return f;
-        }
-    }
-
-    return NULL;
-}
-*/
-
 struct term *term_concat(const struct term *lhs, const struct term *rhs) {
     struct term *t;
     int new_size;
@@ -147,11 +104,11 @@ const struct term BRA = { "(", 1, -1, NULL };
 const struct term KET = { ")", 1, -1, NULL };
 const struct term COMMA = { ", ", 2, -1, NULL };
 
-struct term *term_flatten(const struct term *t) {
+const struct term *term_flatten(const struct term *t) {
     struct term_list *tl;
 
     if (t->subterms == NULL) {  /* it's an atom */
-        return term_new(t->atom, t->size);
+        return t;
     } else {                           /* it's a constructor */
         struct term *n;
         /* we clone t here to get an atom from its tag */
@@ -169,7 +126,7 @@ struct term *term_flatten(const struct term *t) {
 }
 
 void term_fput(const struct term *t, FILE *f) {
-    struct term *flat = term_flatten(t);
+    const struct term *flat = term_flatten(t);
 
     fwrite(flat->atom, 1, flat->size, f);
 }
@@ -210,7 +167,7 @@ int all_bareword(const char *text, size_t size) {
 
 const char *HEX = "0123456789abcdef";
 
-struct term *term_escape_atom(const struct term *t) {
+const struct term *term_escape_atom(const struct term *t) {
     int needed;
     
     if (t->size == 0) {
@@ -246,11 +203,12 @@ struct term *term_escape_atom(const struct term *t) {
 
         return r;
     } else if (all_bareword(t->atom, t->size)) {
+        /* TODO: can we eliminate this copy? */
         return term_new(t->atom, t->size);
     } else {
-        struct term *r;
+        const struct term *r;
 
-        r  = term_new("'", 1);
+        r = term_new("'", 1);
         r = term_concat(r, t);
         r = term_concat(r, term_new("'", 1));
 
@@ -258,7 +216,7 @@ struct term *term_escape_atom(const struct term *t) {
     }
 }
 
-struct term *term_repr(const struct term *t) {
+const struct term *term_repr(const struct term *t) {
     struct term_list *tl;
 
     if (t->subterms == NULL) {  /* it's an atom */
@@ -278,15 +236,13 @@ struct term *term_repr(const struct term *t) {
     }
 }
 
-int term_match(const struct term *pattern, const struct term *ground)
+int term_equal(const struct term *pattern, const struct term *ground)
 {
     struct term_list *tl1, *tl2;
 
+    assert(pattern->index == -1);
     assert(ground->index == -1);
 
-    if (pattern->index != -1) {
-        return 0;  /* this function doesn't match like it used to. */
-    }
     if (!term_atoms_equal(pattern, ground)) {
         return 0;
     }
@@ -297,7 +253,7 @@ int term_match(const struct term *pattern, const struct term *ground)
     tl1 = pattern->subterms;
     tl2 = ground->subterms;
     while (tl1 != NULL && tl2 != NULL) {
-        if (!term_match(tl1->term, tl2->term)) {
+        if (!term_equal(tl1->term, tl2->term)) {
             return 0;
         }
         tl1 = tl1->next;

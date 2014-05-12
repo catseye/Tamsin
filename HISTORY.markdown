@@ -10,6 +10,13 @@ Tamsin Release History
     a value, to Tamsin programs.  (`$:eof` returns `''` on success.)
 *   Prolog/Erlang-style list sugar for terms, in patterns as well.
 
+### implementation ###
+
+*   `struct term *`s are (almost) always `const` in compiled Tamsin
+    programs (for better sharing; we don't need to make copies of them)
+*   related: variable-matching is more efficient (directly updates an array
+    of terms, instead of searching for the variable by name)
+
 0.4
 ---
 

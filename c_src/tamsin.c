@@ -115,8 +115,8 @@ void tamsin_startswith(struct scanner *s, const char *str) {
     }
 }
 
-struct term *tamsin_unquote(const struct term *q,
-                            const struct term *l, const struct term *r) {
+const struct term *tamsin_unquote(const struct term *q,
+                                  const struct term *l, const struct term *r) {
     if (q->size < 1 || l->size != 1 || r->size != 1) {
         struct term *result = term_new_from_cstring("bad terms for unquote");
         ok = 0;
@@ -140,8 +140,8 @@ struct term *tamsin_unquote(const struct term *q,
     }
 }
 
-struct term *tamsin_equal(struct term *l, struct term *r) {
-    if (term_match(l, r)) {
+const struct term *tamsin_equal(const struct term *l, const struct term *r) {
+    if (term_equal(l, r)) {
         ok = 1;
         return l;
     } else {
@@ -167,14 +167,15 @@ void tamsin_mkterm_r(struct term *t, const struct term *list) {
     }
 }
 
-struct term *tamsin_mkterm(const struct term *atom, const struct term *list) {
+const struct term *tamsin_mkterm(const struct term *atom,
+                                 const struct term *list) {
     struct term *t = term_new(atom->atom, atom->size);
     tamsin_mkterm_r(t, list);
     return t;
 }
 
-struct term *tamsin_reverse(const struct term *list, struct term *sentinel) {
-    struct term *result = sentinel;
+const struct term *tamsin_reverse(const struct term *list, const struct term *sentinel) {
+    const struct term *res = sentinel;
     const struct term *head = list;  /* save */
 
     while (list->subterms != NULL && term_atoms_equal(list, head)) {
@@ -183,30 +184,30 @@ struct term *tamsin_reverse(const struct term *list, struct term *sentinel) {
         /*term_fput(list, stderr);
         fprintf(stderr, "\n");*/
 
-        term_add_subterm(new, result);
+        term_add_subterm(new, res);
         term_add_subterm(new, list->subterms->term);
-        result = new;
+        res = new;
         if (list->subterms->next == NULL) {
             break;
         }
         list = list->subterms->next->term;
     }
 
-    if (term_match(list, sentinel)) {
+    if (term_equal(list, sentinel)) {
         ok = 1;
-        return result;
+        return res;
     } else {
-        struct term *result = term_new_from_cstring("malformed list ");
-        result = term_concat(result, term_flatten(head));
+        res = term_new_from_cstring("malformed list ");
+        res = term_concat(res, term_flatten(head));
         ok = 0;
-        return result;
+        return res;
     }
 }
 
 static int counter = 0;
 static char buffer[80];
-struct term *tamsin_gensym(struct term *base) {
-    struct term *t = term_flatten(base);
+const struct term *tamsin_gensym(const struct term *base) {
+    const struct term *t = term_flatten(base);
 
     counter++;
     /* snprintf(buffer, 79, "%d", counter); */
@@ -224,9 +225,9 @@ int hexdigit_to_int(char hd) {
     return 0;
 }
 
-struct term *tamsin_hexbyte(struct term *high, struct term *low) {
-    struct term *h = term_flatten(high);
-    struct term *l = term_flatten(low);
+const struct term *tamsin_hexbyte(const struct term *high, const struct term *low) {
+    const struct term *h = term_flatten(high);
+    const struct term *l = term_flatten(low);
     int hi, lo;
     
     assert(h->size > 0);
@@ -239,8 +240,8 @@ struct term *tamsin_hexbyte(struct term *high, struct term *low) {
 }
 
 /* uses same buffer as gensym because to do otherwise would be less awesome */
-struct term *tamsin_format_octal(struct term *chr) {
-    struct term *t = term_flatten(chr);
+const struct term *tamsin_format_octal(const struct term *chr) {
+    const struct term *t = term_flatten(chr);
 
     assert(t->size > 0);
 
@@ -251,7 +252,7 @@ struct term *tamsin_format_octal(struct term *chr) {
 }
 
 /* uses same buffer as gensym because to do otherwise would be less awesome */
-struct term *tamsin_length(struct term *t) {
+const struct term *tamsin_length(const struct term *t) {
     t = term_flatten(t);
 
     /* snprintf(buffer, 79, "%lu", t->size); */

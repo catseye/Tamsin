@@ -45,7 +45,7 @@ struct term *term_new(const char *, size_t);
 struct term *term_new_from_cstring(const char *);
 struct term *term_new_from_char(char c);
 
-struct term *term_new_variable(const char *, struct term *, int);
+struct term *term_new_variable(const char *, int);
 
 /*
 struct term *term_deep_copy(const struct term *);
@@ -84,24 +84,24 @@ struct term *term_concat(const struct term *, const struct term *);
  * Given a possibly non-atom term, return an atom consisting of
  * contents of the given term flattened into an atom.
  *
- * The returned term is always newly allocated.
+ * The returned term is NOT always newly allocated.
  */
-struct term *term_flatten(const struct term *);
+const struct term *term_flatten(const struct term *);
 
 /*
  * Given a possibly non-atom term, return an atom consisting of
  * contents of the given term reprified into an atom.
  *
- * The returned term is always newly allocated.
+ * The returned term is NOT always newly allocated.
  */
-struct term *term_repr(const struct term *);
+const struct term *term_repr(const struct term *);
 
 void term_fput(const struct term *, FILE *);
 
 /*
- * ...
+ * Both terms must be ground.
  */
-int term_match(const struct term *, const struct term *);
+int term_equal(const struct term *, const struct term *);
 
 /*
  * The third argument is an array of struct term *'s.  It will
@@ -149,15 +149,15 @@ void tamsin_expect(struct scanner *, const struct term *);
 void tamsin_alnum(struct scanner *);
 void tamsin_upper(struct scanner *);
 void tamsin_startswith(struct scanner *, const char *);
-struct term *tamsin_unquote(const struct term *,
-                            const struct term *, const struct term *);
-struct term *tamsin_mkterm(const struct term *, const struct term *);
-struct term *tamsin_equal(struct term *, struct term *);
-struct term *tamsin_reverse(const struct term *, struct term *);
-struct term *tamsin_gensym(struct term *);
-struct term *tamsin_hexbyte(struct term *, struct term *);
-struct term *tamsin_format_octal(struct term *);
-struct term *tamsin_length(struct term *);
+const struct term *tamsin_unquote(const struct term *,
+                                  const struct term *, const struct term *);
+const struct term *tamsin_mkterm(const struct term *, const struct term *);
+const struct term *tamsin_equal(const struct term *, const struct term *);
+const struct term *tamsin_reverse(const struct term *, const struct term *);
+const struct term *tamsin_gensym(const struct term *);
+const struct term *tamsin_hexbyte(const struct term *, const struct term *);
+const struct term *tamsin_format_octal(const struct term *);
+const struct term *tamsin_length(const struct term *);
 
 int tamsin_isalpha(char);
 int tamsin_isupper(char);

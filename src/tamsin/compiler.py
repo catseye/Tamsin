@@ -429,9 +429,9 @@ class Compiler(object):
             return name
         elif isinstance(ast, PatternVariableNode):
             name = self.new_name()
-            self.emit('const struct term *%s = term_new_variable("%s", %s, %s);' %
-                 (name, ast.name, 'term_new_from_cstring("nil_%s")' % ast.name,
-                  ast.index))
+            self.emit('const struct term *%s = term_new_variable("%s", %s);' %
+                 (name, ast.name, ast.index)
+            )
             return name
         elif isinstance(ast, ConstructorNode):
             name = self.new_name()
