@@ -145,10 +145,12 @@ elif [ x$1 = xanalyzer ]; then
                   "./bin/tamsin analyze" \
                   "bin/tamsin-analyzer"
 elif [ x$1 = xtcompiler ]; then
+    make bin/tamsin-compiler
     echo "*** Testing Tamsin-in-Tamsin compiler..."
     falderal $VERBOSE --substring-error fixture/compiler.tamsin.markdown $FILES
 elif [ x$1 = xbootstrap ]; then
     echo "*** Compiling Bootstrapped Tamsin-in-Tamsin compiler..."
+    make bin/tamsin-compiler
     bin/tamsin-compiler lib/list.tamsin lib/tamsin_scanner.tamsin \
                         lib/tamsin_parser.tamsin lib/tamsin_analyzer.tamsin \
                         mains/compiler.tamsin > tmp/foo.c && \
