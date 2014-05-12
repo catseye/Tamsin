@@ -11,24 +11,20 @@
 /* -------------------------------------------------------- terms */
 
 /*
- * If `subterms` and `storing` are both NULL, this is an atom.
+ * If `subterms` is NULL and `index` == -1, this is an atom.
  * 
  * If `subterms` is non-NULL, this is a constructor.
  *
- * If `storing` field is non-NULL, this is a variable.
- * `storing` will point to a pointer to another term, which is the current
- * binding of this variable.  This other term may be a local variable in a C
- * function.  This will be used during expansion and pattern matching.
+ * If `index` >= 0, this is a variable.
  *
- * It is not a legal term if both `storing` and `subterms` are non-NULL.
+ * It is not a legal term if both `subterms` is non-NULL and `index` >= 0.
  *
  * In all cases, atom should not be NULL.
  */
 struct term {
-    char *atom;
+    const char *atom;
     size_t size;
     int index;
-    struct term *storing;
     struct term_list *subterms;
 };
 
@@ -51,7 +47,9 @@ struct term *term_new_from_char(char c);
 
 struct term *term_new_variable(const char *, struct term *, int);
 
+/*
 struct term *term_deep_copy(const struct term *);
+*/
 
 /*
  * Modifies the given term.
@@ -72,7 +70,9 @@ int term_atom_cstring_equal(const struct term *, const char *);
  * Given the name of a variable, return the variable term of the
  * same name that is leftmost, uppermost in the given term.
  */
+/*
 struct term *term_find_variable(const struct term *, const char *);
+*/
 
 /*
  * Given two "atom" terms, return a new "atom" term consisting of the

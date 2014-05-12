@@ -11,18 +11,19 @@
  * buffer overflows.
  */
 
-struct term tamsin_EOF = {"EOF", 3, 0, NULL, NULL};
-
+struct term tamsin_EOF = {"EOF", 3, -1, NULL};
+ 
 struct term *term_new(const char *atom, size_t size) {
     struct term *t;
+    char *text;
 
     t = malloc(sizeof(struct term));
-    t->atom = malloc(size);
-    memcpy(t->atom, atom, size);
+    text = malloc(size);
+    memcpy(text, atom, size);
+    t->atom = text;
     t->size = size;
-    t->storing = NULL;
+    t->index = -1;
     t->subterms = NULL;
-    t->index = 0;
 
     return t;
 }
@@ -39,6 +40,7 @@ void termlist_add_term(struct term_list **tl, struct term *term) {
 /*
  * Must be a ground term.
  */
+/*
 struct term *term_deep_copy(const struct term *term) {
     struct term *new_term = term_new(term->atom, term->size);
     struct term_list *new_tl = NULL, *tl;
@@ -54,9 +56,10 @@ struct term *term_deep_copy(const struct term *term) {
         term_add_subterm(new_term, tl->term);
     }
 
-    /* termlist_free(new_tl); */
+    // termlist_free(new_tl);
     return new_term;
 }
+*/
 
 struct term *term_new_from_char(char c) {
     char s[2];
@@ -74,7 +77,6 @@ struct term *term_new_from_cstring(const char *atom) {
 struct term *term_new_variable(const char *name, struct term *v, int index) {
     struct term *t = term_new(name, strlen(name));
 
-    t->storing = v;
     t->index = index;
 
     return t;
@@ -83,7 +85,7 @@ struct term *term_new_variable(const char *name, struct term *v, int index) {
 void term_add_subterm(struct term *term, struct term *subterm) {
     struct term_list *tl;
 
-    assert(term->storing == NULL);
+    assert(term->index == -1);
     tl = malloc(sizeof(struct term_list));
     tl->term = subterm;
     tl->next = term->subterms;
@@ -104,6 +106,7 @@ int term_atom_cstring_equal(const struct term *lhs, const char *string) {
     return memcmp(lhs->atom, string, lhs->size) == 0;
 }
 
+/*
 struct term *term_find_variable(const struct term *t, const char *name) {
     struct term_list * tl;
 
@@ -120,6 +123,7 @@ struct term *term_find_variable(const struct term *t, const char *name) {
 
     return NULL;
 }
+*/
 
 struct term *term_concat(const struct term *lhs, const struct term *rhs) {
     struct term *t;
@@ -139,9 +143,9 @@ struct term *term_concat(const struct term *lhs, const struct term *rhs) {
     return t;
 }
 
-const struct term BRA = { "(", 1, 0, NULL, NULL };
-const struct term KET = { ")", 1, 0, NULL, NULL };
-const struct term COMMA = { ", ", 2, 0, NULL, NULL };
+const struct term BRA = { "(", 1, -1, NULL };
+const struct term KET = { ")", 1, -1, NULL };
+const struct term COMMA = { ", ", 2, -1, NULL };
 
 struct term *term_flatten(const struct term *t) {
     struct term_list *tl;
@@ -278,11 +282,10 @@ int term_match(struct term *pattern, struct term *ground)
 {
     struct term_list *tl1, *tl2;
 
-    assert(ground->storing == NULL);
+    assert(ground->index == -1);
 
-    if (pattern->storing != NULL) {
-        pattern->storing = ground;
-        return 1;
+    if (pattern->index != -1) {
+        return 0;  /* this function doesn't match like it used to. */
     }
     if (!term_atoms_equal(pattern, ground)) {
         return 0;
@@ -311,9 +314,7 @@ int term_match_unifier(const struct term *pattern, const struct term *ground,
 {
     struct term_list *tl1, *tl2;
 
-    assert(ground->storing == NULL);
-
-    if (pattern->storing != NULL) {
+    if (pattern->index >= 0) {
         variables[pattern->index] = ground;
         return 1;
     }

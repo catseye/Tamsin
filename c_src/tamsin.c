@@ -5,7 +5,7 @@
 
 #include "tamsin.h"
 
-struct term APOS = {"'", 1, 0, NULL, NULL};
+struct term APOS = {"'", 1, -1, NULL};
 
 int tamsin_isupper(char c) {
     return (c >= 'A' && c <= 'Z');
