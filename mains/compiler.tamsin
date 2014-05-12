@@ -19,677 +19,677 @@ main = tamsin_parser:parse → AST & tamsin_scanner:skippable & eof &
 
 tamsin_compiler {
 
-prelude = $:emit('
-/*
- * Generated code!  Edit at your own risk!
- * Must be linked with -ltamsin to build.
- */
-#include <tamsin.h>
-
-/* global scanner */
-
-struct scanner * scanner;
-
-/* global state: result of last action */
-
-int ok;
-struct term *result;
-').
-
-postlude = $:emit('
-struct term *bufterm = NULL;
-
-int read_file(FILE *input) {
-    char *buffer = malloc(8193);
-
-    assert(input != NULL);
-
-    while (!feof(input)) {
-        int num_read = fread(buffer, 1, 8192, input);
-        if (bufterm == NULL) {
-            bufterm = term_new(buffer, num_read);
-        } else {
-            bufterm = term_concat(bufterm, term_new(buffer, num_read));
-        }
-    }
-
-    free(buffer);
-}
-
-int main(int argc, char **argv) {
-
-    if (argc == 1) {
-        read_file(stdin);
-    } else {
-        int i;
-
-        for (i = 1; i < argc; i++) {
-            FILE *input = fopen(argv[i], "r");
-            read_file(input);
-            fclose(input);
-        }
-    }
-
-    scanner = scanner_new(bufterm->atom, bufterm->size);
-    ok = 0;
-    result = term_new_from_cstring("nil");
-
-    prod_main_main();
-
-    if (ok) {
-        term_fput(result, stdout);
-        fwrite("\\n", 1, 1, stdout);
-        exit(0);
-    } else {
-        term_fput(result, stderr);
-        fwrite("\\n", 1, 1, stderr);
-        exit(1);
-    }
-}
-').
-
-emitln(X) = $:emit(X) & $:emit('\n').
-emit(X) = $:emit(X).
-indent = 'ok'.
-outdent = 'ok'.
-
-compile(program(Ms)) =
-    prelude &
-    emit_prototypes(nil, Ms) &
-    compile_all(program(Ms), nil, 'temp', Ms) &
-    postlude &
-    ''.
-
-# P is the current program()
-# B is the current prodbranch()
-# Nm (or Mod) is the current module name
-# Returns the name of where the latest result is stored, or nil.
-
-compile_all(P,B,Mod, nil) = 'nil'.
-compile_all(P,B,Mod, list(H,T)) =
-    compile_r(P,B,Mod, H) & compile_all(P,B,Mod, T).
-
-compile_branches(P,B,Mod,FmlNms, nil) = 'nil'.
-compile_branches(P,B,Mod,FmlNms, list(H,T)) =
-    compile_branch(P,B,Mod,FmlNms, H) & compile_branches(P,B,Mod,FmlNms, T).
-
-compile_branch(P,B,Mod,FmlNms, prodbranch(Fs, Ls, E)) =
-    emitln('{') &
-    indent &
-    emit_formal_match_patterns(FmlNms, Fs, nil) → PatNms &
-    emitln('if (') &
-    emit_pattern_match_expression(PatNms, FmlNms) &
-    emitln('    1) {') &
-    indent &
-    emit_matched_variables(Fs, PatNms, nil) → VarNms &
-    emit_locals(Ls, VarNms) &
-    compile_r(P, prodbranch(Fs, Ls, E), Mod, E) &
-    emit('return;') &
-    outdent &
-    emitln('}') &
-    outdent &
-    emitln('}').
-
-compile_r(P,B,Mod, module(N, Ps)) =
-    compile_all(P,B,N, Ps).
-
-compile_r(P,B,Mod, production(N, Bs)) =
-    emit('void prod_') &
-    emit(Mod) &
-    emit('_') &
-    emit(N) &
-    emit('(') &
-    make_formals_names(Bs) → FmlNms &
-    emit_formals(FmlNms) &
-    emitln(') {') &
-    indent &
-    compile_branches(P,B,Mod,FmlNms, Bs) &
-    emit('result = term_new_from_cstring("No \'') &
-    emit(N) &
-    emitln('\' production matched arguments");') &
-    emitln('ok = 0;') &
-    outdent &
-    emitln('}').
-
-compile_r(P,B,Mod, call(prodref('$', 'expect'), list(T, nil))) =
-    compile_r(P,B,Mod, T) → TNm &
-    emit('tamsin_expect(scanner, ') &
-    emit(TNm) &
-    emitln(');').
-
-compile_r(P,B,Mod, call(prodref('$', 'return'), list(T, nil))) =
-    compile_r(P,B,Mod, T) → TNm &
-    emit('result = ') &
-    emit(TNm) &
-    emitln(';') &
-    emitln('ok = 1;').
-
-compile_r(P,B,Mod, call(prodref('$', 'fail'), list(T, nil))) =
-    compile_r(P,B,Mod, T) → TNm &
-    emit('result = ') &
-    emit(TNm) &
-    emitln(';') &
-    emitln('ok = 0;').
-
-compile_r(P,B,Mod, call(prodref('$', 'print'), list(T, nil))) =
-    compile_r(P,B,Mod, T) → TNm &
-    emit('result = ') &
-    emit(TNm) &
-    emitln(';') &
-    emitln('term_fput(result, stdout);') &
-    emitln('fprintf(stdout, "\\n");') &
-    emitln('ok = 1;').
-
-compile_r(P,B,Mod, call(prodref('$', 'emit'), list(T, nil))) =
-    compile_r(P,B,Mod, T) → TNm &
-    emit('result = ') &
-    emit(TNm) &
-    emitln(';') &
-    emitln('term_fput(result, stdout);') &
-    emitln('ok = 1;').
-
-compile_r(P,B,Mod, call(prodref('$', 'gensym'), list(T, nil))) =
-    compile_r(P,B,Mod, T) → TNm &
-    emit('result = tamsin_gensym(') &
-    emit(TNm) &
-    emitln(');') &
-    emitln('ok = 1;').
-
-compile_r(P,B,Mod, call(prodref('$', 'repr'), list(T, nil))) =
-    compile_r(P,B,Mod, T) → TNm &
-    emit('result = term_repr(') &
-    emit(TNm) &
-    emitln(');') &
-    emitln('ok = 1;').
-
-compile_r(P,B,Mod, call(prodref('$', 'eof'), nil)) =
-    emitln('tamsin_eof(scanner);').
-compile_r(P,B,Mod, call(prodref('$', 'any'), nil)) =
-    emitln('tamsin_any(scanner);').
-compile_r(P,B,Mod, call(prodref('$', 'alnum'), nil)) =
-    emitln('tamsin_alnum(scanner);').
-compile_r(P,B,Mod, call(prodref('$', 'upper'), nil)) =
-    emitln('tamsin_upper(scanner);').
-compile_r(P,B,Mod, call(prodref('$', 'startswith'), list(T, nil))) =
-    compile_r(P,B,Mod, T) → TNm &
-    emit('tamsin_startswith(scanner, ') &
-    emit(TNm) &
-    emitln('->atom);').
-compile_r(P,B,Mod, call(prodref('$', 'mkterm'), list(T, list(L, nil)))) =
-    compile_r(P,B,Mod, T) → TNm &
-    compile_r(P,B,Mod, L) → LNm &
-    emit('result = tamsin_mkterm(') &
-    emit(TNm) &
-    emit(', ') &
-    emit(LNm) &
-    emitln(');') &
-    emitln('ok = 1;').
-compile_r(P,B,Mod, call(prodref('$', 'unquote'), list(T, list(L, list(R, nil))))) =
-    compile_r(P,B,Mod, T) → TNm &
-    compile_r(P,B,Mod, L) → LNm &
-    compile_r(P,B,Mod, R) → RNm &
-    emit('result = tamsin_unquote(') &
-    emit(TNm) &
-    emit(', ') &
-    emit(LNm) &
-    emit(', ') &
-    emit(RNm) &
-    emitln(');').
-
-compile_r(P,B,Mod, call(prodref('$', 'equal'), list(L, list(R, nil)))) =
-    compile_r(P,B,Mod, L) → LNm &
-    compile_r(P,B,Mod, R) → RNm &
-    emit('result = tamsin_equal(') &
-    emit(LNm) &
-    emit(', ') &
-    emit(RNm) &
-    emitln(');').
-
-compile_r(P,B,Mod, call(prodref('$', 'reverse'), list(L, list(R, nil)))) =
-    compile_r(P,B,Mod, L) → LNm &
-    compile_r(P,B,Mod, R) → RNm &
-    emit('result = tamsin_reverse(') &
-    emit(LNm) &
-    emit(', ') &
-    emit(RNm) &
-    emitln(');').
-
-compile_r(P,B,Mod, call(prodref('$', 'hexbyte'), list(L, list(R, nil)))) =
-    compile_r(P,B,Mod, L) → LNm &
-    compile_r(P,B,Mod, R) → RNm &
-    emit('result = tamsin_hexbyte(') &
-    emit(LNm) &
-    emit(', ') &
-    emit(RNm) &
-    emitln(');') &
-    emitln('ok = 1;').
-
-compile_r(P,B,Mod, call(prodref('$', 'format_octal'), list(T, nil))) =
-    compile_r(P,B,Mod, T) → TNm &
-    emit('result = tamsin_format_octal(') &
-    emit(TNm) &
-    emitln(');') &
-    emitln('ok = 1;').
-
-compile_r(P,B,Mod, call(prodref('$', 'length'), list(T, nil))) =
-    compile_r(P,B,Mod, T) → TNm &
-    emit('result = tamsin_length(') &
-    emit(TNm) &
-    emitln(');') &
-    emitln('ok = 1;').
-
-compile_r(P,B,Mod, call(prodref(M, N), A)) =
-    emit_arguments(P,B,Mod, A, nil) → ArgNms &
-    emit('prod_') &
-    emit(M) &
-    emit('_') &
-    emit(N) &
-    emit('(') &
-    emit_arguments_call(ArgNms) &
-    emitln(');').
-
-compile_r(P,B,Mod, and(L, R)) =
-    compile_r(P,B,Mod, L) &
-    emitln('if (ok) {') &
-    indent &
-    compile_r(P,B,Mod, R) &
-    outdent &
-    emitln('}').
-
-compile_r(P,B,Mod, or(L, R)) =
-    emitln('{') &
-    indent &
-    emit_decl_state(B) &
-    emit_save_state(B) &
-    compile_r(P,B,Mod, L) &
-    emitln('if (!ok) {') &
-    indent &
-    emit_restore_state(B) &
-    compile_r(P,B,Mod, R) &
-    outdent &
-    emitln('}') &
-    outdent &
-    emitln('}').
-
-compile_r(P,B,Mod, not(R)) =
-    emitln('{') &
-    indent &
-    emit_decl_state(B) &
-    emit_save_state(B) &
-    compile_r(P,B,Mod, R) &
-    emit_restore_state(B) &
-    emitln('if (ok) {') &
-    indent &
-    emitln('ok = 0;') &
-    emitln('result = term_new_from_cstring("expected anything except");') &
-    outdent &
-    emitln('} else {') &
-    indent &
-    emitln('ok = 1;') &
-    emitln('result = term_new_from_cstring("nil");') &
-    outdent &
-    emitln('}') &
-    outdent &
-    emitln('}').
-
-compile_r(P,B,Mod, send(R, variable(VN))) =
-    compile_r(P,B,Mod, R) &
-    emit(VN) &
-    emitln(' = result;').
-
-compile_r(P,B,Mod, set(variable(VN), T)) =
-    compile_r(P,B,Mod, T) → Nm &
-    emit('result = ') &
-    emit(Nm) &
-    emitln(';') &
-    emit(VN) &
-    emitln(' = result;') &
-    emitln('ok = 1;').
-
-compile_r(P,B,Mod, while(R)) =
-    emitln('{') &
-    indent &
-    emit_decl_state(B) &
-    compile_r(P,B,Mod, atom(nil)) → SRNm &   # 'successful_result'
-    emitln('ok = 1;') &
-    emitln('while (ok) {') &
-    indent &
-    emit_save_state(B) &
-    compile_r(P,B,Mod, R) &
-    emitln('if (ok) {') &
-    indent &
-    emit(SRNm) &
-    emitln(' = result;') &
-    outdent &
-    emitln('}') &
-    outdent &
-    emitln('}') &     # endwhile
-    emit_restore_state(B) &
-    emit('result = ') &
-    emit(SRNm) &
-    emitln(';') &
-    emitln('ok = 1;') &
-    outdent &
-    emitln('}').
-
-compile_r(P,B,Mod, on(R, T)) =
-    emitln('{') &
-    indent &
-    compile_r(P,B,Mod, T) → Nm &
-    $:gensym('flat') → FlatNm &
-    emit('struct term *') &
-    emit(FlatNm) &
-    emit(' = term_flatten(') &
-    emit(Nm) &
-    emitln(');') &
-    emit_decl_state(B) &
-    emit_save_state(B) &
-    emit('scanner->buffer = ') &
-    emit(FlatNm) &
-    emitln('->atom;') &
-    emit('scanner->size = ') &
-    emit(FlatNm) &
-    emitln('->size;') &
-    emitln('scanner->position = 0;') &
-    emitln('scanner->reset_position = 0;') &
-    compile_r(P,B,Mod, R) &
-    emit_restore_state(B) &
-    outdent &
-    emitln('}').
-
-compile_r(P,B,Mod, using(R, prodref('$', 'utf8'))) =
-    emitln('scanner_push_engine(scanner, &scanner_utf8_engine);') &
-    compile_r(P,B,Mod, R) &
-    emitln('scanner_pop_engine(scanner);').
-compile_r(P,B,Mod, using(R, prodref('$', 'byte'))) =
-    emitln('scanner_push_engine(scanner, &scanner_byte_engine);') &
-    compile_r(P,B,Mod, R) &
-    emitln('scanner_pop_engine(scanner);').
-compile_r(P,B,Mod, using(R, prodref(SMNm, SPNm))) =
-    emit('scanner_push_engine(scanner, &prod_') &
-    emit(SMNm) &
-    emit('_') &
-    emit(SPNm) &
-    emitln(');') &
-    compile_r(P,B,Mod, R) &
-    emitln('scanner_pop_engine(scanner);').
-
-compile_r(P,B,Mod, concat(L, R)) =
-    compile_r(P,B,Mod, L) → NmL &
-    compile_r(P,B,Mod, R) → NmR &
-    $:gensym('temp') → Nm &
-    emit('struct term *') &
-    emit(Nm) &
-    emit(' = term_concat(term_flatten(') &
-    emit(NmL) &
-    emit('), term_flatten(') &
-    emit(NmR) &
-    emitln('));') &
-    Nm.
-
-compile_r(P,B,Mod, atom(T)) =
-    emit('struct term *') &
-    $:gensym('temp') → Nm &
-    emit(Nm) &
-    emit(' = term_new("') &
-    $:length(T) → Len &
-    escaped(T) → T &
-    emit(T) &
-    emit('", ') &
-    emit(Len) &
-    emitln(');') &
-    Nm.
-
-# TODO: this is only one way to compile a variable; there are others
-compile_r(P,B,Mod, variable(VN)) =
-    emit('struct term *') &
-    $:gensym('temp') → Nm &
-    emit(Nm) &
-    emit(' = ') &
-    emit(VN) &
-    emitln(';') &
-    Nm.
-
-compile_r(P,B,Mod, constructor(T,Ts)) =
-    emit('struct term *') &
-    $:gensym('temp') → Nm &
-    emit(Nm) &
-    emit(' = term_new_from_cstring("') &
-    escaped(T) → T &
-    emit(T) &
-    emitln('");') &
-    list:reverse(Ts, nil) → Ts &
-    emit_subterms(P,B,Nm, Nm, Ts) &
-    Nm.
-
-emit_subterms(P,B,Mod, ON, nil) = 'ok'.
-emit_subterms(P,B,Mod, ON, list(H,T)) =
-    compile_r(P,B,Mod, H) → Nm &
-    emit('term_add_subterm(') &
-    emit(ON) &
-    emit(', ') &
-    emit(Nm) &
-    emitln(');') &
-    emit_subterms(P,B,Mod, ON, T).
-
-############### emitting pattern terms ###############
-
-# should be like compile_r(term), except variables are different
-
-emit_pattern(atom(T)) =
-    emit('struct term *') &
-    $:gensym('pattern') → Nm &
-    emit(Nm) &
-    emit(' = term_new_from_cstring("') &
-    escaped(T) → T &
-    emit(T) &
-    emitln('");') &
-    Nm.
-
-emit_pattern(variable(VN)) =
-    emit('struct term *') &
-    $:gensym('pattern') → Nm &
-    emit(Nm) &
-    emit(' = term_new_variable("') &
-    emit(VN) &
-    emit('", term_new_from_cstring("nil_') &
-    emit(VN) &
-    emitln('"));') &
-    Nm.
-
-emit_pattern(constructor(T,Ts)) =
-    emit('struct term *') &
-    $:gensym('pattern') → Nm &
-    emit(Nm) &
-    emit(' = term_new_from_cstring("') &
-    escaped(T) → T &
-    emit(T) &
-    emitln('");') &
-    list:reverse(Ts, nil) → Ts &
-    emit_pattern_subterms(Nm, Ts) &
-    Nm.
-
-emit_pattern_subterms(ON, nil) = 'ok'.
-emit_pattern_subterms(ON, list(H,T)) =
-    emit_pattern(H) → Nm &
-    emit('term_add_subterm(') &
-    emit(ON) &
-    emit(', ') &
-    emit(Nm) &
-    emitln(');') &
-    emit_pattern_subterms(ON, T).
-
-########### finding variables in patterns ###########
-
-collect_variable_names_all(nil, L) = L.
-collect_variable_names_all(list(H, T), L) =
-    collect_variable_names(H, L) → L &
-    collect_variable_names_all(T, L).
-
-collect_variable_names(atom(T), L) = L.
-collect_variable_names(constructor(T, Ts), L) =
-    collect_variable_names_all(Ts, L).
-collect_variable_names(variable(VN), L) =
-    return list(VN, L).
-
-############### misc helpers ##############
-
-emit_prototypes(Mod, nil) = 'ok'.
-emit_prototypes(Mod, list(production(N, Bs), Tail)) =
-    emit('void prod_') &
-    emit(Mod) &
-    emit('_') &
-    emit(N) &
-    emitln('();') &
-    emit_prototypes(Mod, Tail).
-
-emit_prototypes(Mod, list(module(N, Ps), Tail)) =
-    emit_prototypes(N, Ps) &
-    emit_prototypes(Mod, Tail).
-
-make_formals_names(list(prodbranch(Fs, Ls, E), Tail)) = make_fmlnms(Fs, nil).
-
-make_fmlnms(nil, Nms) = list:reverse(Nms, nil).
-make_fmlnms(list(H,T), Nms) =
-    $:gensym('formal') → Nm &
-    Nms ← list(Nm, Nms) &
-    make_fmlnms(T, Nms).
-
-emit_formals(nil) = 'ok'.
-emit_formals(list(H,nil)) =
-    emit('struct term *') &
-    emit(H).
-emit_formals(list(H,T)) =
-    emit('struct term *') &
-    emit(H) &
-    emit(', ') &
-    emit_formals(T).
-
-emit_formal_match_patterns(nil, nil, PatNms) = list:reverse(PatNms, nil).
-emit_formal_match_patterns(list(Nm, Nms), list(F, Fs), PatNms) =
-    emit_pattern(F) → PatNm &
-    PatNms ← list(PatNm, PatNms) &
-    emit_formal_match_patterns(Nms, Fs, PatNms).
-
-emit_pattern_match_expression(nil, nil) = 'ok'.
-emit_pattern_match_expression(list(PatNm, PatNms), list(FmlNm, FmlNms)) =
-    emit('    term_match(') &
-    emit(PatNm) &
-    emit(', ') &
-    emit(FmlNm) &
-    emitln(') &&') &
-    emit_pattern_match_expression(PatNms, FmlNms).
-
-# declare and get variables which are found in patterns for this branch
-emit_matched_variables(nil, nil, Acc) = Acc.
-emit_matched_variables(list(F, Fs), list(PatNm, PatNms), Acc) =
-    collect_variable_names(F, nil) → VarNms &
-    list:reverse(VarNms, nil) → VarNms &
-    emit_assign_matched_variables(PatNm, VarNms) &
-    list:append(Acc, VarNms) → Acc &
-    emit_matched_variables(Fs, PatNms, Acc).
-
-emit_assign_matched_variables(PatNm, nil) = 'ok'.
-emit_assign_matched_variables(PatNm, list(VN, T)) =
-    emit('struct term *') &
-    emit(VN) &
-    emit(' = term_find_variable(') &
-    emit(PatNm) &
-    emit(', "') &
-    emit(VN) &
-    emitln('");') &
-    emit_assign_matched_variables(PatNm, T).
-
-emit_locals(nil, Dont) = 'ok'.
-emit_locals(list(H,T), Dont) =
-    (list:member(H, Dont) |
+  prelude = $:emit('
+  /*
+   * Generated code!  Edit at your own risk!
+   * Must be linked with -ltamsin to build.
+   */
+  #include <tamsin.h>
+  
+  /* global scanner */
+  
+  struct scanner * scanner;
+  
+  /* global state: result of last action */
+  
+  int ok;
+  struct term *result;
+  ').
+  
+  postlude = $:emit('
+  struct term *bufterm = NULL;
+  
+  int read_file(FILE *input) {
+      char *buffer = malloc(8193);
+  
+      assert(input != NULL);
+  
+      while (!feof(input)) {
+          int num_read = fread(buffer, 1, 8192, input);
+          if (bufterm == NULL) {
+              bufterm = term_new(buffer, num_read);
+          } else {
+              bufterm = term_concat(bufterm, term_new(buffer, num_read));
+          }
+      }
+  
+      free(buffer);
+  }
+  
+  int main(int argc, char **argv) {
+  
+      if (argc == 1) {
+          read_file(stdin);
+      } else {
+          int i;
+  
+          for (i = 1; i < argc; i++) {
+              FILE *input = fopen(argv[i], "r");
+              read_file(input);
+              fclose(input);
+          }
+      }
+  
+      scanner = scanner_new(bufterm->atom, bufterm->size);
+      ok = 0;
+      result = term_new_from_cstring("nil");
+  
+      prod_main_main();
+  
+      if (ok) {
+          term_fput(result, stdout);
+          fwrite("\\n", 1, 1, stdout);
+          exit(0);
+      } else {
+          term_fput(result, stderr);
+          fwrite("\\n", 1, 1, stderr);
+          exit(1);
+      }
+  }
+  ').
+  
+  emitln(X) = $:emit(X) & $:emit('\n').
+  emit(X) = $:emit(X).
+  indent = 'ok'.
+  outdent = 'ok'.
+  
+  compile(program(Ms)) =
+      prelude &
+      emit_prototypes(nil, Ms) &
+      compile_all(program(Ms), nil, 'temp', Ms) &
+      postlude &
+      ''.
+  
+  # P is the current program()
+  # B is the current prodbranch()
+  # Nm (or Mod) is the current module name
+  # Returns the name of where the latest result is stored, or nil.
+  
+  compile_all(P,B,Mod, nil) = 'nil'.
+  compile_all(P,B,Mod, list(H,T)) =
+      compile_r(P,B,Mod, H) & compile_all(P,B,Mod, T).
+  
+  compile_branches(P,B,Mod,FmlNms, nil) = 'nil'.
+  compile_branches(P,B,Mod,FmlNms, list(H,T)) =
+      compile_branch(P,B,Mod,FmlNms, H) & compile_branches(P,B,Mod,FmlNms, T).
+  
+  compile_branch(P,B,Mod,FmlNms, prodbranch(Fs, Ls, E)) =
+      emitln('{') &
+      indent &
+      emit_formal_match_patterns(FmlNms, Fs, nil) → PatNms &
+      emitln('if (') &
+      emit_pattern_match_expression(PatNms, FmlNms) &
+      emitln('    1) {') &
+      indent &
+      emit_matched_variables(Fs, PatNms, nil) → VarNms &
+      emit_locals(Ls, VarNms) &
+      compile_r(P, prodbranch(Fs, Ls, E), Mod, E) &
+      emit('return;') &
+      outdent &
+      emitln('}') &
+      outdent &
+      emitln('}').
+  
+  compile_r(P,B,Mod, module(N, Ps)) =
+      compile_all(P,B,N, Ps).
+  
+  compile_r(P,B,Mod, production(N, Bs)) =
+      emit('void prod_') &
+      emit(Mod) &
+      emit('_') &
+      emit(N) &
+      emit('(') &
+      make_formals_names(Bs) → FmlNms &
+      emit_formals(FmlNms) &
+      emitln(') {') &
+      indent &
+      compile_branches(P,B,Mod,FmlNms, Bs) &
+      emit('result = term_new_from_cstring("No \'') &
+      emit(N) &
+      emitln('\' production matched arguments");') &
+      emitln('ok = 0;') &
+      outdent &
+      emitln('}').
+  
+  compile_r(P,B,Mod, call(prodref('$', 'expect'), list(T, nil))) =
+      compile_r(P,B,Mod, T) → TNm &
+      emit('tamsin_expect(scanner, ') &
+      emit(TNm) &
+      emitln(');').
+  
+  compile_r(P,B,Mod, call(prodref('$', 'return'), list(T, nil))) =
+      compile_r(P,B,Mod, T) → TNm &
+      emit('result = ') &
+      emit(TNm) &
+      emitln(';') &
+      emitln('ok = 1;').
+  
+  compile_r(P,B,Mod, call(prodref('$', 'fail'), list(T, nil))) =
+      compile_r(P,B,Mod, T) → TNm &
+      emit('result = ') &
+      emit(TNm) &
+      emitln(';') &
+      emitln('ok = 0;').
+  
+  compile_r(P,B,Mod, call(prodref('$', 'print'), list(T, nil))) =
+      compile_r(P,B,Mod, T) → TNm &
+      emit('result = ') &
+      emit(TNm) &
+      emitln(';') &
+      emitln('term_fput(result, stdout);') &
+      emitln('fprintf(stdout, "\\n");') &
+      emitln('ok = 1;').
+  
+  compile_r(P,B,Mod, call(prodref('$', 'emit'), list(T, nil))) =
+      compile_r(P,B,Mod, T) → TNm &
+      emit('result = ') &
+      emit(TNm) &
+      emitln(';') &
+      emitln('term_fput(result, stdout);') &
+      emitln('ok = 1;').
+  
+  compile_r(P,B,Mod, call(prodref('$', 'gensym'), list(T, nil))) =
+      compile_r(P,B,Mod, T) → TNm &
+      emit('result = tamsin_gensym(') &
+      emit(TNm) &
+      emitln(');') &
+      emitln('ok = 1;').
+  
+  compile_r(P,B,Mod, call(prodref('$', 'repr'), list(T, nil))) =
+      compile_r(P,B,Mod, T) → TNm &
+      emit('result = term_repr(') &
+      emit(TNm) &
+      emitln(');') &
+      emitln('ok = 1;').
+  
+  compile_r(P,B,Mod, call(prodref('$', 'eof'), nil)) =
+      emitln('tamsin_eof(scanner);').
+  compile_r(P,B,Mod, call(prodref('$', 'any'), nil)) =
+      emitln('tamsin_any(scanner);').
+  compile_r(P,B,Mod, call(prodref('$', 'alnum'), nil)) =
+      emitln('tamsin_alnum(scanner);').
+  compile_r(P,B,Mod, call(prodref('$', 'upper'), nil)) =
+      emitln('tamsin_upper(scanner);').
+  compile_r(P,B,Mod, call(prodref('$', 'startswith'), list(T, nil))) =
+      compile_r(P,B,Mod, T) → TNm &
+      emit('tamsin_startswith(scanner, ') &
+      emit(TNm) &
+      emitln('->atom);').
+  compile_r(P,B,Mod, call(prodref('$', 'mkterm'), list(T, list(L, nil)))) =
+      compile_r(P,B,Mod, T) → TNm &
+      compile_r(P,B,Mod, L) → LNm &
+      emit('result = tamsin_mkterm(') &
+      emit(TNm) &
+      emit(', ') &
+      emit(LNm) &
+      emitln(');') &
+      emitln('ok = 1;').
+  compile_r(P,B,Mod, call(prodref('$', 'unquote'), list(T, list(L, list(R, nil))))) =
+      compile_r(P,B,Mod, T) → TNm &
+      compile_r(P,B,Mod, L) → LNm &
+      compile_r(P,B,Mod, R) → RNm &
+      emit('result = tamsin_unquote(') &
+      emit(TNm) &
+      emit(', ') &
+      emit(LNm) &
+      emit(', ') &
+      emit(RNm) &
+      emitln(');').
+  
+  compile_r(P,B,Mod, call(prodref('$', 'equal'), list(L, list(R, nil)))) =
+      compile_r(P,B,Mod, L) → LNm &
+      compile_r(P,B,Mod, R) → RNm &
+      emit('result = tamsin_equal(') &
+      emit(LNm) &
+      emit(', ') &
+      emit(RNm) &
+      emitln(');').
+  
+  compile_r(P,B,Mod, call(prodref('$', 'reverse'), list(L, list(R, nil)))) =
+      compile_r(P,B,Mod, L) → LNm &
+      compile_r(P,B,Mod, R) → RNm &
+      emit('result = tamsin_reverse(') &
+      emit(LNm) &
+      emit(', ') &
+      emit(RNm) &
+      emitln(');').
+  
+  compile_r(P,B,Mod, call(prodref('$', 'hexbyte'), list(L, list(R, nil)))) =
+      compile_r(P,B,Mod, L) → LNm &
+      compile_r(P,B,Mod, R) → RNm &
+      emit('result = tamsin_hexbyte(') &
+      emit(LNm) &
+      emit(', ') &
+      emit(RNm) &
+      emitln(');') &
+      emitln('ok = 1;').
+  
+  compile_r(P,B,Mod, call(prodref('$', 'format_octal'), list(T, nil))) =
+      compile_r(P,B,Mod, T) → TNm &
+      emit('result = tamsin_format_octal(') &
+      emit(TNm) &
+      emitln(');') &
+      emitln('ok = 1;').
+  
+  compile_r(P,B,Mod, call(prodref('$', 'length'), list(T, nil))) =
+      compile_r(P,B,Mod, T) → TNm &
+      emit('result = tamsin_length(') &
+      emit(TNm) &
+      emitln(');') &
+      emitln('ok = 1;').
+  
+  compile_r(P,B,Mod, call(prodref(M, N), A)) =
+      emit_arguments(P,B,Mod, A, nil) → ArgNms &
+      emit('prod_') &
+      emit(M) &
+      emit('_') &
+      emit(N) &
+      emit('(') &
+      emit_arguments_call(ArgNms) &
+      emitln(');').
+  
+  compile_r(P,B,Mod, and(L, R)) =
+      compile_r(P,B,Mod, L) &
+      emitln('if (ok) {') &
+      indent &
+      compile_r(P,B,Mod, R) &
+      outdent &
+      emitln('}').
+  
+  compile_r(P,B,Mod, or(L, R)) =
+      emitln('{') &
+      indent &
+      emit_decl_state(B) &
+      emit_save_state(B) &
+      compile_r(P,B,Mod, L) &
+      emitln('if (!ok) {') &
+      indent &
+      emit_restore_state(B) &
+      compile_r(P,B,Mod, R) &
+      outdent &
+      emitln('}') &
+      outdent &
+      emitln('}').
+  
+  compile_r(P,B,Mod, not(R)) =
+      emitln('{') &
+      indent &
+      emit_decl_state(B) &
+      emit_save_state(B) &
+      compile_r(P,B,Mod, R) &
+      emit_restore_state(B) &
+      emitln('if (ok) {') &
+      indent &
+      emitln('ok = 0;') &
+      emitln('result = term_new_from_cstring("expected anything except");') &
+      outdent &
+      emitln('} else {') &
+      indent &
+      emitln('ok = 1;') &
+      emitln('result = term_new_from_cstring("nil");') &
+      outdent &
+      emitln('}') &
+      outdent &
+      emitln('}').
+  
+  compile_r(P,B,Mod, send(R, variable(VN))) =
+      compile_r(P,B,Mod, R) &
+      emit(VN) &
+      emitln(' = result;').
+  
+  compile_r(P,B,Mod, set(variable(VN), T)) =
+      compile_r(P,B,Mod, T) → Nm &
+      emit('result = ') &
+      emit(Nm) &
+      emitln(';') &
+      emit(VN) &
+      emitln(' = result;') &
+      emitln('ok = 1;').
+  
+  compile_r(P,B,Mod, while(R)) =
+      emitln('{') &
+      indent &
+      emit_decl_state(B) &
+      compile_r(P,B,Mod, atom(nil)) → SRNm &   # 'successful_result'
+      emitln('ok = 1;') &
+      emitln('while (ok) {') &
+      indent &
+      emit_save_state(B) &
+      compile_r(P,B,Mod, R) &
+      emitln('if (ok) {') &
+      indent &
+      emit(SRNm) &
+      emitln(' = result;') &
+      outdent &
+      emitln('}') &
+      outdent &
+      emitln('}') &     # endwhile
+      emit_restore_state(B) &
+      emit('result = ') &
+      emit(SRNm) &
+      emitln(';') &
+      emitln('ok = 1;') &
+      outdent &
+      emitln('}').
+  
+  compile_r(P,B,Mod, on(R, T)) =
+      emitln('{') &
+      indent &
+      compile_r(P,B,Mod, T) → Nm &
+      $:gensym('flat') → FlatNm &
+      emit('struct term *') &
+      emit(FlatNm) &
+      emit(' = term_flatten(') &
+      emit(Nm) &
+      emitln(');') &
+      emit_decl_state(B) &
+      emit_save_state(B) &
+      emit('scanner->buffer = ') &
+      emit(FlatNm) &
+      emitln('->atom;') &
+      emit('scanner->size = ') &
+      emit(FlatNm) &
+      emitln('->size;') &
+      emitln('scanner->position = 0;') &
+      emitln('scanner->reset_position = 0;') &
+      compile_r(P,B,Mod, R) &
+      emit_restore_state(B) &
+      outdent &
+      emitln('}').
+  
+  compile_r(P,B,Mod, using(R, prodref('$', 'utf8'))) =
+      emitln('scanner_push_engine(scanner, &scanner_utf8_engine);') &
+      compile_r(P,B,Mod, R) &
+      emitln('scanner_pop_engine(scanner);').
+  compile_r(P,B,Mod, using(R, prodref('$', 'byte'))) =
+      emitln('scanner_push_engine(scanner, &scanner_byte_engine);') &
+      compile_r(P,B,Mod, R) &
+      emitln('scanner_pop_engine(scanner);').
+  compile_r(P,B,Mod, using(R, prodref(SMNm, SPNm))) =
+      emit('scanner_push_engine(scanner, &prod_') &
+      emit(SMNm) &
+      emit('_') &
+      emit(SPNm) &
+      emitln(');') &
+      compile_r(P,B,Mod, R) &
+      emitln('scanner_pop_engine(scanner);').
+  
+  compile_r(P,B,Mod, concat(L, R)) =
+      compile_r(P,B,Mod, L) → NmL &
+      compile_r(P,B,Mod, R) → NmR &
+      $:gensym('temp') → Nm &
+      emit('struct term *') &
+      emit(Nm) &
+      emit(' = term_concat(term_flatten(') &
+      emit(NmL) &
+      emit('), term_flatten(') &
+      emit(NmR) &
+      emitln('));') &
+      Nm.
+  
+  compile_r(P,B,Mod, atom(T)) =
+      emit('struct term *') &
+      $:gensym('temp') → Nm &
+      emit(Nm) &
+      emit(' = term_new("') &
+      $:length(T) → Len &
+      escaped(T) → T &
+      emit(T) &
+      emit('", ') &
+      emit(Len) &
+      emitln(');') &
+      Nm.
+  
+  # TODO: this is only one way to compile a variable; there are others
+  compile_r(P,B,Mod, variable(VN)) =
+      emit('struct term *') &
+      $:gensym('temp') → Nm &
+      emit(Nm) &
+      emit(' = ') &
+      emit(VN) &
+      emitln(';') &
+      Nm.
+  
+  compile_r(P,B,Mod, constructor(T,Ts)) =
+      emit('struct term *') &
+      $:gensym('temp') → Nm &
+      emit(Nm) &
+      emit(' = term_new_from_cstring("') &
+      escaped(T) → T &
+      emit(T) &
+      emitln('");') &
+      list:reverse(Ts, nil) → Ts &
+      emit_subterms(P,B,Nm, Nm, Ts) &
+      Nm.
+  
+  emit_subterms(P,B,Mod, ON, nil) = 'ok'.
+  emit_subterms(P,B,Mod, ON, list(H,T)) =
+      compile_r(P,B,Mod, H) → Nm &
+      emit('term_add_subterm(') &
+      emit(ON) &
+      emit(', ') &
+      emit(Nm) &
+      emitln(');') &
+      emit_subterms(P,B,Mod, ON, T).
+  
+  ############### emitting pattern terms ###############
+  
+  # should be like compile_r(term), except variables are different
+  
+  emit_pattern(atom(T)) =
+      emit('struct term *') &
+      $:gensym('pattern') → Nm &
+      emit(Nm) &
+      emit(' = term_new_from_cstring("') &
+      escaped(T) → T &
+      emit(T) &
+      emitln('");') &
+      Nm.
+  
+  emit_pattern(variable(VN)) =
+      emit('struct term *') &
+      $:gensym('pattern') → Nm &
+      emit(Nm) &
+      emit(' = term_new_variable("') &
+      emit(VN) &
+      emit('", term_new_from_cstring("nil_') &
+      emit(VN) &
+      emitln('"));') &
+      Nm.
+  
+  emit_pattern(constructor(T,Ts)) =
+      emit('struct term *') &
+      $:gensym('pattern') → Nm &
+      emit(Nm) &
+      emit(' = term_new_from_cstring("') &
+      escaped(T) → T &
+      emit(T) &
+      emitln('");') &
+      list:reverse(Ts, nil) → Ts &
+      emit_pattern_subterms(Nm, Ts) &
+      Nm.
+  
+  emit_pattern_subterms(ON, nil) = 'ok'.
+  emit_pattern_subterms(ON, list(H,T)) =
+      emit_pattern(H) → Nm &
+      emit('term_add_subterm(') &
+      emit(ON) &
+      emit(', ') &
+      emit(Nm) &
+      emitln(');') &
+      emit_pattern_subterms(ON, T).
+  
+  ########### finding variables in patterns ###########
+  
+  collect_variable_names_all(nil, L) = L.
+  collect_variable_names_all(list(H, T), L) =
+      collect_variable_names(H, L) → L &
+      collect_variable_names_all(T, L).
+  
+  collect_variable_names(atom(T), L) = L.
+  collect_variable_names(constructor(T, Ts), L) =
+      collect_variable_names_all(Ts, L).
+  collect_variable_names(variable(VN), L) =
+      return list(VN, L).
+  
+  ############### misc helpers ##############
+  
+  emit_prototypes(Mod, nil) = 'ok'.
+  emit_prototypes(Mod, list(production(N, Bs), Tail)) =
+      emit('void prod_') &
+      emit(Mod) &
+      emit('_') &
+      emit(N) &
+      emitln('();') &
+      emit_prototypes(Mod, Tail).
+  
+  emit_prototypes(Mod, list(module(N, Ps), Tail)) =
+      emit_prototypes(N, Ps) &
+      emit_prototypes(Mod, Tail).
+  
+  make_formals_names(list(prodbranch(Fs, Ls, E), Tail)) = make_fmlnms(Fs, nil).
+  
+  make_fmlnms(nil, Nms) = list:reverse(Nms, nil).
+  make_fmlnms(list(H,T), Nms) =
+      $:gensym('formal') → Nm &
+      Nms ← list(Nm, Nms) &
+      make_fmlnms(T, Nms).
+  
+  emit_formals(nil) = 'ok'.
+  emit_formals(list(H,nil)) =
+      emit('struct term *') &
+      emit(H).
+  emit_formals(list(H,T)) =
       emit('struct term *') &
       emit(H) &
-      emitln(';')) &
-    emit_locals(T, Dont).
-
-### for calls...
-
-emit_arguments(P,B,Mod, nil, Nms) = list:reverse(Nms, nil).
-emit_arguments(P,B,Mod, list(A, Tail), Nms) =
-    compile_r(P,B,Mod, A) → Nm &
-    Nms ← list(Nm, Nms) &
-    emit_arguments(P,B,Mod, Tail, Nms).
-
-emit_arguments_call(nil) = 'ok'.
-emit_arguments_call(list(H, nil)) =
-    emit(H).
-emit_arguments_call(list(H, T)) =
-    emit(H) &
-    emit(', ') &
-    emit_arguments_call(T).
-
-############### escaped #############
-
-escaped(S) = escaped_r @ S.
-escaped_r = A ← '' &
-    {
-        "\\" & A ← A + '\\\\'
-      | "\"" & A ← A + '\\"'
-      | "\n" & A ← A + '\\n'
-      | digit → B & (many_format_octal @ B) → B & A ← A + B
-      | $:alnum → B & A ← A + B
-      | any → B & (many_format_octal @ B) → B & A ← A + B
-    } & A.
-
-digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9".
-
-many_format_octal =
-    S ← '' &
-    {any → B & $:format_octal(B) → B & S ← S + '\\' + B} using $:byte &
-    S.
-
-############### saving and restoring state for backtracking ##############
-
-emit_decl_state(prodbranch(Fs, Ls, E)) =
-    emit_decl_state_locals(Ls) &
-    emitln('int position;') &
-    emitln('int reset_position;') &
-    emitln('const char *buffer;') &
-    emitln('int buffer_size;').
-
-emit_decl_state_locals(nil) = 'ok'.
-emit_decl_state_locals(list(H,T)) =
-    emit('struct term *save_') &
-    emit(H) &
-    emitln(';') &
-    emit_decl_state_locals(T).
-
-emit_save_state(prodbranch(Fs, Ls, E)) =
-    emit_save_state_locals(Ls) &
-    emitln('position = scanner->position;') &
-    emitln('reset_position = scanner->reset_position;') &
-    emitln('buffer = scanner->buffer;') &
-    emitln('buffer_size = scanner->size;').
-
-emit_save_state_locals(nil) = 'ok'.
-emit_save_state_locals(list(H,T)) =
-    emit('save_') &
-    emit(H) &
-    emit(' = ') &
-    emit(H) &
-    emitln(';') &
-    emit_save_state_locals(T).
-
-emit_restore_state(prodbranch(Fs, Ls, E)) =
-    emitln('scanner->position = position;') &
-    emitln('scanner->reset_position = reset_position;') &
-    emitln('scanner->buffer = buffer;') &
-    emitln('scanner->size = buffer_size;') &
-    emit_restore_state_locals(Ls).
-
-emit_restore_state_locals(nil) = 'ok'.
-emit_restore_state_locals(list(H,T)) =
-    emit(H) &
-    emit(' = ') &
-    emit('save_') &
-    emit(H) &
-    emitln(';') &
-    emit_restore_state_locals(T).
+      emit(', ') &
+      emit_formals(T).
+  
+  emit_formal_match_patterns(nil, nil, PatNms) = list:reverse(PatNms, nil).
+  emit_formal_match_patterns(list(Nm, Nms), list(F, Fs), PatNms) =
+      emit_pattern(F) → PatNm &
+      PatNms ← list(PatNm, PatNms) &
+      emit_formal_match_patterns(Nms, Fs, PatNms).
+  
+  emit_pattern_match_expression(nil, nil) = 'ok'.
+  emit_pattern_match_expression(list(PatNm, PatNms), list(FmlNm, FmlNms)) =
+      emit('    term_match(') &
+      emit(PatNm) &
+      emit(', ') &
+      emit(FmlNm) &
+      emitln(') &&') &
+      emit_pattern_match_expression(PatNms, FmlNms).
+  
+  # declare and get variables which are found in patterns for this branch
+  emit_matched_variables(nil, nil, Acc) = Acc.
+  emit_matched_variables(list(F, Fs), list(PatNm, PatNms), Acc) =
+      collect_variable_names(F, nil) → VarNms &
+      list:reverse(VarNms, nil) → VarNms &
+      emit_assign_matched_variables(PatNm, VarNms) &
+      list:append(Acc, VarNms) → Acc &
+      emit_matched_variables(Fs, PatNms, Acc).
+  
+  emit_assign_matched_variables(PatNm, nil) = 'ok'.
+  emit_assign_matched_variables(PatNm, list(VN, T)) =
+      emit('struct term *') &
+      emit(VN) &
+      emit(' = term_find_variable(') &
+      emit(PatNm) &
+      emit(', "') &
+      emit(VN) &
+      emitln('");') &
+      emit_assign_matched_variables(PatNm, T).
+  
+  emit_locals(nil, Dont) = 'ok'.
+  emit_locals(list(H,T), Dont) =
+      (list:member(H, Dont) |
+        emit('struct term *') &
+        emit(H) &
+        emitln(';')) &
+      emit_locals(T, Dont).
+  
+  ### for calls...
+  
+  emit_arguments(P,B,Mod, nil, Nms) = list:reverse(Nms, nil).
+  emit_arguments(P,B,Mod, list(A, Tail), Nms) =
+      compile_r(P,B,Mod, A) → Nm &
+      Nms ← list(Nm, Nms) &
+      emit_arguments(P,B,Mod, Tail, Nms).
+  
+  emit_arguments_call(nil) = 'ok'.
+  emit_arguments_call(list(H, nil)) =
+      emit(H).
+  emit_arguments_call(list(H, T)) =
+      emit(H) &
+      emit(', ') &
+      emit_arguments_call(T).
+  
+  ############### escaped #############
+  
+  escaped(S) = escaped_r @ S.
+  escaped_r = A ← '' &
+      {
+          "\\" & A ← A + '\\\\'
+        | "\"" & A ← A + '\\"'
+        | "\n" & A ← A + '\\n'
+        | digit → B & (many_format_octal @ B) → B & A ← A + B
+        | $:alnum → B & A ← A + B
+        | any → B & (many_format_octal @ B) → B & A ← A + B
+      } & A.
+  
+  digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9".
+  
+  many_format_octal =
+      S ← '' &
+      {any → B & $:format_octal(B) → B & S ← S + '\\' + B} using $:byte &
+      S.
+  
+  ############### saving and restoring state for backtracking ##############
+  
+  emit_decl_state(prodbranch(Fs, Ls, E)) =
+      emit_decl_state_locals(Ls) &
+      emitln('int position;') &
+      emitln('int reset_position;') &
+      emitln('const char *buffer;') &
+      emitln('int buffer_size;').
+  
+  emit_decl_state_locals(nil) = 'ok'.
+  emit_decl_state_locals(list(H,T)) =
+      emit('struct term *save_') &
+      emit(H) &
+      emitln(';') &
+      emit_decl_state_locals(T).
+  
+  emit_save_state(prodbranch(Fs, Ls, E)) =
+      emit_save_state_locals(Ls) &
+      emitln('position = scanner->position;') &
+      emitln('reset_position = scanner->reset_position;') &
+      emitln('buffer = scanner->buffer;') &
+      emitln('buffer_size = scanner->size;').
+  
+  emit_save_state_locals(nil) = 'ok'.
+  emit_save_state_locals(list(H,T)) =
+      emit('save_') &
+      emit(H) &
+      emit(' = ') &
+      emit(H) &
+      emitln(';') &
+      emit_save_state_locals(T).
+  
+  emit_restore_state(prodbranch(Fs, Ls, E)) =
+      emitln('scanner->position = position;') &
+      emitln('scanner->reset_position = reset_position;') &
+      emitln('scanner->buffer = buffer;') &
+      emitln('scanner->size = buffer_size;') &
+      emit_restore_state_locals(Ls).
+  
+  emit_restore_state_locals(nil) = 'ok'.
+  emit_restore_state_locals(list(H,T)) =
+      emit(H) &
+      emit(' = ') &
+      emit('save_') &
+      emit(H) &
+      emitln(';') &
+      emit_restore_state_locals(T).
 
 }
