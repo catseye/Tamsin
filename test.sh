@@ -7,7 +7,6 @@ FILES="
 GLOB="eg/*.tamsin lib/*.tamsin mains/*.tamsin"
 
 mkdir -p tmp
-make all || exit 1
 
 if [ x$1 = 'x-f' ]; then
     shift
@@ -80,6 +79,7 @@ test_it() {
     fi
 
     if [ $MODE = "compiled" ]; then
+        make c_src/libtamsin.a || exit 1
         echo "*** Compiling $SRC (with $LIBS)"
         echo "*** and testing it against '$CMD'..."
         bin/tamsin compile $LIBS $SRC > tmp/foo.c && \
@@ -111,12 +111,13 @@ test_it() {
     exit 0
 }
 
-if [ x$1 = xcompiler ]; then
-    echo "*** Testing compiler..."
-    falderal $VERBOSE --substring-error fixture/compiler.py.markdown $FILES
-elif [ x$1 = xinterpreter -o x$1 = xi ]; then
+if [ x$1 = xinterpreter -o x$1 = xi ]; then
     echo "*** Testing Python interpreter..."
     falderal $VERBOSE --substring-error fixture/tamsin.py.markdown $FILES
+elif [ x$1 = xcompiler ]; then
+    make c_src/libtamsin.a || exit 1
+    echo "*** Testing compiler..."
+    falderal $VERBOSE --substring-error fixture/compiler.py.markdown $FILES
 elif [ x$1 = xgrammar ]; then
     test_it $MODE "mains/grammar.tamsin" \
                   "lib/tamsin_scanner.tamsin" \
@@ -153,6 +154,7 @@ elif [ x$1 = xbootstrap ]; then
     echo "*** Testing Bootstrapped Tamsin-in-Tamsin compiler..."
     falderal $VERBOSE --substring-error fixture/bootstrapped.markdown $FILES
 elif [ x$1 = xmicro ]; then
+    make bin/micro-tamsin || exit 1
     echo "*** Testing Micro-Tamsin interpreter..."
     FILES="doc/Micro-Tamsin.markdown"
     falderal $VERBOSE --substring-error fixture/micro-tamsin.markdown $FILES

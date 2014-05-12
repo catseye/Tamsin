@@ -129,13 +129,6 @@ struct term *term_concat(const struct term *lhs, const struct term *rhs) {
     assert(lhs->subterms == NULL);
     assert(rhs->subterms == NULL);
 
-    if (lhs->storing != NULL) {
-        lhs = lhs->storing;
-    }
-    if (rhs->storing != NULL) {
-        rhs = rhs->storing;
-    }
-
     new_size = lhs->size + rhs->size;
     new_atom = malloc(new_size);
     memcpy(new_atom, lhs->atom, lhs->size);
@@ -153,9 +146,7 @@ const struct term COMMA = { ", ", 2, 0, NULL, NULL };
 struct term *term_flatten(const struct term *t) {
     struct term_list *tl;
 
-    if (t->storing != NULL) {          /* it's a variable; get its value */
-        return term_flatten(t->storing);
-    } else if (t->subterms == NULL) {  /* it's an atom */
+    if (t->subterms == NULL) {  /* it's an atom */
         return term_new(t->atom, t->size);
     } else {                           /* it's a constructor */
         struct term *n;
@@ -266,9 +257,7 @@ struct term *term_escape_atom(const struct term *t) {
 struct term *term_repr(const struct term *t) {
     struct term_list *tl;
 
-    if (t->storing != NULL) {          /* it's a variable; get its value */
-        return term_repr(t->storing);
-    } else if (t->subterms == NULL) {  /* it's an atom */
+    if (t->subterms == NULL) {  /* it's an atom */
         return term_escape_atom(t);
     } else {                           /* it's a constructor */
         struct term *n;
