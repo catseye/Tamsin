@@ -124,7 +124,7 @@ tamsin_compiler {
   compile_branch(P,B,Mod,FmlNms, prodbranch(Fs, Ls, E)) =
       emitln('{') &
       indent &
-      emit_formal_match_patterns(FmlNms, Fs, nil) → PatNms &
+      emit_formal_match_patterns(P,B,Mod, FmlNms, Fs, nil) → PatNms &
       emitln('if (') &
       emit_pattern_match_expression(PatNms, FmlNms) &
       emitln('    1) {') &
@@ -377,10 +377,20 @@ tamsin_compiler {
       emitln(');') &
       Nm.
   
-  # TODO: this is only one way to compile a variable; there are others
   compile_r(P,B,Mod, variable(VN)) =
       $:gensym('temp') → Nm &
       emitln_fmt('struct term *%s = %s;', [Nm, VN]) &
+      Nm.
+
+  compile_r(P,B,Mod, patternvariable(VN)) =
+      emit('struct term *') &
+      $:gensym('pattern') → Nm &
+      emit(Nm) &
+      emit(' = term_new_variable("') &
+      emit(VN) &
+      emit('", term_new_from_cstring("nil_') &
+      emit(VN) &
+      emitln('"));') &
       Nm.
   
   compile_r(P,B,Mod, constructor(T,Ts)) =
@@ -400,49 +410,6 @@ tamsin_compiler {
       compile_r(P,B,Mod, H) → Nm &
       emitln_fmt('term_add_subterm(%s, %s);', [ON, Nm]) &
       emit_subterms(P,B,Mod, ON, T).
-  
-  ############### emitting pattern terms ###############
-  
-  # should be like compile_r(term), except variables are different
-  
-  emit_pattern(atom(T)) =
-      emit('struct term *') &
-      $:gensym('pattern') → Nm &
-      emit(Nm) &
-      emit(' = term_new_from_cstring("') &
-      escaped(T) → T &
-      emit(T) &
-      emitln('");') &
-      Nm.
-  
-  emit_pattern(patternvariable(VN)) =
-      emit('struct term *') &
-      $:gensym('pattern') → Nm &
-      emit(Nm) &
-      emit(' = term_new_variable("') &
-      emit(VN) &
-      emit('", term_new_from_cstring("nil_') &
-      emit(VN) &
-      emitln('"));') &
-      Nm.
-  
-  emit_pattern(constructor(T,Ts)) =
-      emit('struct term *') &
-      $:gensym('pattern') → Nm &
-      emit(Nm) &
-      emit(' = term_new_from_cstring("') &
-      escaped(T) → T &
-      emit(T) &
-      emitln('");') &
-      list:reverse(Ts, nil) → Ts &
-      emit_pattern_subterms(Nm, Ts) &
-      Nm.
-  
-  emit_pattern_subterms(ON, nil) = 'ok'.
-  emit_pattern_subterms(ON, list(H,T)) =
-      emit_pattern(H) → Nm &
-      emitln_fmt('term_add_subterm(%s, %s);', [ON, Nm]) &
-      emit_pattern_subterms(ON, T).
   
   ########### finding variables in patterns ###########
   
@@ -492,11 +459,11 @@ tamsin_compiler {
       emit(', ') &
       emit_formals(T).
   
-  emit_formal_match_patterns(nil, nil, PatNms) = list:reverse(PatNms, nil).
-  emit_formal_match_patterns(list(Nm, Nms), list(F, Fs), PatNms) =
-      emit_pattern(F) → PatNm &
-      PatNms ← list(PatNm, PatNms) &
-      emit_formal_match_patterns(Nms, Fs, PatNms).
+  emit_formal_match_patterns(P,B,Mod, [], [], PatNms) = list:reverse(PatNms, nil).
+  emit_formal_match_patterns(P,B,Mod, [Nm|Nms], [F|Fs], PatNms) =
+      compile_r(P,B,Mod, F) → PatNm &
+      PatNms ← [PatNm|PatNms] &
+      emit_formal_match_patterns(P,B,Mod, Nms, Fs, PatNms).
   
   emit_pattern_match_expression([], []) = 'ok'.
   emit_pattern_match_expression([PatNm | PatNms], [FmlNm | FmlNms]) =
