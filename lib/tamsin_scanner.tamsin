@@ -27,5 +27,5 @@ tamsin_scanner {
   word = $:alnum → T & { ($:alnum | "_") → S & T ← T + S } & T.
   skippable = {whitespace | comment}.
   whitespace = " " | "\t" | "\r" | "\n".
-  comment = "#" & {!"\n" & any} & "\n".
+  comment = "#" & {!"\n" & any} & ("\n" | eof).
 }
