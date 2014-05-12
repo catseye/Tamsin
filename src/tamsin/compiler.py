@@ -177,14 +177,12 @@ class Compiler(object):
             self.indent()
             
             pat_names = []
-            vars_for_formal = []
             for fml_num in xrange(0, len(branch.formals)):
                 formal = branch.formals[fml_num]
                 pat_names.append(self.compile_r(formal))
 
                 variables = []
                 formal.collect_variables(variables)
-                vars_for_formal.append(variables)
                 for variable in variables:
                    if variable not in all_pattern_variables:
                        all_pattern_variables.append(variable)

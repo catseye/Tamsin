@@ -124,6 +124,9 @@ tamsin_compiler {
       emitln('{') &
       indent &
       emit_formal_match_patterns(P,B,Mod, FmlNms, Fs, nil) → PatNms &
+      collect_all_pattern_variables(Fs, nil) → AllPatVars &
+      emit_unifier_structure(AllPatVars) &
+
       emitln('if (') &
       emit_pattern_match_expression(PatNms, FmlNms) &
       emitln('    1) {') &
@@ -373,10 +376,11 @@ tamsin_compiler {
       $:gensym('temp') → Nm &
       emitln_fmt('struct term *%s = %s;', [Nm, VN]) & Nm.
 
-  compile_r(P,B,Mod, patternvariable(VN)) =
+  compile_r(P,B,Mod, patternvariable(VN, I)) =
       $:gensym('pattern') → Nm &
       emitln_fmt('struct term *%s = term_new_variable("%s", ' +
-                 'term_new_from_cstring("nil_%s"));', [Nm, VN, VN]) & Nm.
+                 'term_new_from_cstring("nil_%s"), %s);', [Nm, VN, VN, I]) &
+      Nm.
   
   compile_r(P,B,Mod, constructor(T,Ts)) =
       compile_r(P,B,Mod, atom(T)) → Nm &
@@ -401,7 +405,7 @@ tamsin_compiler {
       collect_variable_names_all(Ts, L).
   collect_variable_names(variable(VN), L) =
       return list(VN, L).
-  collect_variable_names(patternvariable(VN), L) =
+  collect_variable_names(patternvariable(VN, I), L) =
       return list(VN, L).
   
   ############### misc helpers ##############
@@ -439,6 +443,23 @@ tamsin_compiler {
       PatNms ← [PatNm|PatNms] &
       emit_formal_match_patterns(P,B,Mod, Nms, Fs, PatNms).
   
+  collect_all_pattern_variables([], Acc) = Acc.
+  collect_all_pattern_variables([F|Fs], Acc) =
+      collect_variable_names(F, nil) → VarNms &
+      list:reverse(VarNms, nil) → VarNms &
+      list:append(Acc, VarNms) → Acc &
+      collect_all_pattern_variables(Fs, Acc).
+  
+  emit_unifier_structure(AllPatVars) =
+      emit('const struct term *unifier[] = {') &
+      emit_unifier_structure_r(AllPatVars) &
+      emitln('};').
+  emit_unifier_structure_r(nil) = 'ok'.
+  emit_unifier_structure_r([V]) =
+      emit('NULL').
+  emit_unifier_structure_r([V|Vs]) =
+      emit('NULL, ') & emit_unifier_structure_r(Vs).
+
   emit_pattern_match_expression([], []) = 'ok'.
   emit_pattern_match_expression([PatNm | PatNms], [FmlNm | FmlNms]) =
       emitln_fmt('    term_match(%s, %s) &&', [PatNm, FmlNm]) &
