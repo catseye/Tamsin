@@ -126,13 +126,12 @@ tamsin_compiler {
       emit_formal_match_patterns(P,B,Mod, FmlNms, Fs, nil) → PatNms &
       collect_all_pattern_variables(Fs, nil) → AllPatVars &
       emit_unifier_structure(AllPatVars) &
-
       emitln('if (') &
       emit_pattern_match_expression(PatNms, FmlNms) &
       emitln('    1) {') &
       indent &
-      emit_matched_variables(Fs, PatNms, nil) → VarNms &
-      emit_locals(Ls, VarNms) &
+      emit_matched_variables(AllPatVars) &
+      emit_locals(Ls, AllPatVars) &
       compile_r(P, prodbranch(Fs, Ls, E), Mod, E) &
       emit('return;') &
       outdent &
@@ -395,18 +394,18 @@ tamsin_compiler {
   
   ########### finding variables in patterns ###########
   
-  collect_variable_names_all(nil, L) = L.
-  collect_variable_names_all(list(H, T), L) =
-      collect_variable_names(H, L) → L &
-      collect_variable_names_all(T, L).
+  collect_variables_all(nil, L) = L.
+  collect_variables_all(list(H, T), L) =
+      collect_variables(H, L) → L &
+      collect_variables_all(T, L).
   
-  collect_variable_names(atom(T), L) = L.
-  collect_variable_names(constructor(T, Ts), L) =
-      collect_variable_names_all(Ts, L).
-  collect_variable_names(variable(VN), L) =
-      return list(VN, L).
-  collect_variable_names(patternvariable(VN, I), L) =
-      return list(VN, L).
+  collect_variables(atom(T), L) = L.
+  collect_variables(constructor(T, Ts), L) =
+      collect_variables_all(Ts, L).
+  collect_variables(variable(VN), L) =
+      return list(variable(VN), L).
+  collect_variables(patternvariable(VN, I), L) =
+      return list(patternvariable(VN, I), L).
   
   ############### misc helpers ##############
   
@@ -445,7 +444,7 @@ tamsin_compiler {
   
   collect_all_pattern_variables([], Acc) = Acc.
   collect_all_pattern_variables([F|Fs], Acc) =
-      collect_variable_names(F, nil) → VarNms &
+      collect_variables(F, nil) → VarNms &
       list:reverse(VarNms, nil) → VarNms &
       list:append(Acc, VarNms) → Acc &
       collect_all_pattern_variables(Fs, Acc).
@@ -462,24 +461,16 @@ tamsin_compiler {
 
   emit_pattern_match_expression([], []) = 'ok'.
   emit_pattern_match_expression([PatNm | PatNms], [FmlNm | FmlNms]) =
-      emitln_fmt('    term_match(%s, %s) &&', [PatNm, FmlNm]) &
+      emitln_fmt('    term_match_unifier(%s, %s, unifier) &&', [PatNm, FmlNm]) &
       emit_pattern_match_expression(PatNms, FmlNms).
   
-  # declare and get variables which are found in patterns for this branch
-  emit_matched_variables(nil, nil, Acc) = Acc.
-  emit_matched_variables(list(F, Fs), list(PatNm, PatNms), Acc) =
-      collect_variable_names(F, nil) → VarNms &
-      list:reverse(VarNms, nil) → VarNms &
-      emit_assign_matched_variables(PatNm, VarNms) &
-      list:append(Acc, VarNms) → Acc &
-      emit_matched_variables(Fs, PatNms, Acc).
-  
-  emit_assign_matched_variables(PatNm, nil) = 'ok'.
-  emit_assign_matched_variables(PatNm, list(VN, T)) =
-      emitln_fmt('struct term *%s = term_find_variable(%s, "%s");',
-                 [VN, PatNm, VN]) &
-      emit_assign_matched_variables(PatNm, T).
-  
+  # get variables which are found in patterns for this branch
+  emit_matched_variables(nil) = 'ok'.
+  emit_matched_variables([patternvariable(N,I)|Vars]) =
+      emitln_fmt('const struct term *%s = unifier[%s];', [N,I]) &
+      emitln_fmt('assert(%s != NULL);', [N]) &
+      emit_matched_variables(Vars).
+
   emit_locals(nil, Dont) = 'ok'.
   emit_locals(list(H,T), Dont) =
       (list:member(H, Dont) |
