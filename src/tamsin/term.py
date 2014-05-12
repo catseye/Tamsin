@@ -41,9 +41,6 @@ class Term(object):
         """
         return self
 
-    def collect_variables(self, variables):
-        pass
-
     def __str__(self):
         raise NotImplementedError
 
@@ -112,10 +109,6 @@ class Constructor(Term):
     def expand(self, context):
         return Constructor(self.tag, [x.expand(context) for x in self.contents])
 
-    def collect_variables(self, variables):
-        for x in self.contents:
-            x.collect_variables(variables)
-
     def __str__(self):
         return "%s(%s)" % (
             self.tag, ', '.join([str(x) for x in self.contents])
@@ -168,9 +161,6 @@ class Variable(Term):
 
     def expand(self, context):
         return context.fetch(self.name)
-
-    def collect_variables(self, variables):
-        variables.append(self)
 
     def __str__(self):
         return self.name

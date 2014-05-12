@@ -329,6 +329,9 @@ class TermNode(AST):
     def __init__(self, *args):
         raise NotImplementedError("abstract class!")
 
+    def collect_variables(self, variables):
+        raise NotImplementedError
+
     def to_term(self):
         raise NotImplementedError
 
@@ -342,6 +345,9 @@ class AtomNode(TermNode):
 
     def __str__(self):
         return "atom(%s)" % Atom(self.text).repr()
+
+    def collect_variables(self, variables):
+        pass
 
     def to_term(self):
         return Atom(self.text)
@@ -357,6 +363,9 @@ class VariableNode(TermNode):
     def __str__(self):
         return "variable(%s)" % Atom(self.name).repr()
 
+    def collect_variables(self, variables):
+        variables.append(self)
+
     def to_term(self):
         return Variable(self.name)
 
@@ -370,6 +379,9 @@ class PatternVariableNode(TermNode):
 
     def __str__(self):
         return "patternvariable(%s)" % Atom(self.name).repr()
+
+    def collect_variables(self, variables):
+        variables.append(self)
 
     def to_term(self):
         return Variable(self.name)
@@ -390,6 +402,10 @@ class ConstructorNode(TermNode):
             Atom(self.text).repr(),
             format_list(self.contents)
         )
+
+    def collect_variables(self, variables):
+        for x in self.contents:
+            x.collect_variables(variables)
 
     def to_term(self):
         return Constructor(self.text, [

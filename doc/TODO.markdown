@@ -9,6 +9,7 @@ TODO
 
 ### testing ###
 
+*   test for `''('')`, `'\x00'('\x00')`
 *   document how prod scanners do EOF
 *   tests that `'V'` is not a variable
 *   tests for failing when utf8 scanner hits badly-encoded utf8

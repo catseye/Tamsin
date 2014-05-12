@@ -116,7 +116,6 @@ class Analyzer(EventProducer):
             self.collect_locals(ast.texpr, locals_)
         elif isinstance(ast, Not) or isinstance(ast, While):
             self.collect_locals(ast.rule, locals_)
-        # terms --- could just call t.collect_variables() and map out names...
         elif isinstance(ast, VariableNode):
             if ast.name not in locals_:
                 locals_.append(ast.name)

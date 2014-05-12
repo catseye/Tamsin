@@ -171,19 +171,28 @@ class Compiler(object):
             self.emit("")
         elif isinstance(ast, ProdBranch):
             branch = ast
-            all_pattern_variables = set()
+            all_pattern_variable_names = []
 
             self.emit("{")
             self.indent()
             
             pat_names = []
+            vars_for_formal = []
             for fml_num in xrange(0, len(branch.formals)):
                 formal = branch.formals[fml_num]
                 pat_names.append(self.compile_r(formal))
                 variables = []
-                formal.to_term().collect_variables(variables)
-                # print repr(variables)
-            
+                formal.collect_variables(variables)
+                vars_for_formal.append(variables)
+                for variable in variables:
+                   if variable not in all_pattern_variable_names:
+                       all_pattern_variable_names.append(variable.name)
+
+            if all_pattern_variable_names:
+                self.emit("struct term *unifier[%s] = {%s};" %
+                    (len(all_pattern_variable_names),
+                     ','.join(["NULL"] * len(all_pattern_variable_names))))
+
             self.emit("if (")
 
             for fml_num in xrange(0, len(branch.formals)):
@@ -197,19 +206,17 @@ class Compiler(object):
             for fml_num in xrange(0, len(branch.formals)):
                 variables = []
                 formal = branch.formals[fml_num]
-                formal.to_term().collect_variables(variables)
-                for variable in variables:
+                for variable in vars_for_formal[fml_num]:
                     self.emit('struct term *%s = '
                               'term_find_variable(%s, "%s");' %
                         (variable.name, pat_names[fml_num], variable.name)
                     )
-                    all_pattern_variables.add(variable.name)
-            
+
             for local in branch.locals_:
-                if local not in all_pattern_variables:
+                if local not in all_pattern_variable_names:
                     self.emit("struct term *%s;" % local)
             self.emit("")
-            
+
             self.compile_r(branch.body)
 
             self.emit("return;")
