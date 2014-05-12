@@ -9,6 +9,12 @@ Tamsin Release History
 *   EOF is no longer a special kind of term; it is no longer exposed, as
     a value, to Tamsin programs.  (`$:eof` returns `''` on success.)
 *   Prolog/Erlang-style list sugar for terms, in patterns as well.
+*   When a new scanner is switched to using `using`, that scanner defaults
+    to the `$:utf8` scanner for *its* scanning.  This prevents the common
+    shooting-self-in-foot error of selecting a production that is not
+    itself `using` another scanner (which would result in an infinite loop
+    of the production scanner trying to use itself as its subsidiary
+    scanner.)
 
 ### implementation ###
 

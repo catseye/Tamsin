@@ -1573,6 +1573,8 @@ This includes bytes that would be special in UTF-8.
 
     -> Tests for functionality "Intepret Tamsin program"
 
+#### Defining a custom scanner ####
+
 You can also define your own scanner by defining a production designed
 to return tokens.  Each time it is called, it should return an atom, which
 the user of your scanner will see as a scanned token.
@@ -1621,12 +1623,6 @@ few examples.
     = )
     = ok
 
-There is one guideline to follow: your production which implements a scanner
-should itself say what scanner it is `using`.  For example, the `token` scanner
-above is implemented using the character scanner.  If this is missing, the
-scanner will try to use *itself* as a scanner, with hilarious and generally
-unproductive results.
-
 Here is how you would use the above scanner, as a scanner, in a program:
 
     | main = ("(" & "cons" & ")" & 'ok') using token.
@@ -1643,22 +1639,31 @@ Here is how you would use the above scanner, as a scanner, in a program:
     + ( quote )
     ? expected 'cons' found 'quote'
 
+Note that, if your scanner-production doesn't itself say what scanner
+*it* is `using`, it defaults to the `$:utf8` scanner.
+
+    | main = ("(" & "cons" & ")" & 'ok') using token.
+    | 
+    | token = {" "} & ("(" | ")" | word).
+    | word = $:alnum → L & {$:alnum → M & set L = L + M} & L.
+    + ( cons )
+    = ok
+
 Note that while it's conventional for a production scanner to return terms
 similar to the strings it scanned, this is just a convention, and may be
 subverted:
 
     | main = ("meow" & "woof") using token.
-    | token = ("c" & "a" & "t" & 'meow' | "d" & "o" & "g" & 'woof') using $:utf8.
+    | token = ("c" & "a" & "t" & 'meow' | "d" & "o" & "g" & 'woof').
     + catdog
     = woof
 
-If a production scanner fails to match the input text, it will return an EOF.
+If a production scanner fails to match the input text, it will signal an EOF.
 The justification for this is that it's the end of the input, as far as
 the scanner can understand it.
 
     | main = program using scanner.
-    | scanner = scan using $:utf8.
-    | scan = "a" | "b" | "@".
+    | scanner = "a" | "b" | "@".
     | program = "a" & "@" & "b" & return ok.
     + x
     ? expected 'a' found 'EOF'
@@ -1666,8 +1671,7 @@ the scanner can understand it.
 If you don't like that, you can write your scanner to fail the way you want.
 
     | main = program using scanner.
-    | scanner = scan using $:utf8.
-    | scan = "a" | "b" | "@" | return bleah.
+    | scanner = "a" | "b" | "@" | return bleah.
     | program = "a" & "@" & "b" & return ok.
     + x
     ? expected 'a' found 'bleah'
@@ -1676,8 +1680,7 @@ On the other hand, if the scanner understands all the tokens, but the parser
 doesn't see the tokens it expects, you get the usual error.
 
     | main = program using scanner.
-    | scanner = scan using $:utf8.
-    | scan = "a" | "b" | "@".
+    | scanner = "a" | "b" | "@".
     | program = "a" & "@" & "b" & return ok.
     + b@a
     ? expected 'a' found 'b'
@@ -1686,10 +1689,9 @@ Parsing using a production scanner ignores any extra text given to it,
 just like the built-in parser.
 
     | main = program using scanner.
-    | scanner = scan using $:utf8.
-    | scan = (
-    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
-    |        ).
+    | scanner = (
+    |             "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    |           ).
     | program = "cat" & "dog".
     + catdogfoobar
     = dog
@@ -1697,10 +1699,9 @@ just like the built-in parser.
 The production scanner properly handles backtracking on a per-token basis.
 
     | main = program using scanner.
-    | scanner = scan using $:utf8.
-    | scan = (
-    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
-    |        ).
+    | scanner = (
+    |             "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    |           ).
     | program = "cat" & print 1 &
     |           ("cat" & print 2 | "dog" & print 3) &
     |           "dog" & print 4 & return ok.
@@ -1711,10 +1712,9 @@ The production scanner properly handles backtracking on a per-token basis.
     = ok
 
     | main = program using scanner.
-    | scanner = scan using $:utf8.
-    | scan = (
-    |            "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
-    |        ).
+    | scanner = (
+    |             "c" & "a" & "t" & return cat | "d" & "o" & "g" & return dog
+    |           ).
     | program = "cat" & print 1 &
     |           ("cat" & print 2 | "dog" & print 3) &
     |           "dog" & print 4 & return ok.
@@ -1762,7 +1762,7 @@ of the `using`, scanning returns to whatever scanner was in force before the
     |      & ({"."} & "c" & "a" & "t")
     |      & return ok.
     | 
-    | token = ({" "} & ("(" | ")" | word)) using $:utf8.
+    | token = ({" "} & ("(" | ")" | word)).
     | word = $:alnum → L & {$:alnum → M & set L = L + M} & L.
     + dog...........cat
     = ok
@@ -1774,7 +1774,7 @@ production.
     | main = ("c" & "a" & "t" → G) using $:utf8
     |      & ("dog" & return G) using token.
     | 
-    | token = ({" "} & ("(" | ")" | word)) using $:utf8.
+    | token = ({" "} & ("(" | ")" | word)).
     | word = $:alnum → L & {$:alnum → M & set L = L + M} & L.
     + cat dog
     = t
@@ -1785,34 +1785,34 @@ Because if it does fail and the interpreter reverts the scanner to its
 previous state, its previous state may have been with a different scanning
 logic.  The result may well be eurr.
 
+(Actually, I don't know if it's possible to shoot yourself in the foot with
+it *too* badly anymore.  But it used to be.  But I think most of those cases
+are handled more nicely now.)
+
 ### Advanced use of `using` ###
 
 A production scanner may contain an embedded `using` and use another
 production scanner.
 
-    | main = program using scanner1.
+    | main = program using scan1.
     | 
-    | scanner1 = scan1 using $:utf8.
     | scan1 = "a" | "b" | "c" | "(" & other & ")" & return list.
     | 
-    | other = xyz using scanner2.
+    | other = xyz using scan2.
     | xyz = "1" & "1" | "1" & "2" | "2" & "3".
     | 
-    | scanner2 = scan2 using $:utf8.
     | scan2 = "x" & return 1 | "y" & return 2 | "z" & return 3.
     | program = "c" & "list" & "a".
     + c(xx)a
     = a
 
-    | main = program using scanner1.
+    | main = program using scan1.
     | 
-    | scanner1 = scan1 using $:utf8.
     | scan1 = "a" | "b" | "c" | "(" & other & ")" & return list.
     | 
-    | other = xyz using scanner2.
+    | other = xyz using scan2.
     | xyz = "1" & "1" | "1" & "2" | "2" & "3".
     | 
-    | scanner2 = scan2 using $:utf8.
     | scan2 = "x" & return 1 | "y" & return 2 | "z" & return 3.
     | program = "c" & "list" & "a".
     + c(yy)a
@@ -1879,8 +1879,7 @@ its own scanner.  It switches back to the production scanner when done.
 
     | main = program using scanner.
     | 
-    | scanner = scan using $:utf8.
-    | scan = {" "} & set T = '' & {("a" | "b" | "c") → S & set T = T + S}.
+    | scanner = {" "} & set T = '' & {("a" | "b" | "c") → S & set T = T + S}.
     | 
     | program = "abc" & "cba" & "bac".
     + abc    cba bac
@@ -1888,13 +1887,11 @@ its own scanner.  It switches back to the production scanner when done.
 
     | main = program using scanner.
     | 
-    | scanner = scan using $:utf8.
-    | scan = {" "} & set T = '' & {("a" | "b" | "c") → S & set T = T + S}.
+    | scanner = {" "} & set T = '' & {("a" | "b" | "c") → S & set T = T + S}.
     | 
     | program = "abc" & (subprogram using subscanner) & "bac".
     | 
-    | subscanner = subscan using $:utf8.
-    | subscan = {" "} & set T = '' & {("s" | "t" | "u") → S & set T = T + S}.
+    | subscanner = {" "} & set T = '' & {("s" | "t" | "u") → S & set T = T + S}.
     | 
     | subprogram = "stu" & "uuu".
     + abc    stu   uuu bac
@@ -1904,8 +1901,7 @@ its own scanner.  It switches back to the production scanner when done.
 
 It is entirely possible to do so.
 
-    | main = {any → T using scanner & print T} & 'ok'.
-    | scanner = scan using $:utf8.
+    | main = {any → T using scan & print T} & 'ok'.
     | scan = S ← '' & {$:alnum → C & S ← S + C} & {" " | "," | "."} & return S.
     + This, this is my string.
     = This
@@ -1915,9 +1911,7 @@ It is entirely possible to do so.
     = string
     = ok
 
-    | main = {any → T using scanner & print T} @ 'This, this is my string.' &
-    |        'ok'.
-    | scanner = scan using $:utf8.
+    | main = {any → T using scan & print T} @ 'This, this is my string.' & 'ok'.
     | scan = S ← '' & {$:alnum → C & S ← S + C} & {" " | "," | "."} & return S.
     = This
     = this

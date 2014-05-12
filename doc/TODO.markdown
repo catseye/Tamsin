@@ -1,7 +1,6 @@
 TODO
 ----
 
-*   `using` production x: x's scanner defaults to utf8, not x
 *   don't consume stdin until asked to scan.  demand_buffer.  per-line loop.
     or rather, per-inputconsumechunk
 

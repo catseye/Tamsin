@@ -51,10 +51,12 @@ class Scanner(EventProducer):
         self.buffer = buffer
 
     def push_engine(self, engine):
+        #print repr(('push', engine))
         self.engines.append(engine)
 
     def pop_engine(self):
-        self.engines.pop()
+        engine = self.engines.pop()
+        #print repr(('pop', engine))
 
     def is_at_eof(self):
         """Returns True iff there is no more input to scan.
@@ -190,7 +192,7 @@ class Scanner(EventProducer):
 
 class ScannerEngine(object):
     def scan_impl(self, scanner):
-        """Should always return a Unicode string."""
+        """Should always return a non-Unicode string."""
         raise NotImplementedError
 
 
@@ -297,7 +299,6 @@ class ProductionScannerEngine(ScannerEngine):
     """
     def __init__(self, interpreter, production):
         self.interpreter = interpreter
-        #assert self.interpreter.scanner = my scanner
         self.production = production
 
     def scan_impl(self, scanner):
@@ -314,10 +315,16 @@ class ProductionScannerEngine(ScannerEngine):
         # position, and restore it when the subsidiary scan is done.
 
         assert scanner is self.interpreter.scanner
+
+        # default to this so you don't shoot yourself in the foot
+        scanner.push_engine(UTF8ScannerEngine())
+
         save_reset_position = scanner.reset_position
         result = self.interpreter.interpret(self.production)
         (success, token) = result
         scanner.reset_position = save_reset_position
+
+        scanner.pop_engine()
 
         if success:
             self.interpreter.event('production_scan', self.production, token)
