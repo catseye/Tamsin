@@ -28,7 +28,7 @@ struct term *term_new(const char *atom, size_t size) {
     return t;
 }
 
-void termlist_add_term(struct term_list **tl, struct term *term) {
+void termlist_add_term(struct term_list **tl, const struct term *term) {
     struct term_list *new_tl;
 
     new_tl = malloc(sizeof(struct term_list));
@@ -82,7 +82,7 @@ struct term *term_new_variable(const char *name, struct term *v, int index) {
     return t;
 }
 
-void term_add_subterm(struct term *term, struct term *subterm) {
+void term_add_subterm(struct term *term, const struct term *subterm) {
     struct term_list *tl;
 
     assert(term->index == -1);
@@ -278,7 +278,7 @@ struct term *term_repr(const struct term *t) {
     }
 }
 
-int term_match(struct term *pattern, struct term *ground)
+int term_match(const struct term *pattern, const struct term *ground)
 {
     struct term_list *tl1, *tl2;
 

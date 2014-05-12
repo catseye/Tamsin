@@ -32,7 +32,7 @@ tamsin_compiler {
   /* global state: result of last action */
   
   int ok;
-  struct term *result;
+  const struct term *result;
   ').
   
   postlude = $:emit('
@@ -332,7 +332,7 @@ tamsin_compiler {
       indent &
       compile_r(P,B,Mod, T) → Nm &
       $:gensym('flat') → FlatNm &
-      emitln_fmt('struct term *%s = term_flatten(%s);', [FlatNm, Nm]) &
+      emitln_fmt('const struct term *%s = term_flatten(%s);', [FlatNm, Nm]) &
       emit_decl_state(B) &
       emit_save_state(B) &
       emitln_fmt('scanner->buffer = %s->atom;', [FlatNm]) &
@@ -361,7 +361,7 @@ tamsin_compiler {
       compile_r(P,B,Mod, L) → NmL &
       compile_r(P,B,Mod, R) → NmR &
       $:gensym('temp') → Nm &
-      emitln_fmt('struct term *%s = term_concat(term_flatten(%s), ' +
+      emitln_fmt('const struct term *%s = term_concat(term_flatten(%s), ' +
                  'term_flatten(%s));', [Nm, NmL, NmR]) &
       Nm.
   
@@ -369,15 +369,15 @@ tamsin_compiler {
       $:gensym('temp') → Nm &
       escaped(T) → ET &
       $:length(T) → LT &
-      emitln_fmt('struct term *%s = term_new("%s", %s);', [Nm, ET, LT]) & Nm.
+      emitln_fmt('const struct term *%s = term_new("%s", %s);', [Nm, ET, LT]) & Nm.
   
   compile_r(P,B,Mod, variable(VN)) =
       $:gensym('temp') → Nm &
-      emitln_fmt('struct term *%s = %s;', [Nm, VN]) & Nm.
+      emitln_fmt('const struct term *%s = %s;', [Nm, VN]) & Nm.
 
   compile_r(P,B,Mod, patternvariable(VN, I)) =
       $:gensym('pattern') → Nm &
-      emitln_fmt('struct term *%s = term_new_variable("%s", ' +
+      emitln_fmt('const struct term *%s = term_new_variable("%s", ' +
                  'term_new_from_cstring("nil_%s"), %s);', [Nm, VN, VN, I]) &
       Nm.
   
@@ -389,7 +389,7 @@ tamsin_compiler {
   emit_subterms(P,B,Mod, ON, nil) = 'ok'.
   emit_subterms(P,B,Mod, ON, list(H,T)) =
       compile_r(P,B,Mod, H) → Nm &
-      emitln_fmt('term_add_subterm(%s, %s);', [ON, Nm]) &
+      emitln_fmt('term_add_subterm((struct term *)%s, %s);', [ON, Nm]) &
       emit_subterms(P,B,Mod, ON, T).
   
   ########### finding variables in patterns ###########
@@ -428,10 +428,10 @@ tamsin_compiler {
   
   emit_formals(nil) = 'ok'.
   emit_formals(list(H,nil)) =
-      emit('struct term *') &
+      emit('const struct term *') &
       emit(H).
   emit_formals(list(H,T)) =
-      emit('struct term *') &
+      emit('const struct term *') &
       emit(H) &
       emit(', ') &
       emit_formals(T).
@@ -474,7 +474,7 @@ tamsin_compiler {
   emit_locals(nil, Dont) = 'ok'.
   emit_locals(list(H,T), Dont) =
       (list:member(H, Dont) |
-        emitln_fmt('struct term *%s;', [H])) &
+        emitln_fmt('const struct term *%s;', [H])) &
       emit_locals(T, Dont).
   
   ### for calls...
@@ -524,7 +524,7 @@ tamsin_compiler {
   
   emit_decl_state_locals([]) = 'ok'.
   emit_decl_state_locals([H|T]) =
-      emitln_fmt('struct term *save_%s;', [H]) &
+      emitln_fmt('const struct term *save_%s;', [H]) &
       emit_decl_state_locals(T).
   
   emit_save_state(prodbranch(Fs, Ls, E)) =

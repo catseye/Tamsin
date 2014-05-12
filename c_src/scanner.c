@@ -33,7 +33,7 @@ void scanner_utf8_engine(void) {
 #define UTF_8_LEN_4_MASK  0xf8    /* 0b11111000 */
 #define UTF_8_LEN_4_BITS  0xf0    /* 0b11110000 */
 
-struct term *scan(struct scanner *s) {
+const struct term *scan(struct scanner *s) {
     if (s->position >= s->size) {
         return &tamsin_EOF;
     }
@@ -61,7 +61,7 @@ struct term *scan(struct scanner *s) {
         return term_new_from_char(c);
     } else {
         /*fprintf(stderr, "calling s->engines here\n");*/
-        struct term *save_result = result;
+        const struct term *save_result = result;
         int save_reset_position = s->reset_position;
 
         s->engines->production();

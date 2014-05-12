@@ -25,7 +25,7 @@ int tamsin_isalnum(char c) {
 }
 
 void tamsin_eof(struct scanner *s) {
-    struct term *t = scan(s);
+    const struct term *t = scan(s);
     unscan(s);
     if (t == &tamsin_EOF) {
         result = term_new("", 0);
@@ -39,7 +39,7 @@ void tamsin_eof(struct scanner *s) {
 }
 
 void tamsin_any(struct scanner *s) {
-    struct term *t = scan(s);
+    const struct term *t = scan(s);
     if (t == &tamsin_EOF) {
         unscan(s);
         result = term_new_from_cstring("expected any token, found EOF");
@@ -52,7 +52,7 @@ void tamsin_any(struct scanner *s) {
 }
 
 void tamsin_expect(struct scanner *s, const struct term *expected) {
-    struct term *scanned = scan(s);
+    const struct term *scanned = scan(s);
     if (scanned != &tamsin_EOF && term_atoms_equal(scanned, expected)) {
         commit(s);
         result = scanned;
@@ -69,7 +69,7 @@ void tamsin_expect(struct scanner *s, const struct term *expected) {
 }
 
 void tamsin_alnum(struct scanner *s) {
-    struct term *t = scan(s);
+    const struct term *t = scan(s);
     if (t != &tamsin_EOF && tamsin_isalnum(t->atom[0])) {
         commit(s);
         result = t;
@@ -84,7 +84,7 @@ void tamsin_alnum(struct scanner *s) {
 }
 
 void tamsin_upper(struct scanner *s) {
-    struct term *t = scan(s);
+    const struct term *t = scan(s);
     if (t != &tamsin_EOF && tamsin_isupper(t->atom[0])) {
         commit(s);
         result = t;
@@ -99,7 +99,7 @@ void tamsin_upper(struct scanner *s) {
 }
 
 void tamsin_startswith(struct scanner *s, const char *str) {
-    struct term *t = scan(s);
+    const struct term *t = scan(s);
     if (t != &tamsin_EOF && t->atom[0] == str[0]) {
         commit(s);
         result = t;
@@ -173,7 +173,7 @@ struct term *tamsin_mkterm(const struct term *atom, const struct term *list) {
     return t;
 }
 
-struct term *tamsin_reverse(struct term *list, struct term *sentinel) {
+struct term *tamsin_reverse(const struct term *list, struct term *sentinel) {
     struct term *result = sentinel;
     const struct term *head = list;  /* save */
 

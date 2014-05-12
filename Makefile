@@ -10,13 +10,13 @@ PROGS=bin/tamsin-compiler bin/micro-tamsin
 
 all: c_src/libtamsin.a
 
-c_src/scanner.o: c_src/scanner.c
+c_src/scanner.o: c_src/tamsin.h c_src/scanner.c
 	$(CC) $(LCFLAGS) -c c_src/scanner.c -o $@
 
-c_src/term.o: c_src/term.c
+c_src/term.o: c_src/tamsin.h c_src/term.c
 	$(CC) $(LCFLAGS) -c c_src/term.c -o $@
 
-c_src/tamsin.o: c_src/tamsin.c
+c_src/tamsin.o: c_src/tamsin.h c_src/tamsin.c
 	$(CC) $(LCFLAGS) -c c_src/tamsin.c -o $@
 
 c_src/libtamsin.a: $(OBJECTS)
@@ -27,14 +27,14 @@ c_src/libtamsin.a: $(OBJECTS)
 
 TAMSIN_COMPILER_LIBS=lib/list.tamsin lib/tamsin_scanner.tamsin \
                      lib/tamsin_parser.tamsin lib/tamsin_analyzer.tamsin
-bin/tamsin-compiler: c_src/libtamsin.a \
+bin/tamsin-compiler: c_src/libtamsin.a c_src/tamsin.h \
                      $(TAMSIN_COMPILER_LIBS) \
                      mains/compiler.tamsin
 	bin/tamsin compile $(TAMSIN_COMPILER_LIBS) mains/compiler.tamsin > tmp/foo.c
 	$(CC) $(CFLAGS) tmp/foo.c -o $@ -ltamsin
 
 
-bin/bootstrapped-compiler: c_src/libtamsin.a \
+bin/bootstrapped-compiler: c_src/libtamsin.a c_src/tamsin.h \
                            bin/tamsin-compiler \
                            $(TAMSIN_COMPILER_LIBS) \
                           mains/compiler.tamsin
@@ -44,7 +44,7 @@ bin/bootstrapped-compiler: c_src/libtamsin.a \
 
 MICRO_TAMSIN_LIBS=lib/list.tamsin lib/tamsin_scanner.tamsin \
                   lib/tamsin_parser.tamsin
-bin/micro-tamsin: c_src/libtamsin.a \
+bin/micro-tamsin: c_src/libtamsin.a c_src/tamsin.h \
                      $(MICRO_TAMSIN_LIBS) \
                      mains/micro-tamsin.tamsin
 	bin/tamsin compile $(MICRO_TAMSIN_LIBS) mains/micro-tamsin.tamsin > tmp/foo.c

@@ -29,7 +29,7 @@ struct scanner * scanner;
 /* global state: result of last action */
 
 int ok;
-struct term *result;
+const struct term *result;
 '''
 
 POSTLUDE = r'''
@@ -125,7 +125,8 @@ class Compiler(object):
             for prod in module.prodlist:
                 self.emit("void prod_%s_%s(%s);" % (
                     mod_name, prod.name,
-                    ', '.join(["struct term *" % f for f in prod.branches[0].formals])
+                    ', '.join(["const struct term *" % f
+                               for f in prod.branches[0].formals])
                 ))
         self.emit("")
         for module in self.program.modlist:
@@ -145,7 +146,7 @@ class Compiler(object):
             fmls = []
             i = 0
             for f in prod.branches[0].formals:
-                fmls.append("struct term *i%s" % i)
+                fmls.append("const struct term *i%s" % i)
                 i += 1
             fmls = ', '.join(fmls)
             self.emit("void prod_%s_%s(%s) {" % (
@@ -210,7 +211,7 @@ class Compiler(object):
             all_pattern_variable_names = [x.name for x in all_pattern_variables]
             for local in branch.locals_:
                 if local not in all_pattern_variable_names:
-                    self.emit("struct term *%s;" % local)
+                    self.emit("const struct term *%s;" % local)
             self.emit("")
 
             self.compile_r(branch.body)
@@ -394,7 +395,7 @@ class Compiler(object):
             self.indent()
             name = self.compile_r(ast.texpr)
             flat_name = self.new_name()
-            self.emit("struct term *%s = term_flatten(%s);" % (flat_name, name))
+            self.emit("const struct term *%s = term_flatten(%s);" % (flat_name, name))
             self.emit_decl_state()
             self.emit_save_state()
             self.emit("scanner->buffer = %s->atom;" % flat_name);
@@ -409,37 +410,37 @@ class Compiler(object):
             name_lhs = self.compile_r(ast.lhs);
             name_rhs = self.compile_r(ast.rhs);
             name = self.new_name()
-            self.emit('struct term *%s = term_concat(term_flatten(%s), term_flatten(%s));' %
+            self.emit('const struct term *%s = term_concat(term_flatten(%s), term_flatten(%s));' %
                 (name, name_lhs, name_rhs)
             )
             return name
         elif isinstance(ast, AtomNode):
             name = self.new_name()
-            self.emit('struct term *%s = term_new("%s", %s);' %
+            self.emit('const struct term *%s = term_new("%s", %s);' %
                 (name, escaped(ast.text), len(ast.text))
             )
             return name
 
         elif isinstance(ast, VariableNode):
             name = self.new_name()
-            self.emit('struct term *%s = %s;' %
+            self.emit('const struct term *%s = %s;' %
                 (name, ast.name)
             )
             return name
         elif isinstance(ast, PatternVariableNode):
             name = self.new_name()
-            self.emit('struct term *%s = term_new_variable("%s", %s, %s);' %
+            self.emit('const struct term *%s = term_new_variable("%s", %s, %s);' %
                  (name, ast.name, 'term_new_from_cstring("nil_%s")' % ast.name,
                   ast.index))
             return name
         elif isinstance(ast, ConstructorNode):
             name = self.new_name()
-            self.emit('struct term *%s = term_new("%s", %s);' %
+            self.emit('const struct term *%s = term_new("%s", %s);' %
                 (name, escaped(ast.text), len(ast.text))
             )
             for c in reversed(ast.contents):
                 subname = self.compile_r(c)
-                self.emit('term_add_subterm(%s, %s);' % (name, subname))
+                self.emit('term_add_subterm((struct term *)%s, %s);' % (name, subname))
             return name
         else:
             raise NotImplementedError(repr(ast))
@@ -455,7 +456,7 @@ class Compiler(object):
 
     def emit_decl_state(self):
         for local in self.current_branch.locals_:
-            self.emit("struct term *save_%s;" % local)
+            self.emit("const struct term *save_%s;" % local)
         self.emit("int position;")
         self.emit("int reset_position;")
         self.emit("const char *buffer;")

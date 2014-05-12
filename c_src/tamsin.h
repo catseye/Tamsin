@@ -29,7 +29,7 @@ struct term {
 };
 
 struct term_list {
-    struct term *term;
+    const struct term *term;
     struct term_list *next;
 };
 
@@ -54,7 +54,7 @@ struct term *term_deep_copy(const struct term *);
 /*
  * Modifies the given term.
  */
-void term_add_subterm(struct term *, struct term *);
+void term_add_subterm(struct term *, const struct term *);
 
 /*
  * Returns 1 if the atom portion of both terms is identical, otherwise 0.
@@ -101,7 +101,7 @@ void term_fput(const struct term *, FILE *);
 /*
  * ...
  */
-int term_match(struct term *, struct term *);
+int term_match(const struct term *, const struct term *);
 
 /*
  * The third argument is an array of struct term *'s.  It will
@@ -133,7 +133,7 @@ struct scanner {
 };
 
 struct scanner *scanner_new(const char *, size_t);
-struct term *scan(struct scanner *);
+const struct term *scan(struct scanner *);
 void unscan(struct scanner *);
 void commit(struct scanner *);
 void scanner_push_engine(struct scanner *, void (*)(void));
@@ -153,7 +153,7 @@ struct term *tamsin_unquote(const struct term *,
                             const struct term *, const struct term *);
 struct term *tamsin_mkterm(const struct term *, const struct term *);
 struct term *tamsin_equal(struct term *, struct term *);
-struct term *tamsin_reverse(struct term *, struct term *);
+struct term *tamsin_reverse(const struct term *, struct term *);
 struct term *tamsin_gensym(struct term *);
 struct term *tamsin_hexbyte(struct term *, struct term *);
 struct term *tamsin_format_octal(struct term *);
@@ -168,4 +168,4 @@ int tamsin_isalnum(char);
 /* global state: result of last action */
 
 extern int ok;
-extern struct term *result;
+extern const struct term *result;
