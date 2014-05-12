@@ -6,10 +6,9 @@
 from tamsin.ast import (
     Program, Module, Production, ProdBranch,
     And, Or, Not, While, Call, Send, Set,
-    Variable, Using, On, Concat, Fold, Prodref,
+    Using, On, Concat, Fold, Prodref,
     TermNode, VariableNode, AtomNode, ConstructorNode
 )
-from tamsin.term import Term, Atom, Constructor
 from tamsin.event import EventProducer
 
 

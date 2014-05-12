@@ -1,14 +1,13 @@
-The Tamsin Language Specification, version 0.4
-==============================================
+The Tamsin Language Specification, version 0.5-PRE
+==================================================
 
 This document is a **work in progress**.
 
 *Note* that this document only specifies the behaviour of Tamsin version
-0.4.  The reference interpreter in fact supports a few more features
+0.5-PRE.  The reference interpreter in fact supports a few more features
 than are listed here.  Those features are listed in the
 [Advanced Features document](Advanced_Features.markdown), and may appear
-in a future version of Tamsin (like 0.5) but they are *not* a part of
-0.4.
+in a future version of Tamsin but they are *not* a part of 0.5-PRE.
 
 (Note also that -PRE versions are moving targets that may change rapidly,
 without the version number changing.)
@@ -335,7 +334,6 @@ _term_.
 A term T is defined inductively as follows:
 
 *   An _atom_, written as a character string, is a term;
-*   A special, unique symbol called _EOF_ is a term;
 *   A _constructor_, written S(T1, T2, ... Tn) where S is a character
     string and T1 through Tn are terms (called the _subterms_ of T), is a term;
 *   A _variable_, written as a character string where the first character
@@ -346,14 +344,12 @@ In fact, there is little theoretical difference between an atom and a
 constructor with zero subterms, but they are considered different things
 for conceptual clarity.
 
-Note that EOF is not at atom.
-
 A term is called _ground_ if it does not contain any variables.
 
 Terms support an operation called _expansion_, which also requires a
 context C (a map from variable names to ground terms.)
 
-*   expand(T, C) when T is an atom or EOF evaluates to T;
+*   expand(T, C) when T is an atom evaluates to T;
 *   expand(T, C) when T is a constructor S(T1,...,Tn) evaluates to a new
     term S(expand(T1, C), ... expand(Tn, C));
 *   expand(T, C) when T is a variable looks up T in C and, if there is
@@ -371,7 +367,6 @@ stringification).
         S · "(" · flatten(T1) · "," · ... · "," · flatten(Tn) · ")"
     
     where `·` is string concatenation;
-*   flatten(EOF) is not defined.
 
 The result of flattening is always an atom.
 
@@ -406,8 +401,6 @@ newline.)
     where `·` is string concatenation and S′ is defined the same way as T′ is
     for atoms;
     
-*   repr(EOF) is `EOF`.
-
 Note that in the above, "printable" means ASCII characters between 32 ` `
 (space) and 126 `~`.  It is not dependent on locale.
 
@@ -694,24 +687,26 @@ the program still succeeds.
     = p
 
 The built-in production `eof` may be used to match against the end of the
-input (colloquially called "EOF".)
+input.  If there is no more input remaining, it succeeds and returns
+an empty string atom.
 
     | main = "a" & "p" & eof.
     + ap
-    = EOF
+    = 
 
-This is how you can make it error out if there is extra input remaining.
+But if there still is input remaining, it fails.
 
     | main = "a" & "p" & eof.
     + apt
     ? expected EOF found 't'
 
-The end of the input is a virtual infinite stream of EOF's.  You can match
-against them until the cows come home.  The cows never come home.
+Note that, in both cases, `eof` doesn't consume anything.  So if it
+succeeded at the end of input, and the program tries `eof` again, it will
+still succeed the second time, and time after time after that.
 
-    | main = "a" & "p" & eof & eof & eof.
+    | main = "a" & "p" & eof & eof & eof & eof & eof & eof.
     + ap
-    = EOF
+    = 
 
 ### any ###
 

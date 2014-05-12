@@ -98,6 +98,11 @@ struct term *term_repr(const struct term *);
 void term_fput(const struct term *, FILE *);
 int term_match(struct term *, struct term *);
 
+/*
+ * This value is never (and should never be) exposed to Tamsin programs!
+ * It should not be considered a kind of term, really.  That's just for
+ * convenience in this implementation.
+ */
 extern struct term tamsin_EOF;
 
 /* -------------------------------------------------------- scanner */

@@ -8,8 +8,8 @@ import subprocess
 import sys
 
 from tamsin.event import DebugEventListener
-from tamsin.term import EOF, Atom
-from tamsin.scanner import Scanner, UTF8ScannerEngine, TamsinScannerEngine
+from tamsin.term import Atom
+from tamsin.scanner import Scanner, EOF, UTF8ScannerEngine, TamsinScannerEngine
 from tamsin.parser import Parser
 from tamsin.interpreter import Interpreter
 from tamsin.desugarer import Desugarer

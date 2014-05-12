@@ -3,13 +3,12 @@
 # Copyright (c)2014 Chris Pressey, Cat's Eye Technologies.
 # Distributed under a BSD-style license; see LICENSE for more information.
 
-import sys
 
 from tamsin.ast import (
-    Production, ProdBranch, And, Or, Not, While, Call, Send, Set, Using, On,
+    Production, And, Or, Not, While, Call, Send, Set, Using, On,
     Prodref, Concat, TermNode
 )
-from tamsin.term import Term, EOF, Atom, Constructor
+from tamsin.term import Term, Atom
 from tamsin.event import EventProducer
 from tamsin.scanner import (
     ByteScannerEngine, UTF8ScannerEngine, ProductionScannerEngine

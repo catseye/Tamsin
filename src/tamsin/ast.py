@@ -7,9 +7,8 @@
 # __str__ : make a string that looks like a Tamsin term (reprify)
 # __repr__ : make a string that is valid Python code for constructing the AST
 
-import sys
 
-from tamsin.term import Term, Atom, Variable, Constructor
+from tamsin.term import Atom, Variable, Constructor
 
 
 def format_list(l):

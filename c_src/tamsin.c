@@ -28,7 +28,7 @@ void tamsin_eof(struct scanner *s) {
     struct term *t = scan(s);
     unscan(s);
     if (t == &tamsin_EOF) {
-        result = t;
+        result = term_new("", 0);
         ok = 1;
     } else {
         result = term_new_from_cstring("expected EOF found '");

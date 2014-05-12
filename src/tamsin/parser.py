@@ -9,12 +9,9 @@ from tamsin.ast import (
     Send, Set, Concat, Using, On, Fold,
     AtomNode, VariableNode, ConstructorNode,
 )
-from tamsin.term import (
-    Atom, Constructor, Variable, EOF
-)
 from tamsin.event import EventProducer
 from tamsin.scanner import (
-    Scanner, TamsinScannerEngine
+    EOF, Scanner, TamsinScannerEngine
 )
 
 

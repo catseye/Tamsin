@@ -4,7 +4,10 @@
 # Distributed under a BSD-style license; see LICENSE for more information.
 
 from tamsin.event import EventProducer
-from tamsin.term import Term, EOF
+from tamsin.term import Term
+
+
+EOF = object()
 
 
 class Scanner(EventProducer):
@@ -57,7 +60,7 @@ class Scanner(EventProducer):
         """Returns True iff there is no more input to scan.
 
         Should only be used by ScannerEngines.  Parsing code should check
-        to see if peek() is EOF instead.
+        to see if ... something
 
         """
         return self.position >= len(self.buffer)

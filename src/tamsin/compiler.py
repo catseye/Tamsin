@@ -10,7 +10,7 @@
 from tamsin.ast import (
     Production, ProdBranch,
     And, Or, Not, While, Call, Send, Set, Concat, Using, On, Prodref,
-    TermNode, VariableNode
+    TermNode
 )
 from tamsin.term import Atom, Constructor, Variable
 import tamsin.sysmod

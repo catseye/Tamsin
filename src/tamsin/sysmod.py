@@ -7,7 +7,8 @@
 
 import sys
 
-from tamsin.term import EOF, Atom, Constructor
+from tamsin.term import Atom, Constructor
+from tamsin.scanner import EOF
 
 
 TRANSLATOR = {'return': 'return_', 'print': 'print_'}
@@ -44,6 +45,8 @@ def expect(self, args):
     if self.scanner.consume(token):
         return (True, term)
     else:
+        if upcoming_token is EOF:
+            upcoming_token = 'EOF'
         s = ("expected '%s' found '%s' (at '%s')" %
              (token, upcoming_token,
               self.scanner.report_buffer(self.scanner.position, 20)))
@@ -53,7 +56,7 @@ expect.arity = 1
 
 def eof(self, args):
     if self.scanner.peek() is EOF:
-        return (True, EOF)
+        return (True, '')
     else:
         return (False, Atom("expected EOF found '%s'" %
                 self.scanner.peek()))

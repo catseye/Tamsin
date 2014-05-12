@@ -73,23 +73,6 @@ class Term(object):
         raise NotImplementedError
         
 
-class EOF(Term):
-    def __str__(self):
-        return "EOF"
-
-    def __repr__(self):
-        return "EOF"
-
-    def repr(self):
-        return str(self)
-
-    def match(self, value):
-        return {} if value is self else False
-
-
-EOF = EOF()  # unique
-
-
 class Atom(Term):
     def __init__(self, text):
         assert not isinstance(text, unicode)
