@@ -1,19 +1,14 @@
 TODO
 ----
 
-*   EOF is not a value.  $:eof is just a pass/fail test.  prod scanner
-    inherits by failing.
-*   `ctype` module, with `alpha` and `digit` and etc.
 *   PROLOG/ERLANG'S LIST SUGAR.  would be really really nice.
 *   `using` production x: x's scanner defaults to utf8, not x
-*   `list` module: `deep_reverse`
 *   find different way to match variables in libtamsin, so that
     struct term's can be const all the way down — then share terms
 
 ### testing ###
 
-*   comment at end of source
-*   prodcall must have >0 args
+*   document how prod scanners do EOF
 *   tests that `'V'` is not a variable
 *   tests for failing when utf8 scanner hits badly-encoded utf8
 *   tests for invalid escape codes
@@ -28,6 +23,8 @@ TODO
 
 ### lower-priority ###
 
+*   `ctype` module, with `alpha` and `digit` and etc.
+*   `list` module: `deep_reverse`
 *   use Tamsin repr in error messages
 *   __str__ should be Tamsin repr()?
 *   `format`, using `@` -- in Tamsin

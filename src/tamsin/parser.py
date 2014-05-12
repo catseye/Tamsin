@@ -94,10 +94,9 @@ class Parser(EventProducer):
             name = self.consume_any()        
         formals = []
         if self.consume('('):
-            if self.peek() != ')':
+            formals.append(self.term())
+            while self.consume(','):
                 formals.append(self.term())
-                while self.consume(','):
-                    formals.append(self.term())
             self.expect(')')
         elif self.consume('['):
             formals = self.expr0()
@@ -212,10 +211,9 @@ class Parser(EventProducer):
                     i += 1
             else:
                 if self.consume('('):
-                    if self.peek() != ')':
+                    args.append(self.texpr())
+                    while self.consume(','):
                         args.append(self.texpr())
-                        while self.consume(','):
-                            args.append(self.texpr())
                     self.expect(')')
             return Call(prodref, args)
 

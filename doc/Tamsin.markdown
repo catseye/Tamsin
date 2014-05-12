@@ -263,6 +263,12 @@ line.
     + z
     = z
 
+A comment can appear at the end of a Tamsin program, after everything.
+
+    | main = "z".         # and so it goes
+    + z
+    = z
+
 Variables
 ---------
 
@@ -1365,6 +1371,18 @@ pattern.
     | what(he+llo) = 'yes'.
     ? expected
 
+Note that parentheses can only be given in a production call when there
+are arguments to pass.  If there are no arguments, there should be no
+parentheses.
+
+    | main = what().
+    | what = "2".
+    ? expected
+
+    | main = what.
+    | what() = "2".
+    ? expected
+
 Advanced Scanning
 -----------------
 
@@ -1907,7 +1925,7 @@ that this is non-normative; the canonical grammar definition for Tamsin is
 written in Tamsin and can be found in `eg/tamsin-parser.tamsin`.
 
     Grammar    ::= {"@" Pragma "."} Production {Production "."}.
-    Production ::= ProdName ["(" [Term {"," Term} ")" | "[" Expr0 "]"] "=" Expr0.
+    Production ::= ProdName ["(" Term {"," Term} ")" | "[" Expr0 "]"] "=" Expr0.
     Expr0      ::= Expr1 {("||" | "|") Expr1}.
     Expr1      ::= Expr2 {("&&" | "&") Expr2}.
     Expr2      ::= Expr3 ["using" ProdRef].
@@ -1924,7 +1942,7 @@ written in Tamsin and can be found in `eg/tamsin-parser.tamsin`.
                  | Variable [("←" | "<-") Texpr]
                  | ProdRef ["(" [Texpr {"," Texpr}] ")"] ["@" Texpr].
     Texpr      ::= Term {"+" Term}.
-    Term       ::= Atom ["(" [Term {"," Term}] ")"]
+    Term       ::= Atom ["(" Term {"," Term} ")"]
                  | Variable.
     Terminal   ::= DoubleQuotedStringLiteral
                  | ("«" | "<<") Texpr ("»" | ">>").

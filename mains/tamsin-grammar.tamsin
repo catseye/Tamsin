@@ -38,7 +38,7 @@ expr5      = "(" & expr0 & ")"
            | terminal
            | variable & [("←" | "<-") & texpr]
            | sq_string
-           | prodref & ["(" & [texpr & {"," & texpr}] & ")"].
+           | prodref & ["(" & texpr & {"," & texpr} & ")"].
 texpr      = term & {"+" & term}.
 term       = atom & ["(" & [term & {"," & term}] & ")"]
            | variable.
