@@ -171,7 +171,7 @@ class Compiler(object):
             self.emit("")
         elif isinstance(ast, ProdBranch):
             branch = ast
-            all_pattern_variable_names = []
+            all_pattern_variables = []
 
             self.emit("{")
             self.indent()
@@ -181,37 +181,35 @@ class Compiler(object):
             for fml_num in xrange(0, len(branch.formals)):
                 formal = branch.formals[fml_num]
                 pat_names.append(self.compile_r(formal))
+
                 variables = []
                 formal.collect_variables(variables)
                 vars_for_formal.append(variables)
                 for variable in variables:
-                   if variable not in all_pattern_variable_names:
-                       all_pattern_variable_names.append(variable.name)
+                   if variable not in all_pattern_variables:
+                       all_pattern_variables.append(variable)
 
-            if all_pattern_variable_names:
-                self.emit("struct term *unifier[%s] = {%s};" %
-                    (len(all_pattern_variable_names),
-                     ','.join(["NULL"] * len(all_pattern_variable_names))))
+            self.emit("const struct term *unifier[] = {%s};" %
+                ','.join(["NULL"] * len(all_pattern_variables))
+            )
 
             self.emit("if (")
 
             for fml_num in xrange(0, len(branch.formals)):
-                self.emit("    term_match(%s, i%s) &&" %
+                self.emit("    term_match_unifier(%s, i%s, unifier) &&" %
                     (pat_names[fml_num], fml_num)
                 )
             self.emit("    1) {")
             self.indent()
             
-            # declare and get variables which are found in patterns for this branch
-            for fml_num in xrange(0, len(branch.formals)):
-                variables = []
-                formal = branch.formals[fml_num]
-                for variable in vars_for_formal[fml_num]:
-                    self.emit('struct term *%s = '
-                              'term_find_variable(%s, "%s");' %
-                        (variable.name, pat_names[fml_num], variable.name)
-                    )
+            # get variables which are found in patterns for this branch
+            for var in all_pattern_variables:
+                self.emit('const struct term *%s = unifier[%s];' %
+                    (var.name, var.index)
+                )
+                self.emit('assert(%s != NULL);' % var.name);
 
+            all_pattern_variable_names = [x.name for x in all_pattern_variables]
             for local in branch.locals_:
                 if local not in all_pattern_variable_names:
                     self.emit("struct term *%s;" % local)
@@ -432,8 +430,9 @@ class Compiler(object):
             return name
         elif isinstance(ast, PatternVariableNode):
             name = self.new_name()
-            self.emit('struct term *%s = term_new_variable("%s", %s);' %
-                 (name, ast.name, 'term_new_from_cstring("nil_%s")' % ast.name))
+            self.emit('struct term *%s = term_new_variable("%s", %s, %s);' %
+                 (name, ast.name, 'term_new_from_cstring("nil_%s")' % ast.name,
+                  ast.index))
             return name
         elif isinstance(ast, ConstructorNode):
             name = self.new_name()

@@ -25,6 +25,7 @@ class Desugarer(EventProducer):
         self.listeners = listeners
         self.program = program
         self.pattern = False
+        self.index = 0
 
     def desugar(self, ast):
         if isinstance(ast, Program):
@@ -55,6 +56,7 @@ class Desugarer(EventProducer):
             return Production(ast.name, [self.desugar(x) for x in ast.branches])
         elif isinstance(ast, ProdBranch):
             self.pattern = True
+            self.index = 0
             formals = [self.desugar(f) for f in ast.formals]
             self.pattern = False
             return ProdBranch(formals, [], self.desugar(ast.body))
@@ -85,7 +87,9 @@ class Desugarer(EventProducer):
                                    [self.desugar(x) for x in ast.contents])
         elif isinstance(ast, VariableNode):
             if self.pattern:
-                return PatternVariableNode(ast.name)
+                index = self.index
+                self.index += 1
+                return PatternVariableNode(ast.name, index)
             return ast
         elif isinstance(ast, Fold):
             under1 = VariableNode('_1')

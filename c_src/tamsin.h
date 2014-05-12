@@ -49,7 +49,7 @@ struct term *term_new(const char *, size_t);
 struct term *term_new_from_cstring(const char *);
 struct term *term_new_from_char(char c);
 
-struct term *term_new_variable(const char *, struct term *);
+struct term *term_new_variable(const char *, struct term *, int);
 
 struct term *term_deep_copy(const struct term *);
 

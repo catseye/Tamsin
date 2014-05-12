@@ -371,14 +371,15 @@ class VariableNode(TermNode):
 
 
 class PatternVariableNode(TermNode):
-    def __init__(self, name):
+    def __init__(self, name, index):
         self.name = name
+        self.index = index
 
     def __repr__(self):
-        return u"PatternVariableNode(%r)" % self.name
+        return u"PatternVariableNode(%r, %r)" % (self.name, self.index)
 
     def __str__(self):
-        return "patternvariable(%s)" % Atom(self.name).repr()
+        return "patternvariable(%s, %s)" % (Atom(self.name).repr(), self.index)
 
     def collect_variables(self, variables):
         variables.append(self)

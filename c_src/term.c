@@ -71,10 +71,11 @@ struct term *term_new_from_cstring(const char *atom) {
     return term_new(atom, strlen(atom));
 }
 
-struct term *term_new_variable(const char *name, struct term *v) {
+struct term *term_new_variable(const char *name, struct term *v, int index) {
     struct term *t = term_new(name, strlen(name));
 
     t->storing = v;
+    t->index = index;
 
     return t;
 }
@@ -337,7 +338,7 @@ int term_match_unifier(const struct term *pattern, const struct term *ground,
     tl1 = pattern->subterms;
     tl2 = ground->subterms;
     while (tl1 != NULL && tl2 != NULL) {
-        if (!term_match(tl1->term, tl2->term)) {
+        if (!term_match_unifier(tl1->term, tl2->term, variables)) {
             return 0;
         }
         tl1 = tl1->next;
@@ -346,5 +347,6 @@ int term_match_unifier(const struct term *pattern, const struct term *ground,
     if (tl1 != NULL || tl2 != NULL) {
         return 0;
     }
+
     return 1;
 }

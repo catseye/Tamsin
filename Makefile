@@ -8,7 +8,7 @@ LCFLAGS?=-ansi -pedantic -g -Wall -Werror -Ic_src -Lc_src
 OBJECTS=c_src/scanner.o c_src/term.o c_src/tamsin.o
 PROGS=bin/tamsin-compiler bin/micro-tamsin
 
-all: c_src/libtamsin.a $(PROGS)
+all: c_src/libtamsin.a
 
 c_src/scanner.o: c_src/scanner.c
 	$(CC) $(LCFLAGS) -c c_src/scanner.c -o $@
