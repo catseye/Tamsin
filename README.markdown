@@ -81,7 +81,7 @@ Interpret a small subset of Tamsin in
 (not counting the [included batteries](https://github.com/catseye/Tamsin/blob/master/doc/Philosophy.markdown#batteries-included).)
 
 Compile Tamsin to C in
-**[700 lines of code](https://github.com/catseye/Tamsin/blob/master/mains/compiler.tamsin)**
+**[550 lines of code](https://github.com/catseye/Tamsin/blob/master/mains/compiler.tamsin)**
 (again, not counting the included batteries.)
 
 For more information

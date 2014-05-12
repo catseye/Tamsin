@@ -365,45 +365,24 @@ tamsin_compiler {
       Nm.
   
   compile_r(P,B,Mod, atom(T)) =
-      emit('struct term *') &
       $:gensym('temp') → Nm &
-      emit(Nm) &
-      emit(' = term_new("') &
-      $:length(T) → Len &
-      escaped(T) → T &
-      emit(T) &
-      emit('", ') &
-      emit(Len) &
-      emitln(');') &
-      Nm.
+      escaped(T) → ET &
+      $:length(T) → LT &
+      emitln_fmt('struct term *%s = term_new("%s", %s);', [Nm, ET, LT]) & Nm.
   
   compile_r(P,B,Mod, variable(VN)) =
       $:gensym('temp') → Nm &
-      emitln_fmt('struct term *%s = %s;', [Nm, VN]) &
-      Nm.
+      emitln_fmt('struct term *%s = %s;', [Nm, VN]) & Nm.
 
   compile_r(P,B,Mod, patternvariable(VN)) =
-      emit('struct term *') &
       $:gensym('pattern') → Nm &
-      emit(Nm) &
-      emit(' = term_new_variable("') &
-      emit(VN) &
-      emit('", term_new_from_cstring("nil_') &
-      emit(VN) &
-      emitln('"));') &
-      Nm.
+      emitln_fmt('struct term *%s = term_new_variable("%s", ' +
+                 'term_new_from_cstring("nil_%s"));', [Nm, VN, VN]) & Nm.
   
   compile_r(P,B,Mod, constructor(T,Ts)) =
-      emit('struct term *') &
-      $:gensym('temp') → Nm &
-      emit(Nm) &
-      emit(' = term_new_from_cstring("') &
-      escaped(T) → T &
-      emit(T) &
-      emitln('");') &
+      compile_r(P,B,Mod, atom(T)) → Nm &
       list:reverse(Ts, nil) → Ts &
-      emit_subterms(P,B,Nm, Nm, Ts) &
-      Nm.
+      emit_subterms(P,B,Nm, Nm, Ts) & Nm.
   
   emit_subterms(P,B,Mod, ON, nil) = 'ok'.
   emit_subterms(P,B,Mod, ON, list(H,T)) =
@@ -430,11 +409,7 @@ tamsin_compiler {
   
   emit_prototypes(Mod, nil) = 'ok'.
   emit_prototypes(Mod, list(production(N, Bs), Tail)) =
-      emit('void prod_') &
-      emit(Mod) &
-      emit('_') &
-      emit(N) &
-      emitln('();') &
+      emitln_fmt('void prod_%s_%s();', [Mod, N]) &
       emit_prototypes(Mod, Tail).
   
   emit_prototypes(Mod, list(module(N, Ps), Tail)) =
