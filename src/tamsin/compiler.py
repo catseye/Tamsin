@@ -125,7 +125,7 @@ class Compiler(object):
             for prod in module.prodlist:
                 self.emit("void prod_%s_%s(%s);" % (
                     mod_name, prod.name,
-                    ', '.join(["const struct term *" % f
+                    ', '.join(["const struct term *"
                                for f in prod.branches[0].formals])
                 ))
         self.emit("")
