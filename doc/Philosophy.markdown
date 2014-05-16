@@ -65,7 +65,7 @@ Tamsin isn't one, because:
 ### Rubbish Lister ###
 
 What does this even mean?  Well, there is that
-[one famous rubbish lister](http://perl.com/) that we can use as an example
+[one famous rubbish lister](http://perl.org/) that we can use as an example
 for now, until I come up with a better definition here.
 
 Tamsin is one, because:

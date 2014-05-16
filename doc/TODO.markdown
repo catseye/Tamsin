@@ -12,6 +12,7 @@ TODO
 *   tests for failing when utf8 scanner hits badly-encoded utf8
 *   tests for invalid escape codes
 *   test for mismatched # of formals in prod branches
+*   document the modules.  in own document.  plus tests.
 
 ### support for simulating machines and vms ###
 

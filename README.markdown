@@ -165,7 +165,7 @@ Related work
 
 *   [CoCo/R](http://www.scifac.ru.ac.za/coco/) (parser generation)
 *   [Parsec](http://www.haskell.org/haskellwiki/Parsec) (parser combinators)
-*   [Perl](http://perl.com/) (rubbish listing)
+*   [Perl](http://perl.org/) (rubbish listing)
 *   [Prolog](https://en.wikipedia.org/wiki/Prolog) (pattern-matching, terms,
     backtracking(-ish...))
 *   [K](https://github.com/kevinlawler/kona) (similar feel; Tamsin

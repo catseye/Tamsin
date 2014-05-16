@@ -256,7 +256,7 @@ const struct term *tamsin_length(const struct term *t) {
     t = term_flatten(t);
 
     /* snprintf(buffer, 79, "%lu", t->size); */
-    sprintf(buffer, "%lu", t->size);
+    sprintf(buffer, "%lu", (unsigned long)t->size);
 
     return term_new_from_cstring(buffer);
 }
