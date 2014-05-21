@@ -28,10 +28,10 @@ void tamsin_eof(struct scanner *s) {
     const struct term *t = scan(s);
     unscan(s);
     if (t == &tamsin_EOF) {
-        result = term_new("", 0);
+        result = term_new_atom("", 0);
         ok = 1;
     } else {
-        result = term_new_from_cstring("expected EOF found '");
+        result = term_new_atom_from_cstring("expected EOF found '");
         result = term_concat(result, t);
         result = term_concat(result, &APOS);
         ok = 0;
@@ -42,7 +42,7 @@ void tamsin_any(struct scanner *s) {
     const struct term *t = scan(s);
     if (t == &tamsin_EOF) {
         unscan(s);
-        result = term_new_from_cstring("expected any token, found EOF");
+        result = term_new_atom_from_cstring("expected any token, found EOF");
         ok = 0;
     } else {
         commit(s);
@@ -59,9 +59,9 @@ void tamsin_expect(struct scanner *s, const struct term *expected) {
         ok = 1;
     } else {
         unscan(s);
-        result = term_new_from_cstring("expected '");
+        result = term_new_atom_from_cstring("expected '");
         result = term_concat(result, expected);
-        result = term_concat(result, term_new_from_cstring("' found '"));
+        result = term_concat(result, term_new_atom_from_cstring("' found '"));
         result = term_concat(result, scanned);
         result = term_concat(result, &APOS);
         ok = 0;
@@ -76,7 +76,7 @@ void tamsin_alnum(struct scanner *s) {
         ok = 1;
     } else {
         unscan(s);
-        result = term_new_from_cstring("expected alphanumeric, found '");
+        result = term_new_atom_from_cstring("expected alphanumeric, found '");
         result = term_concat(result, t);
         result = term_concat(result, &APOS);
         ok = 0;
@@ -91,7 +91,7 @@ void tamsin_upper(struct scanner *s) {
         ok = 1;
     } else {
         unscan(s);
-        result = term_new_from_cstring("expected uppercase alphabetic, found '");
+        result = term_new_atom_from_cstring("expected uppercase alphabetic, found '");
         result = term_concat(result, t);
         result = term_concat(result, &APOS);
         ok = 0;
@@ -106,9 +106,9 @@ void tamsin_startswith(struct scanner *s, const char *str) {
         ok = 1;
     } else {
         unscan(s);
-        result = term_new_from_cstring("expected '");
-        result = term_concat(result, term_new_from_char(str[0]));
-        result = term_concat(result, term_new_from_cstring("found '"));
+        result = term_new_atom_from_cstring("expected '");
+        result = term_concat(result, term_new_atom_from_char(str[0]));
+        result = term_concat(result, term_new_atom_from_cstring("found '"));
         result = term_concat(result, t);
         result = term_concat(result, &APOS);
         ok = 0;
@@ -118,21 +118,23 @@ void tamsin_startswith(struct scanner *s, const char *str) {
 const struct term *tamsin_unquote(const struct term *q,
                                   const struct term *l, const struct term *r) {
     if (q->size < 1 || l->size != 1 || r->size != 1) {
-        struct term *result = term_new_from_cstring("bad terms for unquote");
+        const struct term *result = term_new_atom_from_cstring(
+            "bad terms for unquote"
+        );
         ok = 0;
         return result;
     }
     if (q->atom[0] == l->atom[0] && q->atom[q->size-1] == r->atom[0]) {
         ok = 1;
-        return term_new(q->atom + 1, q->size - 2);
+        return term_new_atom(q->atom + 1, q->size - 2);
     } else {
-        struct term *result = term_new_from_cstring("term '");
+        const struct term *result = term_new_atom_from_cstring("term '");
         result = term_concat(result, q);
-        result = term_concat(result, term_new_from_cstring(
+        result = term_concat(result, term_new_atom_from_cstring(
             "' is not quoted with '"
         ));
         result = term_concat(result, l);
-        result = term_concat(result, term_new_from_cstring("' and '"));
+        result = term_concat(result, term_new_atom_from_cstring("' and '"));
         result = term_concat(result, r);
         result = term_concat(result, &APOS);
         ok = 0;
@@ -145,11 +147,11 @@ const struct term *tamsin_equal(const struct term *l, const struct term *r) {
         ok = 1;
         return l;
     } else {
-        struct term *result;
+        const struct term *result;
         
-        result = term_new_from_cstring("term '");
+        result = term_new_atom_from_cstring("term '");
         result = term_concat(result, term_flatten(l));
-        result = term_concat(result, term_new_from_cstring(
+        result = term_concat(result, term_new_atom_from_cstring(
             "' does not equal '"
         ));
         result = term_concat(result, term_flatten(r));
@@ -160,6 +162,7 @@ const struct term *tamsin_equal(const struct term *l, const struct term *r) {
     }
 }
 
+/* TODO: rewrite to not use term_add_subterm */
 void tamsin_mkterm_r(struct term *t, const struct term *list) {
     if (term_atom_cstring_equal(list, "list") && list->subterms != NULL) {
         tamsin_mkterm_r(t, list->subterms->next->term);
@@ -169,7 +172,7 @@ void tamsin_mkterm_r(struct term *t, const struct term *list) {
 
 const struct term *tamsin_mkterm(const struct term *atom,
                                  const struct term *list) {
-    struct term *t = term_new(atom->atom, atom->size);
+    struct term *t = term_new_atom(atom->atom, atom->size);
     tamsin_mkterm_r(t, list);
     return t;
 }
@@ -179,7 +182,7 @@ const struct term *tamsin_reverse(const struct term *list, const struct term *se
     const struct term *head = list;  /* save */
 
     while (list->subterms != NULL && term_atoms_equal(list, head)) {
-        struct term *new = term_new(head->atom, head->size);
+        const struct term *new = term_new_atom(head->atom, head->size);
         
         /*term_fput(list, stderr);
         fprintf(stderr, "\n");*/
@@ -197,7 +200,7 @@ const struct term *tamsin_reverse(const struct term *list, const struct term *se
         ok = 1;
         return res;
     } else {
-        res = term_new_from_cstring("malformed list ");
+        res = term_new_atom_from_cstring("malformed list ");
         res = term_concat(res, term_flatten(head));
         ok = 0;
         return res;
@@ -212,7 +215,7 @@ const struct term *tamsin_gensym(const struct term *base) {
     counter++;
     /* snprintf(buffer, 79, "%d", counter); */
     sprintf(buffer, "%d", counter);
-    t = term_concat(t, term_new_from_cstring(buffer));
+    t = term_concat(t, term_new_atom_from_cstring(buffer));
 
     return t;
 }
@@ -236,7 +239,7 @@ const struct term *tamsin_hexbyte(const struct term *high, const struct term *lo
     hi = hexdigit_to_int(h->atom[0]);
     lo = hexdigit_to_int(l->atom[0]);
 
-    return term_new_from_char((char)(hi * 16 + lo));
+    return term_new_atom_from_char((char)(hi * 16 + lo));
 }
 
 /* uses same buffer as gensym because to do otherwise would be less awesome */
@@ -248,7 +251,7 @@ const struct term *tamsin_format_octal(const struct term *chr) {
     /* snprintf(buffer, 79, "%o", (unsigned char)t->atom[0]); */
     sprintf(buffer, "%o", (unsigned char)t->atom[0]);
 
-    return term_new_from_cstring(buffer);
+    return term_new_atom_from_cstring(buffer);
 }
 
 /* uses same buffer as gensym because to do otherwise would be less awesome */
@@ -258,5 +261,5 @@ const struct term *tamsin_length(const struct term *t) {
     /* snprintf(buffer, 79, "%lu", t->size); */
     sprintf(buffer, "%lu", (unsigned long)t->size);
 
-    return term_new_from_cstring(buffer);
+    return term_new_atom_from_cstring(buffer);
 }

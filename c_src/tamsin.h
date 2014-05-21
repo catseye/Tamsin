@@ -40,21 +40,14 @@ struct term_list {
  * Subterms may be added afterwards to turn it into a "constructor" term.
  * Segfaults if there is insufficient memory to allocate the term.
  */
-struct term *term_new(const char *, size_t);
+const struct term *term_new_atom(const char *, size_t);
+const struct term *term_new_atom_from_cstring(const char *);
+const struct term *term_new_atom_from_char(char c);
 
-struct term *term_new_from_cstring(const char *);
-struct term *term_new_from_char(char c);
+const struct term *term_new_constructor(const char *, size_t,
+                                        struct term_list *);
 
-struct term *term_new_variable(const char *, int);
-
-/*
-struct term *term_deep_copy(const struct term *);
-*/
-
-/*
- * Modifies the given term.
- */
-void term_add_subterm(struct term *, const struct term *);
+const struct term *term_new_variable(const char *, size_t, int);
 
 /*
  * Returns 1 if the atom portion of both terms is identical, otherwise 0.
@@ -78,7 +71,7 @@ struct term *term_find_variable(const struct term *, const char *);
  * Given two "atom" terms, return a new "atom" term consisting of the
  * text of the input terms concatenated together.
  */
-struct term *term_concat(const struct term *, const struct term *);
+const struct term *term_concat(const struct term *, const struct term *);
 
 /*
  * Given a possibly non-atom term, return an atom consisting of

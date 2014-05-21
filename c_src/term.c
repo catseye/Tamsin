@@ -12,10 +12,28 @@
  */
 
 struct term tamsin_EOF = {"EOF", 3, -1, NULL};
- 
-struct term *term_new(const char *atom, size_t size) {
+
+struct term *term_single_byte_table = NULL;
+char term_single_byte_data[256];
+
+const struct term *term_new_atom(const char *atom, size_t size) {
     struct term *t;
     char *text;
+
+    if (size == 1) {
+        if (term_single_byte_table == NULL) {
+            int i;
+            term_single_byte_table = malloc(sizeof(struct term) * 256);
+            for (i = 0; i < 256; i++) {
+                term_single_byte_data[i] = (char)i;
+                term_single_byte_table[i].atom = term_single_byte_data + i;
+                term_single_byte_table[i].size = 1;
+                term_single_byte_table[i].index = 0;
+                term_single_byte_table[i].subterms = NULL;
+            }
+        }
+        return &term_single_byte_table[(int)atom[0]];
+    }
 
     t = malloc(sizeof(struct term));
     text = malloc(size);
@@ -37,35 +55,47 @@ void termlist_add_term(struct term_list **tl, const struct term *term) {
     *tl = new_tl;
 }
 
-struct term *term_new_from_char(char c) {
+const struct term *term_new_atom_from_char(char c) {
     char s[2];
 
     s[0] = c;
     s[1] = '\0';
 
-    return term_new(s, 1);
+    return term_new_atom(s, 1);
 }
 
-struct term *term_new_from_cstring(const char *atom) {
-    return term_new(atom, strlen(atom));
+const struct term *term_new_atom_from_cstring(const char *atom) {
+    return term_new_atom(atom, strlen(atom));
 }
 
-struct term *term_new_variable(const char *name, int index) {
-    struct term *t = term_new(name, strlen(name));
+const struct term *term_new_constructor(const char *tag, size_t size,
+                                        struct term_list *subterms)
+{
+    struct term *t = malloc(sizeof(struct term));
+    char *text = malloc(size);
 
-    t->index = index;
+    memcpy(text, tag, size);
+    t->atom = text;
+    t->size = size;
+    t->index = -1;
+    t->subterms = subterms;
 
     return t;
 }
 
-void term_add_subterm(struct term *term, const struct term *subterm) {
-    struct term_list *tl;
+const struct term *term_new_variable(const char *name, size_t size, int index) {
+    struct term *t;
+    char *text;
 
-    assert(term->index == -1);
-    tl = malloc(sizeof(struct term_list));
-    tl->term = subterm;
-    tl->next = term->subterms;
-    term->subterms = tl;        
+    t = malloc(sizeof(struct term));
+    text = malloc(size);
+    memcpy(text, name, size);
+    t->atom = text;
+    t->size = size;
+    t->index = index;
+    t->subterms = NULL;
+
+    return t;
 }
 
 int term_atoms_equal(const struct term *lhs, const struct term *rhs) {
@@ -82,8 +112,8 @@ int term_atom_cstring_equal(const struct term *lhs, const char *string) {
     return memcmp(lhs->atom, string, lhs->size) == 0;
 }
 
-struct term *term_concat(const struct term *lhs, const struct term *rhs) {
-    struct term *t;
+const struct term *term_concat(const struct term *lhs, const struct term *rhs) {
+    const struct term *t;
     int new_size;
     char *new_atom;
 
@@ -94,7 +124,7 @@ struct term *term_concat(const struct term *lhs, const struct term *rhs) {
     new_atom = malloc(new_size);
     memcpy(new_atom, lhs->atom, lhs->size);
     memcpy(new_atom + lhs->size, rhs->atom, rhs->size);
-    t = term_new(new_atom, new_size);
+    t = term_new_atom(new_atom, new_size);
     free(new_atom);
 
     return t;
@@ -110,9 +140,9 @@ const struct term *term_flatten(const struct term *t) {
     if (t->subterms == NULL) {  /* it's an atom */
         return t;
     } else {                           /* it's a constructor */
-        struct term *n;
+        const struct term *n;
         /* we clone t here to get an atom from its tag */
-        n = term_concat(term_new(t->atom, t->size), &BRA);
+        n = term_concat(term_new_atom(t->atom, t->size), &BRA);
 
         for (tl = t->subterms; tl != NULL; tl = tl->next) {
             n = term_concat(n, term_flatten(tl->term));
@@ -171,13 +201,13 @@ const struct term *term_escape_atom(const struct term *t) {
     int needed;
     
     if (t->size == 0) {
-        return term_new("''", 2);
+        return term_new_atom("''", 2);
     }
 
     needed = escapes_needed(t->atom, t->size);
 
     if (needed > 0) {
-        struct term *r;
+        const struct term *r;
         char *buffer = malloc(t->size + needed);
         int i, j = 0;
 
@@ -196,21 +226,21 @@ const struct term *term_escape_atom(const struct term *t) {
         }
         assert(j == t->size + needed);
 
-        r  = term_new("'", 1);
-        r = term_concat(r, term_new(buffer, t->size + needed));
-        r = term_concat(r, term_new("'", 1));
+        r = term_new_atom("'", 1);
+        r = term_concat(r, term_new_atom(buffer, t->size + needed));
+        r = term_concat(r, term_new_atom("'", 1));
         free(buffer);
 
         return r;
     } else if (all_bareword(t->atom, t->size)) {
         /* TODO: can we eliminate this copy? */
-        return term_new(t->atom, t->size);
+        return term_new_atom(t->atom, t->size);
     } else {
         const struct term *r;
 
-        r = term_new("'", 1);
+        r = term_new_atom("'", 1);
         r = term_concat(r, t);
-        r = term_concat(r, term_new("'", 1));
+        r = term_concat(r, term_new_atom("'", 1));
 
         return r;
     }
@@ -222,7 +252,7 @@ const struct term *term_repr(const struct term *t) {
     if (t->subterms == NULL) {  /* it's an atom */
         return term_escape_atom(t);
     } else {                           /* it's a constructor */
-        struct term *n;
+        const struct term *n;
         n = term_concat(term_escape_atom(t), &BRA);
 
         for (tl = t->subterms; tl != NULL; tl = tl->next) {

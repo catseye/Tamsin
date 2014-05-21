@@ -40,7 +40,7 @@ const struct term *scan(struct scanner *s) {
     if (s->engines == NULL || s->engines->production == &scanner_utf8_engine) {
         char c = s->buffer[s->position];
         int len = 1;
-        struct term *t;
+        const struct term *t;
 
         if ((c & UTF_8_LEN_2_MASK) == UTF_8_LEN_2_BITS) {
             len = 2;
@@ -50,14 +50,14 @@ const struct term *scan(struct scanner *s) {
             len = 4;
         }
 
-        t = term_new(s->buffer + s->position, len);
+        t = term_new_atom(s->buffer + s->position, len);
         s->position += len;
         return t;
     } else if (s->engines->production == &scanner_byte_engine) {
         char c = s->buffer[s->position];
 
         s->position++;
-        return term_new_from_char(c);
+        return term_new_atom_from_char(c);
     } else {
         const struct term *save_result = result;
         int save_reset_position = s->reset_position;
