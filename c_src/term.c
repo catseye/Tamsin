@@ -21,8 +21,8 @@ const struct term *term_new_atom(const char *atom, size_t size) {
     char *text;
 
     if (size == 1) {
+        int i;
         if (term_single_byte_table == NULL) {
-            int i;
             term_single_byte_table = malloc(sizeof(struct term) * 256);
             for (i = 0; i < 256; i++) {
                 term_single_byte_data[i] = (char)i;
@@ -32,7 +32,8 @@ const struct term *term_new_atom(const char *atom, size_t size) {
                 term_single_byte_table[i].subterms = NULL;
             }
         }
-        return &term_single_byte_table[(int)atom[0]];
+        i = ((unsigned char *)atom)[0];
+        return &term_single_byte_table[i];
     }
 
     t = malloc(sizeof(struct term));
