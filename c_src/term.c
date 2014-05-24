@@ -28,7 +28,7 @@ const struct term *term_new_atom(const char *atom, size_t size) {
                 term_single_byte_data[i] = (char)i;
                 term_single_byte_table[i].atom = term_single_byte_data + i;
                 term_single_byte_table[i].size = 1;
-                term_single_byte_table[i].index = 0;
+                term_single_byte_table[i].index = -1;
                 term_single_byte_table[i].subterms = NULL;
             }
         }
@@ -92,6 +92,7 @@ const struct term *term_new_variable(const char *name, size_t size, int index) {
     memcpy(text, name, size);
     t->atom = text;
     t->size = size;
+    assert(index != -1);
     t->index = index;
     t->subterms = NULL;
 

@@ -435,7 +435,7 @@ class Compiler(object):
             return name
         elif isinstance(ast, ConstructorNode):
             termlist_name = self.new_name()
-            self.emit('struct termlist *%s;' % termlist_name);
+            self.emit('struct termlist *%s = NULL;' % termlist_name);
             for c in reversed(ast.contents):
                 subname = self.compile_r(c)
                 self.emit('termlist_add_term(&%s, %s);' % (termlist_name, subname))
