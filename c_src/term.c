@@ -46,15 +46,6 @@ const struct term *term_new_atom(const char *atom, size_t size) {
     return t;
 }
 
-void termlist_add_term(struct term_list **tl, const struct term *term) {
-    struct term_list *new_tl;
-
-    new_tl = malloc(sizeof(struct term_list));
-    new_tl->term = term;
-    new_tl->next = *tl;
-    *tl = new_tl;
-}
-
 const struct term *term_new_atom_from_char(char c) {
     char s[2];
 
@@ -69,7 +60,7 @@ const struct term *term_new_atom_from_cstring(const char *atom) {
 }
 
 const struct term *term_new_constructor(const char *tag, size_t size,
-                                        struct term_list *subterms)
+                                        struct termlist *subterms)
 {
     struct term *t = malloc(sizeof(struct term));
     char *text = malloc(size);
@@ -81,6 +72,15 @@ const struct term *term_new_constructor(const char *tag, size_t size,
     t->subterms = subterms;
 
     return t;
+}
+
+void termlist_add_term(struct termlist **tl, const struct term *term) {
+    struct termlist *new_tl;
+
+    new_tl = malloc(sizeof(struct termlist));
+    new_tl->term = term;
+    new_tl->next = *tl;
+    *tl = new_tl;
 }
 
 const struct term *term_new_variable(const char *name, size_t size, int index) {
@@ -135,7 +135,7 @@ const struct term KET = { ")", 1, -1, NULL };
 const struct term COMMA = { ", ", 2, -1, NULL };
 
 const struct term *term_flatten(const struct term *t) {
-    struct term_list *tl;
+    struct termlist *tl;
 
     if (t->subterms == NULL) {  /* it's an atom */
         return t;
@@ -247,7 +247,7 @@ const struct term *term_escape_atom(const struct term *t) {
 }
 
 const struct term *term_repr(const struct term *t) {
-    struct term_list *tl;
+    struct termlist *tl;
 
     if (t->subterms == NULL) {  /* it's an atom */
         return term_escape_atom(t);
@@ -268,7 +268,7 @@ const struct term *term_repr(const struct term *t) {
 
 int term_equal(const struct term *pattern, const struct term *ground)
 {
-    struct term_list *tl1, *tl2;
+    struct termlist *tl1, *tl2;
 
     assert(pattern->index == -1);
     assert(ground->index == -1);
@@ -298,7 +298,7 @@ int term_equal(const struct term *pattern, const struct term *ground)
 int term_match_unifier(const struct term *pattern, const struct term *ground,
                        const struct term **variables)
 {
-    struct term_list *tl1, *tl2;
+    struct termlist *tl1, *tl2;
 
     if (pattern->index >= 0) {
         variables[pattern->index] = ground;

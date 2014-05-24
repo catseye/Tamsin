@@ -162,19 +162,20 @@ const struct term *tamsin_equal(const struct term *l, const struct term *r) {
     }
 }
 
-/* TODO: rewrite to not use term_add_subterm */
-void tamsin_mkterm_r(struct term *t, const struct term *list) {
+void tamsin_mkterm_r(struct termlist **tl, const struct term *list) {
     if (term_atom_cstring_equal(list, "list") && list->subterms != NULL) {
-        tamsin_mkterm_r(t, list->subterms->next->term);
-        term_add_subterm(t, list->subterms->term);
+        tamsin_mkterm_r(tl, list->subterms->next->term);
+        termlist_add_term(tl, list->subterms->term);
     }
 }
 
 const struct term *tamsin_mkterm(const struct term *atom,
                                  const struct term *list) {
-    struct term *t = term_new_atom(atom->atom, atom->size);
-    tamsin_mkterm_r(t, list);
-    return t;
+    struct termlist *tl = NULL;
+
+    tamsin_mkterm_r(&tl, list);
+
+    return term_new_constructor(atom->atom, atom->size, tl);
 }
 
 const struct term *tamsin_reverse(const struct term *list, const struct term *sentinel) {
@@ -182,14 +183,17 @@ const struct term *tamsin_reverse(const struct term *list, const struct term *se
     const struct term *head = list;  /* save */
 
     while (list->subterms != NULL && term_atoms_equal(list, head)) {
-        const struct term *new = term_new_atom(head->atom, head->size);
-        
+        const struct term *new;
+        struct termlist *tl = NULL;
+
         /*term_fput(list, stderr);
         fprintf(stderr, "\n");*/
 
-        term_add_subterm(new, res);
-        term_add_subterm(new, list->subterms->term);
+        termlist_add_term(&tl, res);
+        termlist_add_term(&tl, list->subterms->term);
+        new = term_new_constructor(head->atom, head->size, tl);
         res = new;
+
         if (list->subterms->next == NULL) {
             break;
         }

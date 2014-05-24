@@ -25,12 +25,12 @@ struct term {
     const char *atom;
     size_t size;
     int index;
-    struct term_list *subterms;
+    struct termlist *subterms;
 };
 
-struct term_list {
+struct termlist {
     const struct term *term;
-    struct term_list *next;
+    struct termlist *next;
 };
 
 /*
@@ -45,7 +45,8 @@ const struct term *term_new_atom_from_cstring(const char *);
 const struct term *term_new_atom_from_char(char c);
 
 const struct term *term_new_constructor(const char *, size_t,
-                                        struct term_list *);
+                                        struct termlist *);
+void termlist_add_term(struct termlist **, const struct term *);
 
 const struct term *term_new_variable(const char *, size_t, int);
 
