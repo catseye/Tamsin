@@ -33,7 +33,7 @@ const struct term *result;
 '''
 
 POSTLUDE = r'''
-struct term *bufterm = NULL;
+const struct term *bufterm = NULL;
 
 int read_file(FILE *input) {
     char *buffer = malloc(8193);
@@ -43,9 +43,9 @@ int read_file(FILE *input) {
     while (!feof(input)) {
         int num_read = fread(buffer, 1, 8192, input);
         if (bufterm == NULL) {
-            bufterm = term_new(buffer, num_read);
+            bufterm = term_new_atom(buffer, num_read);
         } else {
-            bufterm = term_concat(bufterm, term_new(buffer, num_read));
+            bufterm = term_concat(bufterm, term_new_atom(buffer, num_read));
         }
     }
 
@@ -68,7 +68,7 @@ int main(int argc, char **argv) {
 
     scanner = scanner_new(bufterm->atom, bufterm->size);
     ok = 0;
-    result = term_new_from_cstring("nil");
+    result = term_new_atom_from_cstring("nil");
 
     prod_main_main();
 
@@ -159,12 +159,12 @@ class Compiler(object):
                 self.compile_r(branch)
                 self.current_branch = None
             
-            self.emit('result = term_new_from_cstring'
+            self.emit('result = term_new_atom_from_cstring'
                       '("No \'%s\' production matched arguments ");' %
                       self.current_prod.name)
             for i in xrange(0, len(branch.formals)):
                 self.emit('result = term_concat(result, term_flatten(i%d));' % i)
-                self.emit('result = term_concat(result, term_new_from_cstring(", "));')
+                self.emit('result = term_concat(result, term_new_atom_from_cstring(", "));')
             self.emit("ok = 0;")
 
             self.outdent()
@@ -365,12 +365,12 @@ class Compiler(object):
             self.emit("if (ok) {")
             self.indent()
             self.emit("ok = 0;")
-            self.emit(r'result = term_new_from_cstring("expected anything except");')
+            self.emit(r'result = term_new_atom_from_cstring("expected anything except");')
             self.outdent()
             self.emit("} else {")
             self.indent()
             self.emit("ok = 1;")
-            self.emit(r'result = term_new_from_cstring("nil");')
+            self.emit(r'result = term_new_atom_from_cstring("nil");')
             self.outdent()
             self.emit("}")
             self.outdent()
@@ -416,7 +416,7 @@ class Compiler(object):
             return name
         elif isinstance(ast, AtomNode):
             name = self.new_name()
-            self.emit('const struct term *%s = term_new("%s", %s);' %
+            self.emit('const struct term *%s = term_new_atom("%s", %s);' %
                 (name, escaped(ast.text), len(ast.text))
             )
             return name
@@ -429,18 +429,20 @@ class Compiler(object):
             return name
         elif isinstance(ast, PatternVariableNode):
             name = self.new_name()
-            self.emit('const struct term *%s = term_new_variable("%s", %s);' %
-                 (name, ast.name, ast.index)
+            self.emit('const struct term *%s = term_new_variable("%s", %s, %s);' %
+                 (name, ast.name, len(ast.name), ast.index)
             )
             return name
         elif isinstance(ast, ConstructorNode):
-            name = self.new_name()
-            self.emit('const struct term *%s = term_new("%s", %s);' %
-                (name, escaped(ast.text), len(ast.text))
-            )
+            termlist_name = self.new_name()
+            self.emit('struct termlist *%s;' % termlist_name);
             for c in reversed(ast.contents):
                 subname = self.compile_r(c)
-                self.emit('term_add_subterm((struct term *)%s, %s);' % (name, subname))
+                self.emit('termlist_add_term(&%s, %s);' % (termlist_name, subname))
+            name = self.new_name()
+            self.emit('const struct term *%s = term_new_constructor("%s", %s, %s);' %
+                (name, escaped(ast.text), len(ast.text), termlist_name)
+            )
             return name
         else:
             raise NotImplementedError(repr(ast))
