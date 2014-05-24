@@ -36,7 +36,7 @@ tamsin_compiler {
   ').
   
   postlude = $:emit('
-  struct term *bufterm = NULL;
+  const struct term *bufterm = NULL;
   
   int read_file(FILE *input) {
       char *buffer = malloc(8193);
@@ -46,9 +46,9 @@ tamsin_compiler {
       while (!feof(input)) {
           int num_read = fread(buffer, 1, 8192, input);
           if (bufterm == NULL) {
-              bufterm = term_new(buffer, num_read);
+              bufterm = term_new_atom(buffer, num_read);
           } else {
-              bufterm = term_concat(bufterm, term_new(buffer, num_read));
+              bufterm = term_concat(bufterm, term_new_atom(buffer, num_read));
           }
       }
   
@@ -71,7 +71,7 @@ tamsin_compiler {
   
       scanner = scanner_new(bufterm->atom, bufterm->size);
       ok = 0;
-      result = term_new_from_cstring("nil");
+      result = term_new_atom_from_cstring("nil");
   
       prod_main_main();
   
@@ -149,7 +149,7 @@ tamsin_compiler {
       emitln(') {') &
       indent &
       compile_branches(P,B,Mod,FmlNms, Bs) &
-      emit('result = term_new_from_cstring("No \'') &
+      emit('result = term_new_atom_from_cstring("No \'') &
       emit(N) &
       emitln('\' production matched arguments");') &
       emitln('ok = 0;') &
@@ -280,12 +280,12 @@ tamsin_compiler {
       emitln('if (ok) {') &
       indent &
       emitln('ok = 0;') &
-      emitln('result = term_new_from_cstring("expected anything except");') &
+      emitln('result = term_new_atom_from_cstring("expected anything except");') &
       outdent &
       emitln('} else {') &
       indent &
       emitln('ok = 1;') &
-      emitln('result = term_new_from_cstring("nil");') &
+      emitln('result = term_new_atom_from_cstring("nil");') &
       outdent &
       emitln('}') &
       outdent &
@@ -369,7 +369,7 @@ tamsin_compiler {
       $:gensym('temp') → Nm &
       escaped(T) → ET &
       $:length(T) → LT &
-      emitln_fmt('const struct term *%s = term_new("%s", %s);', [Nm, ET, LT]) & Nm.
+      emitln_fmt('const struct term *%s = term_new_atom("%s", %s);', [Nm, ET, LT]) & Nm.
   
   compile_r(P,B,Mod, variable(VN)) =
       $:gensym('temp') → Nm &
@@ -377,20 +377,28 @@ tamsin_compiler {
 
   compile_r(P,B,Mod, patternvariable(VN, I)) =
       $:gensym('pattern') → Nm &
-      emitln_fmt('const struct term *%s = term_new_variable("%s", %s);',
-          [Nm, VN, I]
+      $:length(VN) → L &
+      emitln_fmt('const struct term *%s = term_new_variable("%s", %s, %s);',
+          [Nm, VN, L, I]
       ) & Nm.
   
   compile_r(P,B,Mod, constructor(T,Ts)) =
-      compile_r(P,B,Mod, atom(T)) → Nm &
+      $:gensym('tl') → TLNm &
+      emitln_fmt('struct termlist *%s = NULL;', [TLNm]) &
       list:reverse(Ts, nil) → Ts &
-      emit_subterms(P,B,Nm, Nm, Ts) & Nm.
+      emit_subterms(P,B,Mod, TLNm, Ts) &
+      $:gensym('temp') → Nm &
+      escaped(T) → ET &
+      $:length(T) → LT &
+      emitln_fmt('const struct term *%s = term_new_constructor("%s", %s, %s);',
+          [Nm, ET, LT, TLNm]
+      ) & Nm.
   
-  emit_subterms(P,B,Mod, ON, nil) = 'ok'.
-  emit_subterms(P,B,Mod, ON, list(H,T)) =
+  emit_subterms(P,B,Mod, TLNm, nil) = 'ok'.
+  emit_subterms(P,B,Mod, TLNm, list(H,T)) =
       compile_r(P,B,Mod, H) → Nm &
-      emitln_fmt('term_add_subterm((struct term *)%s, %s);', [ON, Nm]) &
-      emit_subterms(P,B,Mod, ON, T).
+      emitln_fmt('termlist_add_term(&%s, %s);', [TLNm, Nm]) &
+      emit_subterms(P,B,Mod, TLNm, T).
   
   ########### finding variables in patterns ###########
   
