@@ -41,7 +41,7 @@ static size_t hashpjw(const char *key, size_t key_size, size_t table_size) {
         }
     }
 
-    return(h % table_size);
+    return h % table_size;
 }
 
 /*
@@ -55,7 +55,7 @@ chain_new(const struct term *value)
     c->next = NULL;
     c->value = value;
 
-    return(c);
+    return c;
 }
 
 /*
@@ -99,6 +99,7 @@ dict_store(struct dict *d, const struct term *t)
         c->next = d->bucket[i];
         d->bucket[i] = c;
     } else {
+        assert("term already hash consed" == NULL);
         /* Chain already exists, replace the value. */
         c->value = t;
     }

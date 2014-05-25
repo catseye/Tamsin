@@ -73,6 +73,8 @@ int main(int argc, char **argv) {
 
     prod_main_main();
 
+    fprintf(stderr, "hits: %d, misses: %d\n", hits, misses);
+
     if (ok) {
         term_fput(result, stdout);
         fwrite("\n", 1, 1, stdout);

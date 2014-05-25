@@ -9,6 +9,9 @@
 #ifndef TAMSIN_TERM_H
 #define TAMSIN_TERM_H
 
+extern int hits;
+extern int misses;
+
 /*
  * If `subterms` is NULL and `index` == -1, this is an atom.
  * 

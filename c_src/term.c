@@ -10,13 +10,20 @@
 
 #include "term.h"
 
+#include "dict.h"
+
 /*
  * this code LEAKS MEMORY all over the place, but that's "ok" because
  * Tamsin programs "aren't long running".  and it's better than having
  * buffer overflows.
  */
 
+struct dict *hash_conser = NULL;
+
 struct term tamsin_EOF = {"EOF", 3, -1, NULL};
+
+int hits = 0;
+int misses = 0;
 
 struct term *term_single_byte_table = NULL;
 char term_single_byte_data[256];
@@ -25,6 +32,7 @@ const struct term *term_new_atom(const char *atom, size_t size) {
     struct term *t;
     char *text;
 
+    /*
     if (size == 1) {
         int i;
         if (term_single_byte_table == NULL) {
@@ -40,6 +48,16 @@ const struct term *term_new_atom(const char *atom, size_t size) {
         i = ((unsigned char *)atom)[0];
         return &term_single_byte_table[i];
     }
+    */
+
+    if (hash_conser == NULL) {
+        hash_conser = dict_new(2503);
+    }
+    t = (struct term *)dict_fetch(hash_conser, atom, size);
+    if (t != NULL) {
+        hits++;
+        return t;
+    }
 
     t = malloc(sizeof(struct term));
     text = malloc(size);
@@ -48,6 +66,9 @@ const struct term *term_new_atom(const char *atom, size_t size) {
     t->size = size;
     t->index = -1;
     t->subterms = NULL;
+
+    dict_store(hash_conser, t);
+    misses++;
 
     return t;
 }
