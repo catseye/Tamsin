@@ -1,13 +1,13 @@
-The Tamsin Language Specification, version 0.5
-==============================================
+The Tamsin Language Specification, version 0.6-PRE
+==================================================
 
 This document is a **work in progress**.
 
 *Note* that this document only specifies the behaviour of Tamsin version
-0.5.  The reference interpreter in fact supports a few more features
+0.6-PRE.  The reference interpreter in fact supports a few more features
 than are listed here.  Those features are listed in the
 [Advanced Features document](Advanced_Features.markdown), and may appear
-in a future version of Tamsin but they are *not* a part of 0.5.
+in a future version of Tamsin but they are *not* a part of 0.6-PRE.
 
 (Note also that -PRE versions are moving targets that may change rapidly,
 without the version number changing.)
