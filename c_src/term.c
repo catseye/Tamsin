@@ -3,7 +3,12 @@
  * Distributed under a BSD-style license; see LICENSE for more information.
  */
 
-#include "tamsin.h"
+#include <assert.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
+
+#include "term.h"
 
 /*
  * this code LEAKS MEMORY all over the place, but that's "ok" because

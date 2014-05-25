@@ -3,6 +3,8 @@
  * Distributed under a BSD-style license; see LICENSE for more information.
  */
 
+#include "scanner.h"
+#include "term.h"
 #include "tamsin.h"
 
 struct scanner *scanner_new(const char *buffer, size_t size) {
