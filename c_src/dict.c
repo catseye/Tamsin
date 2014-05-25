@@ -68,7 +68,8 @@ dict_locate(struct dict *d, const char *key, size_t key_size,
 {
     *b_index = hashpjw(key, key_size, d->num_buckets);
     for (*c = d->bucket[*b_index]; *c != NULL; *c = (*c)->next) {
-        if (memcmp(key, (*c)->value->atom, key_size) == 0)
+        if ((*c)->value->size == key_size &&
+            memcmp(key, (*c)->value->atom, key_size) == 0)
             break;
     }
 }
