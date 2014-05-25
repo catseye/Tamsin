@@ -5,7 +5,7 @@ LCFLAGS?=-ansi -pedantic -g -Wall -Werror -Ic_src -Lc_src
 
 ##### libtamsin #####
 
-OBJECTS=c_src/scanner.o c_src/term.o c_src/tamsin.o
+OBJECTS=c_src/dict.o c_src/scanner.o c_src/term.o c_src/tamsin.o
 PROGS=bin/tamsin-compiler bin/micro-tamsin
 
 all: c_src/libtamsin.a
