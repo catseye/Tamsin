@@ -20,6 +20,7 @@ PRELUDE = r'''
  * Generated code!  Edit at your own risk!
  * Must be linked with -ltamsin to build.
  */
+#include <assert.h>
 #include <tamsin.h>
 
 /* global scanner */
@@ -292,7 +293,7 @@ class Compiler(object):
                         (argnames[1], argnames[0])
                     )
                 elif name == 'repr':
-                    self.emit('result = term_repr(%s);' % argnames[0])
+                    self.emit('result = tamsin_repr(%s);' % argnames[0])
                     self.emit('ok = 1;')
                 elif name == 'reverse':
                     self.emit('result = tamsin_reverse(%s, %s);' %

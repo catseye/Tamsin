@@ -23,6 +23,7 @@ tamsin_compiler {
    * Generated code!  Edit at your own risk!
    * Must be linked with -ltamsin to build.
    */
+  #include <assert.h>
   #include <tamsin.h>
   
   /* global scanner */
@@ -190,7 +191,7 @@ tamsin_compiler {
   
   compile_r(P,B,Mod, call(prodref('$', 'repr'), list(T, nil))) =
       compile_r(P,B,Mod, T) → TNm &
-      emitln_fmt('result = term_repr(%s);', [TNm]) &
+      emitln_fmt('result = tamsin_repr(%s);', [TNm]) &
       emitln('ok = 1;').
   
   compile_r(P,B,Mod, call(prodref('$', 'eof'), nil)) =

@@ -3,13 +3,6 @@
  * Distributed under a BSD-style license; see LICENSE for more information.
  */
 
-/*
-#include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-*/
-
 #ifndef TAMSIN_SCANNER_H
 #define TAMSIN_SCANNER_H
 

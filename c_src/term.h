@@ -3,10 +3,6 @@
  * Distributed under a BSD-style license; see LICENSE for more information.
  */
 
-/*
-#include <assert.h>
-#include <string.h>
-*/
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -84,14 +80,6 @@ const struct term *term_concat(const struct term *, const struct term *);
  * The returned term is NOT always newly allocated.
  */
 const struct term *term_flatten(const struct term *);
-
-/*
- * Given a possibly non-atom term, return an atom consisting of
- * contents of the given term reprified into an atom.
- *
- * The returned term is NOT always newly allocated.
- */
-const struct term *term_repr(const struct term *);
 
 void term_fput(const struct term *, FILE *);
 

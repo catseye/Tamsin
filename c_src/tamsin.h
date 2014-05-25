@@ -3,17 +3,11 @@
  * Distributed under a BSD-style license; see LICENSE for more information.
  */
 
-/*
-#include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-*/
-
 #ifndef TAMSIN_TAMSIN_H
 #define TAMSIN_TAMSIN_H
 
 #include "term.h"
+#include "scanner.h"
 
 /* -------------------------------------------------------- tamsin */
 
@@ -32,6 +26,14 @@ const struct term *tamsin_gensym(const struct term *);
 const struct term *tamsin_hexbyte(const struct term *, const struct term *);
 const struct term *tamsin_format_octal(const struct term *);
 const struct term *tamsin_length(const struct term *);
+
+/*
+ * Given a possibly non-atom term, return an atom consisting of
+ * contents of the given term reprified into an atom.
+ *
+ * The returned term is NOT always newly allocated.
+ */
+const struct term *tamsin_repr(const struct term *);
 
 int tamsin_isalpha(char);
 int tamsin_isupper(char);
