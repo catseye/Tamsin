@@ -11,9 +11,9 @@ Its primary goal is to allow the rapid development of **parsers**,
 to be expressed *compactly*.  Golf your grammar!  (Or write it like a decent
 human being, if you must.)
 
-The current released version of Tamsin is 0.4; the development version is
-0.5-PRE.  As indicated by the 0.x version number, it is a **work in progress**,
-with the usual caveat that things may change rapidly (and that version 0.5 might
+The current released version of Tamsin is 0.5; the development version is
+0.6-PRE.  As indicated by the 0.x version number, it is a **work in progress**,
+with the usual caveat that things may change rapidly (and that version 0.6 might
 look completely different.)  See [HISTORY](https://github.com/catseye/Tamsin/blob/master/HISTORY.markdown)
 for a list of major changes.
 
@@ -81,7 +81,7 @@ Interpret a small subset of Tamsin in
 (not counting the [included batteries](https://github.com/catseye/Tamsin/blob/master/doc/Philosophy.markdown#batteries-included).)
 
 Compile Tamsin to C in
-**[550 lines of code](https://github.com/catseye/Tamsin/blob/master/mains/compiler.tamsin)**
+**[563 lines of code](https://github.com/catseye/Tamsin/blob/master/mains/compiler.tamsin)**
 (again, not counting the included batteries.)
 
 For more information
@@ -131,8 +131,12 @@ Then you can run `tamsin` like so:
 
 *   `tamsin eg/csv_parse.tamsin < eg/names.csv`
 
-You can also compile to C and compile the C to an executable and run the
-executable all in one step, like so:
+To use the compiler, you'll need GNU make and `gcc` installed.  Type
+
+*   `make`
+
+to build the runtime library.  You can then compile to C and compile the C to
+an executable and run the executable all in one step, like so:
 
 *   `tamsin loadngo eg/csv_extract.tamsin < eg/names.csv`
 

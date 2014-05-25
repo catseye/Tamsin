@@ -1,8 +1,8 @@
 Tamsin Release History
 ======================
 
-0.5-PRE
--------
+0.5
+---
 
 ### language ###
 
@@ -22,6 +22,9 @@ Tamsin Release History
     programs (for better sharing; we don't need to make copies of them)
 *   related: variable-matching is more efficient (directly updates an array
     of terms, instead of searching for the variable by name)
+*   related: creating new atoms uses hash-consing, so that no new
+    `struct term` for the atom is allocated if one already exists (the
+    existing one is shared.)  This reduces memory usage significantly.
 
 0.4
 ---
