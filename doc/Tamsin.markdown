@@ -1056,6 +1056,11 @@ the contents in-between will be returned as an atom.  Otherwise fails.
     | main = $:unquote('(hello)', '(', '"').
     ? term '(hello)' is not quoted with '(' and '"'
 
+The quotes can be Unicode characters.
+
+    | main = $:unquote('“hello”', '“', '”').
+    = hello
+
 Here's `$:equal`, which takes two terms, L and R.  If L and R are equal,
 succeeds and returns that term which they both are.  Otherwise fails.
 

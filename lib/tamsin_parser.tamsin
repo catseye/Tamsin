@@ -69,6 +69,10 @@ tamsin_parser {
            | sq_string → T &
              $:unquote(T, '\'', '\'') → T &
              return call(prodref('$', return), list(atom(T), nil))
+           | pq_string → T &
+             $:unquote(T, '“', '”') → T &
+             ########## XXX this is not correct yet
+             return call(prodref('$', return), list(atom(T), nil))
            | prodref → P &
              L ← nil &
              ["(" &
@@ -115,6 +119,7 @@ tamsin_parser {
   variable = $:upper → V & return variable(V).
   sq_string = $:startswith('\'').
   dq_string = $:startswith('"').
+  pq_string = $:startswith('“').
   
   ## utility functions on the AST ##
 

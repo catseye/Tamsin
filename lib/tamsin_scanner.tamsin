@@ -3,7 +3,8 @@
 
 tamsin_scanner {
   scanner = scan using $:utf8.
-  scan = skippable & (symbol | str('\'') | str('"') | word).
+  scan = skippable &
+         (symbol | str('\'', '\'') | str('"', '"') | str('“', '”') | word).
   symbol = "&" & "&" & '&&'
          | "|" & "|" & '||'
          | "-" & ">" & '->'
@@ -12,9 +13,8 @@ tamsin_scanner {
          | ">" & ">" & '>>'
          | "=" | "(" | ")" | "[" | "]" | "{" | "}" | "!" | "|" | "&" | ":"
          | "/" | "," | "." | "@" | "+" | "$" | "→" | "←" | "«" | "»".
-  str(Q) = «Q» → T & {("\\" & escape | !«Q» & any) → S & T ← T + S} & «Q» &
-           return T + Q.
-  # TODO: handle `\xXX` sequences properly
+  str(O, C) = «O» → T & {("\\" & escape | !«C» & any) → S & T ← T + S} & «C» &
+           return T + C.
   escape = "n" & '\n'
          | "r" & '\r'
          | "t" & '\t'
