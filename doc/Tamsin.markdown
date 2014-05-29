@@ -861,6 +861,23 @@ that contains arbitrary text terminated by a sentinel.
     =   gobbledegook *!^*(^@)(@* (*@#(*^*(^(!^
     = you like.
 
+### Multi-terminal sugar ###
+
+The syntax `“abc”` (with the proper, oriented, opening and closing quotation
+marks) is syntactic sugar for `"a" & "b" & "c"`.
+
+    | main = “appar”.
+    + apparently
+    = r
+
+    | main = “appar”.
+    + apple
+    ? expected 'a' found 'l'
+
+This is useful for writing scanners in Tamsin that are based on the
+`$:byte` or `$:utf8` scanner, but which return multi-character tokens.
+(See "Advanced Scanning", below.)
+
 ### Dynamic Terminals ###
 
 As mentioned, the terminal `"foo"` matches a literal token `foo` in the buffer.

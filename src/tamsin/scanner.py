@@ -233,6 +233,10 @@ class TamsinScannerEngine(ScannerEngine):
             c = scanner.chop(c).decode('UTF-8')
             if c in (u'→', u'←', u'«', u'»'):
                 return c.encode('UTF-8')
+            elif c == u'“':
+                return self.consume_quoted(scanner,
+                    u'“'.encode('UTF-8'), u'”'.encode('UTF-8')
+                )
             else:
                 scanner.error('identifiable character')
 
@@ -242,25 +246,9 @@ class TamsinScannerEngine(ScannerEngine):
             return scanner.chop(1)
 
         for quote in (CLOSE_QUOTE.keys()):
-            if scanner.startswith((quote,)):
-                token = quote
-                scanner.chop(1)
-                while (not scanner.is_at_eof() and
-                       not scanner.startswith((CLOSE_QUOTE[quote],))):
-                    char = scanner.chop(1)
-                    if char == '\\':
-                        char = scanner.chop(1)
-                        if char in ESCAPE_SEQUENCE:
-                            char = ESCAPE_SEQUENCE[char]
-                        elif char == 'x':
-                            char = chr(int(scanner.chop(2), 16))
-                        else:
-                            scanner.error('legal escape sequence')
-                    token += char
-                scanner.chop(1)  # chop ending quote
-                # we add the specific close quote we expect, in case it was EOF
-                token += CLOSE_QUOTE[quote]
-                return token
+            if scanner.startswith(quote):
+                scanner.chop(len(quote))
+                return self.consume_quoted(scanner, quote, CLOSE_QUOTE[quote])
 
         if scanner.isalnum():
             token = ''
@@ -271,6 +259,25 @@ class TamsinScannerEngine(ScannerEngine):
 
         scanner.error('identifiable character')
 
+    def consume_quoted(self, scanner, quote, close_quote):
+        # assumes the start quote has already been chopped
+        token = quote
+        while (not scanner.is_at_eof() and
+               not scanner.startswith(close_quote)):
+            char = scanner.chop(1)
+            if char == '\\':
+                char = scanner.chop(1)
+                if char in ESCAPE_SEQUENCE:
+                    char = ESCAPE_SEQUENCE[char]
+                elif char == 'x':
+                    char = chr(int(scanner.chop(2), 16))
+                else:
+                    scanner.error('legal escape sequence')
+            token += char
+        scanner.chop(len(close_quote))  # chop ending quote
+        # we add the specific close quote we expect, in case it was EOF
+        token += close_quote
+        return token
 
 class UTF8ScannerEngine(ScannerEngine):
     def scan_impl(self, scanner):
