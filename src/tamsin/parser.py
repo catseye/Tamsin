@@ -150,6 +150,9 @@ class Parser(EventProducer):
         return lhs
 
     def expr5(self):
+        OQ = u'“'.encode('UTF-8')
+        CQ = u'”'.encode('UTF-8')
+
         if self.consume('('):
             e = self.expr0()
             self.expect(')')
@@ -167,6 +170,16 @@ class Parser(EventProducer):
         elif self.peek()[0] == '"':
             s = self.consume_any()[1:-1]
             return Call(Prodref('$', 'expect'), [AtomNode(s)])
+        elif len(self.peek()) >= len(OQ) and self.peek()[0:len(OQ)] == OQ:
+            s = self.consume_any()[len(OQ):-len(CQ)]
+            node = None
+            for c in s:
+                expect = Call(Prodref('$', 'expect'), [AtomNode(c)])
+                if node is None:
+                    node = expect
+                else:
+                    node = And(node, expect)
+            return node
         elif self.consume(u'«') or self.consume('<<'):
             t = self.texpr()
             if self.consume(u'»') or self.consume('>>'):
