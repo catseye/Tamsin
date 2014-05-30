@@ -111,13 +111,16 @@ equal.arity = 2
 
 
 def unquote(self, args):
-    x = str(args[0])
-    if (x.startswith((str(args[1]),)) and
-        x.endswith((str(args[2]),))):
-        return (True, Atom(x[1:-1]))
+    q = str(args[0])
+    l = str(args[1])
+    r = str(args[2])
+    if (q.startswith(l) and q.endswith(r)):
+        if len(r) == 0:
+            return (True, Atom(q[len(l):]))
+        return (True, Atom(q[len(l):-len(r)]))
     else:
         return (False, Atom("term '%s' is not quoted with '%s' and '%s'" %
-                            (args[0], args[1], args[2])))
+                            (q, l, r)))
 unquote.arity = 3
 
 

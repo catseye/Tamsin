@@ -122,16 +122,33 @@ void tamsin_startswith(struct scanner *s, const char *str) {
 
 const struct term *tamsin_unquote(const struct term *q,
                                   const struct term *l, const struct term *r) {
-    if (q->size < 1 || l->size != 1 || r->size != 1) {
-        const struct term *result = term_new_atom_from_cstring(
-            "bad terms for unquote"
-        );
-        ok = 0;
-        return result;
+    int i;
+    int good = 1;
+
+    if (q->size < l->size + r->size) {
+        good = 0;
     }
-    if (q->atom[0] == l->atom[0] && q->atom[q->size-1] == r->atom[0]) {
+    if (good) {
+        for (i = 0; i < l->size; i++) {
+            if (q->atom[i] != l->atom[i]) {
+                good = 0;
+                break;
+            }
+        }
+        if (good) fprintf(stderr, "l mqtches\n");
+    }
+    if (good) {
+        for (i = 1; i <= r->size; i++) {
+            if (q->atom[q->size - i] != r->atom[r->size - i]) {
+                good = 0;
+                break;
+            }
+        }
+        if (good) fprintf(stderr, "r mqtches\n");
+    }
+    if (good) {
         ok = 1;
-        return term_new_atom(q->atom + 1, q->size - 2);
+        return term_new_atom(q->atom + l->size, q->size - (l->size + r->size));
     } else {
         const struct term *result = term_new_atom_from_cstring("term '");
         result = term_concat(result, q);
