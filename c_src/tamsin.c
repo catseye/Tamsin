@@ -135,7 +135,6 @@ const struct term *tamsin_unquote(const struct term *q,
                 break;
             }
         }
-        if (good) fprintf(stderr, "l mqtches\n");
     }
     if (good) {
         for (i = 1; i <= r->size; i++) {
@@ -144,7 +143,6 @@ const struct term *tamsin_unquote(const struct term *q,
                 break;
             }
         }
-        if (good) fprintf(stderr, "r mqtches\n");
     }
     if (good) {
         ok = 1;

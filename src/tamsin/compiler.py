@@ -73,7 +73,9 @@ int main(int argc, char **argv) {
 
     prod_main_main();
 
+#ifdef HITS_AND_MISSES
     fprintf(stderr, "hits: %d, misses: %d\n", hits, misses);
+#endif
 
     if (ok) {
         term_fput(result, stdout);
