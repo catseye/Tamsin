@@ -1,0 +1,12 @@
+main = set T = 'foobar' &
+       print T &
+       expect_chars(T).
+
+# Given a single-character string, return call(prodref('$', 'expect'), S)
+# Given a string, return and(call(prodref('$', 'expect'), head(S)),
+#                            expect_chars(tail(S))).
+
+expect_chars(S) = print S & expect_chars_r @ S.
+expect_chars_r = any → C &
+  set E = call(prodref('$', 'expect'), list(atom(C), nil)) &
+  ((eof & return E) | (expect_chars_r → R & return and(E, R))).

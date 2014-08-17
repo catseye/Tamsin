@@ -71,8 +71,7 @@ tamsin_parser {
              return call(prodref('$', return), list(atom(T), nil))
            | pq_string → T &
              $:unquote(T, '“', '”') → T &
-             ########## XXX this is not correct yet
-             return call(prodref('$', return), list(atom(T), nil))
+             expect_chars(T) → E & return E
            | prodref → P &
              L ← nil &
              ["(" &
@@ -151,4 +150,13 @@ tamsin_parser {
       Acc ← constructor(list, list(Fst, list(Acc, nil))) &
       reverse_c(Snd, Acc).
   reverse_c(Other, Acc) = Acc.
+
+  # Given a single-character string, return call(prodref('$', 'expect'), S)
+  # Given a string, return and(call(prodref('$', 'expect'), head(S)),
+  #                            expect_chars(tail(S))).
+
+  expect_chars(S) = (expect_chars_r using $:utf8) @ S.
+  expect_chars_r = any → C &
+    E ← call(prodref('$', 'expect'), list(atom(C), nil)) &
+    ((eof & return E) | (expect_chars_r → R & return and(E, R))).
 }
