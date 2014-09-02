@@ -1,8 +1,25 @@
 TODO
-----
+====
+
+### higher-priority ###
 
 *   don't consume stdin until asked to scan.  demand_buffer.  per-line loop.
     or rather, per-inputconsumechunk
+*   apropos to that, using an ad-hoc syntax, is:
+    *   `production @ %stdin` is the default; it is implied when no `@`
+    *   `production @ %mmap` to use the mmap scanner
+    *   `production @ %line` to use an interactive terminal line editor-ish
+        scanner or something.
+*   `$:add`, `$:sub`, `$:mul`, `$:div`, `$:rem`, for atoms which look like
+    integers: `["-"] & {$:digit}`.  or for an actual integer type.
+*   `$:tell` and `$:seek` the implicit buffer — for VM's etc — although
+    note, this may have scary consequences when combined with backtracking
+*   error reporting: line and column number (at least in Python version)
+*   pattern match in send: (can't go in set b/c it looks like a nonterminal)
+    *   `fields → fields(H,T) & H`
+*   codegen and emitter phases in compiler.  take current compiler phase,
+    make it construct a low-level representation instead (codegen), then
+    have a phase that writes out C code from that low-level repr (emitter)
 
 ### testing ###
 
@@ -14,23 +31,16 @@ TODO
 *   test for mismatched # of formals in prod branches
 *   document the modules.  in own document.  plus tests.
 
-### support for simulating machines and vms ###
-
-*   `$:add`, `$:sub`, `$:mul`, `$:div`, `$:rem`, for atoms which look like
-    integers: `["-"] & {$:digit}`.
-*   `$:tell` and `$:seek` the implicit buffer -- for VM's etc -- although
-    note, this may have scary consequences when combined with backtracking
-*   non-backtracking versions of `|` and `{}`:  `|!` and `{}!`
-
 ### lower-priority ###
 
 *   `ctype` module, with `alpha` and `digit` and etc.
 *   `list` module: `deep_reverse`
 *   use Tamsin repr in error messages
 *   __str__ should be Tamsin repr()?
-*   `format`, using `@` -- in Tamsin
+*   `format`, using `@` — in Tamsin (don't we have this?)
 *   `\s` production for whitespace
-*   `\f` escape for form feed
+*   `\f` escape for form feed (why??)
+*   non-backtracking versions of `|` and `{}`:  `|!` and `{}!`
 *   have compiler replace calls to `list` functions
     by "more efficient" versions written in C -- if they really are...
 *   and maybe even garbage-collect terms in libtamsin
@@ -49,7 +59,6 @@ TODO
 *   SOME WAY TO DISTINGUISH PRODUCTIONS WHICH MAY CONSUME INPUT AND
     PRODUCTIONS WHICH NEVER CONSUME INPUT (in the `$` module, and generally).
 *   actual numeric values, rather than atoms-which-contain-only-digits
-*   error reporting: line number
 *   error handling: skip to next sentinel and report more errors
 *   module-level updatable variables.  or globals.  or "process dictionary"
     `$:store()` and `$:fetch()`.  or database.
@@ -58,8 +67,6 @@ TODO
 *   should be able to import ("open") other modules into your own namespace.
 *   `@` a la Haskell in pattern-match:
     *   `walk(T@tree(L,R)) = ...`
-*   pattern match in send: (can't go in set b/c it looks like a nonterminal)
-    *   `fields → fields(H,T) & H`
 *   maps, implemented as hash tables.
     *   `Table ← {} & fields → F@fields(H,T) & Table[H] ← T`
 *   on that topic — production values and/or lambda productions...
@@ -70,7 +77,8 @@ TODO
 *   `~` (Lua) for not and `!` (Prolog) for non-backtracking?
 *   lowercase greek letters are variables too!
 *   use `←` instead of `@`, why not?
-*   `A;B` — like `&` except assert (statically) that `A` always succeeds?
+*   I'm always typing `prod() → rule` instead of `=`, so why not?
+*   `A;B` — like `&` except assert (statically) that `A` always succeeds
 *   be generous and allow `"xyz"` in term context position?
 *   denotational semantics sugar!  something like...
     
@@ -93,7 +101,7 @@ TODO
 *   analysis: may_backtrack(Rule)
 *   analysis: may_consume_input(Rule)
 *   regex-like shortcuts: `\w` for "word", `\s` for "whitespace", etc.
-*   EOF and nil are the same?  it would make sense... call it `end`?
+*   EOF and nil are the same?  it would make sense... call it `end`? (do we?)
 *   productions with names with arbitrary characters in them.
 *   something like «foo» but foo is the name of a *non*terminal — symbolic
     production references (like Perl's horrible globs as a cheap substitute
@@ -110,4 +118,8 @@ TODO
 *   special form that consumes rest of input from the Tamsin source --
     maybe not such a gimmick since micro-tamsin does this
 *   feature-testing: `$.exists(module) | do_without_module`
-*   ternary: `foo ? bar : baz` -- if foo succeeded, do bar, else do baz.
+*   ternary: `foo ? bar : baz` — if foo succeeded, do bar, else do baz.
+    I don't think this is very necessary because you can usually just say
+    `(foo & bar) | baz` — but only if `bar` always succeeds, which it
+    usually does (to return something)
+
