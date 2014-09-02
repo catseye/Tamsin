@@ -179,7 +179,7 @@ class Parser(EventProducer):
                     node = expect
                 else:
                     node = And(node, expect)
-            return node
+            return And(node, Call(Prodref('$', 'return'), [AtomNode(s)]))
         elif self.consume(u'«') or self.consume('<<'):
             t = self.texpr()
             if self.consume(u'»') or self.consume('>>'):

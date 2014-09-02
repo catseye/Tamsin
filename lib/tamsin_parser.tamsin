@@ -71,7 +71,8 @@ tamsin_parser {
              return call(prodref('$', return), list(atom(T), nil))
            | pq_string → T &
              $:unquote(T, '“', '”') → T &
-             expect_chars(T) → E & return E
+             expect_chars(T) → E &
+             return and(E, call(prodref('$', return), list(atom(T), nil)))
            | prodref → P &
              L ← nil &
              ["(" &

@@ -864,11 +864,11 @@ that contains arbitrary text terminated by a sentinel.
 ### Multi-terminal sugar ###
 
 The syntax `“abc”` (with the proper, oriented, opening and closing quotation
-marks) is syntactic sugar for `"a" & "b" & "c"`.
+marks) is syntactic sugar for `"a" & "b" & "c" & return 'abc'`.
 
     | main = “appar”.
     + apparently
-    = r
+    = appar
 
     | main = “appar”.
     + apple
