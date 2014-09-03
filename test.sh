@@ -44,7 +44,7 @@ if [ x$1 = xtamsin ]; then
 fi
 
 if [ x$1 = xthorough ]; then
-   echo "Testing EVERYTHING.  Will likely take more than 5 minutes."
+   echo "Testing EVERYTHING.  This will take more than 8 minutes.  (On a FAST machine.)"
    $0 interpreter &&
    $0 compiler &&
    $0 interpreted scanner &&

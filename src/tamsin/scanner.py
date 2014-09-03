@@ -10,20 +10,107 @@ from tamsin.term import Term
 EOF = object()
 
 
-class Scanner(EventProducer):
-    def __init__(self, buffer, position=0, listeners=None):
-        """Create a new Scanner object.
+class ScannerState(object):
+    def __init__(self, buffer, position=0, line_number=1, column_number=1):
+        """Create a new ScannerState object.
+
+        You should treat these as immutable.
+
+        buffer should be a raw string, not unicode.  If position is given,
+        line_number and column_number should be given too, to match.
+
+        """
+        assert buffer is not None
+        assert not isinstance(buffer, unicode)
+        self._buffer = buffer
+        self._position = position
+        self._line_number = line_number
+        self._column_number = column_number
+
+    @property
+    def buffer(self):
+        return self._buffer
+
+    @property
+    def position(self):
+        return self._position
+
+    @property
+    def line_number(self):
+        return self._line_number
+
+    @property
+    def column_number(self):
+        return self._column_number
+
+    def is_at_eof(self):
+        return self.position >= len(self.buffer)
+
+    def is_at_utf8(self):
+        k = ord(self.buffer[self.position])
+        if k & 0b11100000 == 0b11000000:
+            return 2
+        elif k & 0b11110000 == 0b11100000:
+            return 3
+        elif k & 0b11111000 == 0b11110000:
+            return 4
+        else:
+            return 0
+
+    def isalnum(self):
+        return self.buffer[self.position].isalnum()
+
+    def chop(self, amount):
+        if self.position > len(self.buffer) - amount:
+            raise ValueError("internal: tried to chop past end of buffer")
+        result = self.buffer[self.position:self.position + amount]
+        line_number = self.line_number
+        column_number = self.column_number
+        for char in result:
+            if char == '\n':
+                line_number += 1
+                column_number = 1
+            else:
+                column_number += 1
         
-        buffer should be a raw string, not unicode.
+        return (result, ScannerState(self.buffer, position=self.position + amount,
+                                     line_number=line_number, column_number=column_number))
+
+    def startswith(self, strings):
+        for s in strings:
+            if self.buffer[self.position:self.position+len(s)] == s:
+                return True
+        return False
+
+    def report_buffer(self, position, length):
+        report = self.buffer[position:position+length]
+        if len(report) == length:
+            report += '...'
+        return repr(report)
+
+    def __eq__(self, other):
+        return (self.buffer == other.buffer and
+                self.position == other.position and
+                self.line_number == other.line_number and
+                self.column_number == other.column_number)
+
+    def __repr__(self):
+        return "ScannerState(%r, position=%r, line_number=%r, column_number=%r)" % (
+            self.buffer, self.position, self.line_number, self.column_number
+        )
+
+
+class Scanner(EventProducer):
+    def __init__(self, state, listeners=None):
+        """Create a new Scanner object.
 
         """
         self.listeners = listeners
         self.event('set_buffer', buffer)
-        self.buffer = buffer
-        assert buffer is not None
-        assert not isinstance(buffer, unicode)
-        self.position = position
-        self.reset_position = position
+        if not isinstance(state, ScannerState):
+            state = ScannerState(str(state))
+        self.state = state
+        self.reset_state = state
         self.engines = []
 
     def __repr__(self):
@@ -36,19 +123,18 @@ class Scanner(EventProducer):
         Scanner.
 
         """
-        assert self.position == self.reset_position, \
-            "scanner in divergent state: pos=%s, reset=%s" % (
-                self.position, self.reset_position)
-        return (self.position, self.buffer)
+        assert self.state == self.reset_state, \
+            "scanner in divergent state: %r vs %r" % (self.state, self.reset_state)
+        return self.state
 
-    def install_state(self, (position, buffer)):
+    def install_state(self, state):
         """Restores the state of this Scanner to that which was saved by
         a previous call to get_state().
 
         """
-        self.position = position
-        self.reset_position = position
-        self.buffer = buffer
+        self.state = state
+        # ... TODO ... wat ... do we really need reset_state anyway?
+        self.reset_state = state
 
     def push_engine(self, engine):
         #print repr(('push', engine))
@@ -65,7 +151,7 @@ class Scanner(EventProducer):
         to see if ... something
 
         """
-        return self.position >= len(self.buffer)
+        return self.state.is_at_eof()
 
     def is_at_utf8(self):
         """Returns the number of bytes following that comprise a UTF-8
@@ -74,16 +160,8 @@ class Scanner(EventProducer):
         Should only be used by ScannerEngines.
 
         """
-        k = ord(self.buffer[self.position])
-        if k & 0b11100000 == 0b11000000:
-            return 2
-        elif k & 0b11110000 == 0b11100000:
-            return 3
-        elif k & 0b11111000 == 0b11110000:
-            return 4
-        else:
-            return 0
-        
+        return self.state.is_at_utf8()
+
     def chop(self, amount):
         """Returns amount characters from the buffer and advances the
         scan position by amount.
@@ -91,69 +169,59 @@ class Scanner(EventProducer):
         Should only be used by ScannerEngines.
 
         """
-        if self.position > len(self.buffer) - amount:
-            raise ValueError("internal: tried to chop past end of buffer")
-        result = self.buffer[self.position:self.position+amount]
-        self.event('chopped', result)
-        self.position += amount
+        (result, state) = self.state.chop(amount)
+        self.state = state
         return result
 
     def startswith(self, strings):
-        for s in strings:
-            if self.buffer[self.position:self.position+len(s)] == s:
-                return True
-        return False
+        return self.state.startswith(strings)
 
     def isalnum(self):
-        return self.buffer[self.position].isalnum()
+        return self.state.isalnum()
 
     def report_buffer(self, position, length):
         """Display a printable snippet of the buffer, of maximum
         length length, starting at position.
 
         """
-        report = self.buffer[position:position+length]
-        if len(report) == length:
-            report += '...'
-        return repr(report)
+        return self.state.report_buffer(position, length)
 
     def error(self, expected):
         raise ValueError(u"expected %s at %s (position %s)" %
                          (expected,
-                          self.report_buffer(self.position, 20),
-                          self.position))
+                          self.report_buffer(self.state.position, 20),
+                          self.state.position))
 
     def scan(self):
         """Returns the next token from the buffer.
         
         You MUST call either commit() or unscan() after calling this,
         as otherwise the position and reset_position will be divergent
-        (and you will trigger an assert when you try to scan().)
+        (and you will trigger an assert when you try to scan() next.)
         If you want to just see what the next token would be, call peek().
 
         The returned token will always be a raw string, possibly
         containing UTF-8 sequences, possibly not.
 
         """
-        assert self.position == self.reset_position, \
-            "scanner in divergent state: pos=%s, reset=%s" % (
-                self.position, self.reset_position)
+        assert self.state == self.reset_state, \
+            "scanner in divergent state: %r vs %r" % (self.state, self.reset_state)
         token = self.engines[-1].scan_impl(self)
         assert not isinstance(token, unicode), repr(token)
         self.event('scanned', self, token)
         return token
 
     def unscan(self):
-        self.position = self.reset_position
+        self.state = self.reset_state
 
     def commit(self):
-        self.reset_position = self.position
+        self.reset_state = self.state
 
     def peek(self):
-        before = self.position
+        before = self.state
         token = self.scan()
         self.unscan()
-        after = self.position
+        after = self.state
         assert before == after, "unscan did not restore position"
         return token
 
@@ -183,11 +251,8 @@ class Scanner(EventProducer):
     def dump(self, indent=1):
         print "==" * indent + "%r" % self
         print "--" * indent + "engines: %r" % repr(self.engines)
-        print "--" * indent + "buffer: '%s'" % self.buffer
-        print "--" * indent + "position: %s" % self.position
-        print "--" * indent + "buffer at position: '%s'" % self.report_buffer(self.position, 40)
-        print "--" * indent + "reset_position: %s" % self.reset_position
-        print "--" * indent + "buffer at reset_pos: '%s'" % self.report_buffer(self.reset_position, 40)
+        print "--" * indent + "state: %r" % self.state
+        print "--" * indent + "reset_state: %r" % self.reset_state
 
 
 class ScannerEngine(object):
@@ -279,6 +344,7 @@ class TamsinScannerEngine(ScannerEngine):
         token += close_quote
         return token
 
+
 class UTF8ScannerEngine(ScannerEngine):
     def scan_impl(self, scanner):
         if scanner.is_at_eof():
@@ -326,10 +392,10 @@ class ProductionScannerEngine(ScannerEngine):
         # default to this so you don't shoot yourself in the foot
         scanner.push_engine(UTF8ScannerEngine())
 
-        save_reset_position = scanner.reset_position
+        save_state = scanner.reset_state
         result = self.interpreter.interpret(self.production)
         (success, token) = result
-        scanner.reset_position = save_reset_position
+        scanner.reset_state = save_state
 
         scanner.pop_engine()
 

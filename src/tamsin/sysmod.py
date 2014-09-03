@@ -49,7 +49,7 @@ def expect(self, args):
             upcoming_token = 'EOF'
         s = ("expected '%s' found '%s' (at '%s')" %
              (token, upcoming_token,
-              self.scanner.report_buffer(self.scanner.position, 20)))
+              self.scanner.report_buffer(self.scanner.state.position, 20)))
         return (False, Atom(s))
 expect.arity = 1
 
