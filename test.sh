@@ -114,6 +114,9 @@ test_it() {
 if [ x$1 = xinterpreter -o x$1 = xi ]; then
     echo "*** Testing Python interpreter..."
     falderal $VERBOSE --substring-error fixture/tamsin.py.markdown $FILES
+elif [ x$1 = xerror-reporting ]; then
+    echo "*** Testing error reporting in Python interpreter..."
+    falderal $VERBOSE --substring-error fixture/tamsin.py.markdown doc/Error_Reporting.markdown
 elif [ x$1 = xcompiler ]; then
     make c_src/libtamsin.a || exit 1
     echo "*** Testing compiler..."

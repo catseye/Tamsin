@@ -187,10 +187,10 @@ class Scanner(EventProducer):
         return self.state.report_buffer(position, length)
 
     def error(self, expected):
-        raise ValueError(u"expected %s at %s (position %s)" %
+        raise ValueError(u"expected %s at line %s, column %s in `filename`" %
                          (expected,
-                          self.report_buffer(self.state.position, 20),
-                          self.state.position))
+                          self.state.line_number,
+                          self.state.column_number))
 
     def scan(self):
         """Returns the next token from the buffer.

@@ -47,9 +47,10 @@ def expect(self, args):
     else:
         if upcoming_token is EOF:
             upcoming_token = 'EOF'
-        s = ("expected '%s' found '%s' (at '%s')" %
+        s = ("expected '%s' found '%s' at line %s, column %s in `filename`" %
              (token, upcoming_token,
-              self.scanner.report_buffer(self.scanner.state.position, 20)))
+              self.scanner.state.line_number,
+              self.scanner.state.column_number))
         return (False, Atom(s))
 expect.arity = 1
 
