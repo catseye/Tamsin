@@ -18,7 +18,7 @@ and column number are reported.
     | slough = "h" & ("o" | "p").
     | maidenhead = "h" & ("o" | "p").
     | reading = "h" ("o" | "p").
-    ? expected '.' at line 3, column 14 in `filename`
+    ? expected ''.'' but found '(' at line 3, column 16 in 'filename'
 
 When a scanning error occurs in the input to a Tamsin program, the filename,
 line number, and column number are reported.

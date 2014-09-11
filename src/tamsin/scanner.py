@@ -186,9 +186,10 @@ class Scanner(EventProducer):
         """
         return self.state.report_buffer(position, length)
 
-    def error(self, expected):
-        raise ValueError(u"expected %s at line %s, column %s in `filename`" %
-                         (expected,
+    def error(self, expected, found):
+        raise ValueError(u"expected '%s' but found '%s' at "
+                          "line %s, column %s in 'filename'" %
+                         (expected, found,
                           self.state.line_number,
                           self.state.column_number))
 
@@ -245,7 +246,7 @@ class Scanner(EventProducer):
     def expect(self, t):
         r = self.consume(t)
         if r is None:
-            self.error("'%s'" % t)
+            self.error("'%s'" % t, self.scan())
         return r
     
     def dump(self, indent=1):
@@ -303,7 +304,7 @@ class TamsinScannerEngine(ScannerEngine):
                     u'“'.encode('UTF-8'), u'”'.encode('UTF-8')
                 )
             else:
-                scanner.error('identifiable character')
+                scanner.error('identifiable character', scanner.peek(1))
 
         if scanner.startswith(('=', '(', ')', '[', ']', '{', '}', '!', ':', '/',
                             '|', '&', ',', '.', '@', '+', '$',
@@ -322,7 +323,7 @@ class TamsinScannerEngine(ScannerEngine):
                 token += scanner.chop(1)
             return token
 
-        scanner.error('identifiable character')
+        scanner.error('identifiable character', scanner.peek(1))
 
     def consume_quoted(self, scanner, quote, close_quote):
         # assumes the start quote has already been chopped
@@ -337,7 +338,7 @@ class TamsinScannerEngine(ScannerEngine):
                 elif char == 'x':
                     char = chr(int(scanner.chop(2), 16))
                 else:
-                    scanner.error('legal escape sequence')
+                    scanner.error('legal escape sequence', '\\' + char)
             token += char
         scanner.chop(len(close_quote))  # chop ending quote
         # we add the specific close quote we expect, in case it was EOF
