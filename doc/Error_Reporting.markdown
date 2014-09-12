@@ -10,7 +10,7 @@ and column number are reported.
 
     | hello = "h".
     |     %
-    ? expected identifiable character at line 2, column 5 in `filename`
+    ? expected 'identifiable character' but found '%' at line 2, column 5 in 'filename'
 
 When a parsing error occurs in a Tamsin source, the filename, line number,
 and column number are reported.

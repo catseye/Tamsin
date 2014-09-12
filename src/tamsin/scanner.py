@@ -76,6 +76,11 @@ class ScannerState(object):
         return (result, ScannerState(self.buffer, position=self.position + amount,
                                      line_number=line_number, column_number=column_number))
 
+    def first(self, amount):
+        if self.position > len(self.buffer) - amount:
+            return None
+        return self.buffer[self.position:self.position + amount]
+
     def startswith(self, strings):
         for s in strings:
             if self.buffer[self.position:self.position+len(s)] == s:
@@ -172,6 +177,16 @@ class Scanner(EventProducer):
         (result, state) = self.state.chop(amount)
         self.state = state
         return result
+
+    def first(self, amount):
+        """Returns amount characters from the buffer.  Does not advance the
+        scan position.
+
+        Should only be used by ScannerEngines, and then only in error
+        reporting.
+
+        """
+        return self.state.first(amount)
 
     def startswith(self, strings):
         return self.state.startswith(strings)
@@ -304,7 +319,7 @@ class TamsinScannerEngine(ScannerEngine):
                     u'“'.encode('UTF-8'), u'”'.encode('UTF-8')
                 )
             else:
-                scanner.error('identifiable character', scanner.peek(1))
+                scanner.error('identifiable character', scanner.first(1))
 
         if scanner.startswith(('=', '(', ')', '[', ']', '{', '}', '!', ':', '/',
                             '|', '&', ',', '.', '@', '+', '$',
@@ -323,7 +338,7 @@ class TamsinScannerEngine(ScannerEngine):
                 token += scanner.chop(1)
             return token
 
-        scanner.error('identifiable character', scanner.peek(1))
+        scanner.error('identifiable character', scanner.first(1))
 
     def consume_quoted(self, scanner, quote, close_quote):
         # assumes the start quote has already been chopped
