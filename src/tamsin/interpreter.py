@@ -189,8 +189,7 @@ class Interpreter(EventProducer):
             self.event('interpret_on_buffer', buffer)
             saved_scanner_state = self.scanner.get_state()
             new_state = ScannerState(buffer, position=0, line_number=1, column_number=1)
-            self.scanner.state = new_state
-            self.scanner.reset_state = new_state
+            self.scanner.install_state(new_state)
             (success, result) = self.interpret(ast.rule)
             self.scanner.install_state(saved_scanner_state)
             return (success, result)
