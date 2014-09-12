@@ -7,6 +7,7 @@ import os
 import subprocess
 import sys
 
+from tamsin.buffer import StringBuffer
 from tamsin.event import DebugEventListener
 from tamsin.term import Atom
 from tamsin.scanner import (
@@ -23,7 +24,7 @@ def parse(filename):
     with open(filename, 'r') as f:
         contents = f.read()
         scanner = Scanner(
-            ScannerState(contents, filename=filename),
+            ScannerState(StringBuffer(contents, filename=filename)),
             engines=(TamsinScannerEngine(),)
         )
         parser = Parser(scanner)
@@ -48,7 +49,7 @@ def parse_and_check_args(args):
 
 def run(ast, listeners=None):
     scanner = Scanner(
-        ScannerState(sys.stdin.read(), filename='<stdin>'),
+        ScannerState(StringBuffer(sys.stdin.read(), filename='<stdin>')),
         engines=(UTF8ScannerEngine(),),
         listeners=listeners
     )

@@ -8,6 +8,7 @@ from tamsin.ast import (
     Production, And, Or, Not, While, Call, Send, Set, Using, On,
     Prodref, Concat, TermNode
 )
+from tamsin.buffer import StringBuffer
 from tamsin.term import Term, Atom
 from tamsin.event import EventProducer
 from tamsin.scanner import (
@@ -187,7 +188,7 @@ class Interpreter(EventProducer):
             buffer = str(result.expand(self.context))
             self.event('interpret_on_buffer', buffer)
             saved_scanner_state = self.scanner.get_state()
-            new_state = ScannerState(buffer, position=0, line_number=1, column_number=1)
+            new_state = ScannerState(StringBuffer(buffer))
             self.scanner.install_state(new_state)
             (success, result) = self.interpret(ast.rule)
             self.scanner.install_state(saved_scanner_state)

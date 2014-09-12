@@ -3,6 +3,7 @@
 # Copyright (c)2014 Chris Pressey, Cat's Eye Technologies.
 # Distributed under a BSD-style license; see LICENSE for more information.
 
+from tamsin.buffer import Buffer
 from tamsin.event import EventProducer
 from tamsin.term import Term
 
@@ -11,7 +12,7 @@ EOF = object()
 
 
 class ScannerState(object):
-    def __init__(self, buffer, filename='<data>', position=0, line_number=1, column_number=1):
+    def __init__(self, buffer):
         """Create a new ScannerState object.
 
         You should treat ScannerState objects as immutable.
@@ -20,39 +21,26 @@ class ScannerState(object):
         line_number and column_number should be given too, to match.
 
         """
-        assert buffer is not None
-        assert not isinstance(buffer, unicode)
+        assert isinstance(buffer, Buffer)
         self._buffer = buffer
-        self._filename = filename
-        self._position = position
-        self._line_number = line_number
-        self._column_number = column_number
-
-    @property
-    def buffer(self):
-        return self._buffer
 
     @property
     def filename(self):
-        return self._filename
-
-    @property
-    def position(self):
-        return self._position
+        return self._buffer.filename
 
     @property
     def line_number(self):
-        return self._line_number
+        return self._buffer.line_number
 
     @property
     def column_number(self):
-        return self._column_number
+        return self._buffer.column_number
 
     def is_at_eof(self):
-        return self.position >= len(self.buffer)
+        return self._buffer.is_at_eof()
 
     def is_at_utf8(self):
-        k = ord(self.buffer[self.position])
+        k = ord(self._buffer.first(1))
         if k & 0b11100000 == 0b11000000:
             return 2
         elif k & 0b11110000 == 0b11100000:
@@ -63,53 +51,28 @@ class ScannerState(object):
             return 0
 
     def isalnum(self):
-        return self.buffer[self.position].isalnum()
+        return self._buffer.first(1).isalnum()
 
     def chop(self, amount):
-        assert self.position <= len(self.buffer) - amount, \
-            "attempt made to chop past end of buffer"
-        result = self.buffer[self.position:self.position + amount]
-        line_number = self.line_number
-        column_number = self.column_number
-        for char in result:
-            if char == '\n':
-                line_number += 1
-                column_number = 1
-            else:
-                column_number += 1
-
-        new_state = ScannerState(
-            self.buffer, filename=self.filename, position=self.position + amount,
-            line_number=line_number, column_number=column_number
-        )
+        (result, new_buffer) = self._buffer.chop(amount)
+        new_state = ScannerState(new_buffer)
         return (result, new_state)
 
     def first(self, amount):
-        if self.position > len(self.buffer) - amount:
-            return None
-        return self.buffer[self.position:self.position + amount]
+        return self._buffer.first(amount)
 
     def startswith(self, strings):
         for s in strings:
-            if self.buffer[self.position:self.position+len(s)] == s:
+            if self._buffer.first(len(s)) == s:
                 return True
         return False
 
-    def report_buffer(self, position, length):
-        report = self.buffer[position:position+length]
-        if len(report) == length:
-            report += '...'
-        return repr(report)
-
     def __eq__(self, other):
-        return (self.buffer == other.buffer and
-                self.position == other.position and
-                self.line_number == other.line_number and
-                self.column_number == other.column_number)
+        return self._buffer == other._buffer
 
     def __repr__(self):
-        return "ScannerState(%r, filename=%r, position=%r, line_number=%r, column_number=%r)" % (
-            self.buffer, self.filename, self.position, self.line_number, self.column_number
+        return "ScannerState(%r)" % (
+            self._buffer
         )
 
 
@@ -197,13 +160,6 @@ class Scanner(EventProducer):
     def isalnum(self):
         return self.state.isalnum()
 
-    def report_buffer(self, position, length):
-        """Display a printable snippet of the buffer, of maximum
-        length length, starting at position.
-
-        """
-        return self.state.report_buffer(position, length)
-
     def error_message(self, expected, found):
         if found is EOF:
             found = 'EOF'
@@ -231,6 +187,8 @@ class Scanner(EventProducer):
 
         """
         token = self.engines[-1].scan_impl(self)
+        #import sys
+        #print >>sys.stderr, token
         assert not isinstance(token, unicode), repr(token)
         self.event('scanned', self, token)
         return token
