@@ -19,10 +19,14 @@ from tamsin.analyzer import Analyzer
 from tamsin.compiler import Compiler
 
 
-def parse(filename, scanner_engine=None):
+def parse(filename):
     with open(filename, 'r') as f:
         contents = f.read()
-        parser = Parser(contents, scanner_engine=scanner_engine)
+        scanner = Scanner(
+            ScannerState(contents, filename=filename),
+            engines=(TamsinScannerEngine(),)
+        )
+        parser = Parser(scanner)
         ast = parser.grammar()
         desugarer = Desugarer(ast)
         ast = desugarer.desugar(ast)
@@ -44,9 +48,10 @@ def parse_and_check_args(args):
 
 def run(ast, listeners=None):
     scanner = Scanner(
-        ScannerState(sys.stdin.read(), filename='<stdin>'), listeners=listeners
+        ScannerState(sys.stdin.read(), filename='<stdin>'),
+        engines=(UTF8ScannerEngine(),),
+        listeners=listeners
     )
-    scanner.push_engine(UTF8ScannerEngine())
     interpreter = Interpreter(
         ast, scanner, listeners=listeners
     )
@@ -65,9 +70,10 @@ def main(args, tamsin_dir='.'):
     if args[0] == 'scan':
         with open(args[1], 'r') as f:
             scanner = Scanner(
-                ScannerState(f.read(), filename=args[1]), listeners=listeners
+                ScannerState(f.read(), filename=args[1]),
+                engines=(TamsinScannerEngine(),),
+                listeners=listeners
             )
-        scanner.push_engine(TamsinScannerEngine())
         tok = None
         while tok is not EOF:
             tok = scanner.scan()
@@ -75,15 +81,11 @@ def main(args, tamsin_dir='.'):
                 print Atom(tok).repr()
         print
     elif args[0] == 'parse':
-        with open(args[1], 'r') as f:
-            contents = f.read()
-        parser = Parser(contents)
+        parser = Parser.for_file(args[1])
         ast = parser.grammar()
         print str(ast)
     elif args[0] == 'desugar':
-        with open(args[1], 'r') as f:
-            contents = f.read()
-        parser = Parser(contents)
+        parser = Parser.for_file(args[1])
         ast = parser.grammar()
         desugarer = Desugarer(ast)
         ast = desugarer.desugar(ast)

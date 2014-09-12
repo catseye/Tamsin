@@ -114,7 +114,7 @@ class ScannerState(object):
 
 
 class Scanner(EventProducer):
-    def __init__(self, state, listeners=None):
+    def __init__(self, state, engines=None, listeners=None):
         """Create a new Scanner object.
 
         """
@@ -123,6 +123,9 @@ class Scanner(EventProducer):
         assert isinstance(state, ScannerState)
         self.state = state
         self.engines = []
+        if engines is not None:
+            for engine in engines:
+                self.push_engine(engine)
 
     def __repr__(self):
         return "Scanner(%r, position=%r)" % (
@@ -144,12 +147,10 @@ class Scanner(EventProducer):
         self.state = state
 
     def push_engine(self, engine):
-        #print repr(('push', engine))
         self.engines.append(engine)
 
     def pop_engine(self):
         engine = self.engines.pop()
-        #print repr(('pop', engine))
 
     def is_at_eof(self):
         """Returns True iff there is no more input to scan.

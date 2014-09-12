@@ -16,10 +16,9 @@ from tamsin.scanner import (
 
 
 class Parser(EventProducer):
-    def __init__(self, buffer, scanner_engine=None, listeners=None):
+    def __init__(self, scanner, listeners=None):
         self.listeners = listeners
-        self.scanner = Scanner(ScannerState(buffer), listeners=self.listeners)
-        self.scanner.push_engine(scanner_engine or TamsinScannerEngine())
+        self.scanner = scanner
         self.aliases = {
             'eof': (0, Prodref('$', 'eof')),
             'any': (0, Prodref('$', 'any')),
@@ -27,6 +26,17 @@ class Parser(EventProducer):
             'fail': (1, Prodref('$', 'fail')),
             'return': (1, Prodref('$', 'return')),
         }
+
+    @classmethod
+    def for_file(class_, filename):
+        with open(filename, 'r') as f:
+            contents = f.read()
+        return Parser(
+            Scanner(
+                ScannerState(contents, filename=filename),
+                engines=(TamsinScannerEngine(),),
+            )
+        )
 
     def eof(self):
         return self.scanner.eof()
