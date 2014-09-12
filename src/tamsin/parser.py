@@ -43,7 +43,7 @@ class Parser(EventProducer):
     def consume(self, t):
         return self.scanner.consume(t)
     def consume_any(self):
-        return self.scanner.consume_any()
+        return self.scanner.scan()
     def expect(self, t):
         return self.scanner.expect(t)
 

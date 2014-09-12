@@ -70,7 +70,7 @@ def main(args, tamsin_dir='.'):
         scanner.push_engine(TamsinScannerEngine())
         tok = None
         while tok is not EOF:
-            tok = scanner.consume_any()
+            tok = scanner.scan()
             if tok is not EOF:
                 print Atom(tok).repr()
         print

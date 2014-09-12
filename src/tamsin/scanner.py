@@ -122,7 +122,6 @@ class Scanner(EventProducer):
         self.event('set_buffer', buffer)
         assert isinstance(state, ScannerState)
         self.state = state
-        self.reset_state = state
         self.engines = []
 
     def __repr__(self):
@@ -135,8 +134,6 @@ class Scanner(EventProducer):
         Scanner.
 
         """
-        assert self.state == self.reset_state, \
-            "scanner in divergent state: %r vs %r" % (self.state, self.reset_state)
         return self.state
 
     def install_state(self, state):
@@ -145,8 +142,6 @@ class Scanner(EventProducer):
 
         """
         self.state = state
-        # ... TODO ... wat ... do we really need reset_state anyway?
-        self.reset_state = state
 
     def push_engine(self, engine):
         #print repr(('push', engine))
@@ -218,35 +213,23 @@ class Scanner(EventProducer):
 
     def scan(self):
         """Returns the next token from the buffer.
-        
-        You MUST call either commit() or unscan() after calling this,
-        as otherwise the position and reset_position will be divergent
-        (and you will trigger an assert when you try to scan() next.)
-        If you want to just see what the next token would be, call peek().
+
+        This method consumes the token.  If you want to just see
+        what the next token would be, call peek() instead.
 
         The returned token will always be a raw string, possibly
         containing UTF-8 sequences, possibly not.
 
         """
-        assert self.state == self.reset_state, \
-            "scanner in divergent state: %r vs %r" % (self.state, self.reset_state)
         token = self.engines[-1].scan_impl(self)
         assert not isinstance(token, unicode), repr(token)
         self.event('scanned', self, token)
         return token
 
-    def unscan(self):
-        self.state = self.reset_state
-
-    def commit(self):
-        self.reset_state = self.state
-
     def peek(self):
-        before = self.state
+        backup = self.get_state()
         token = self.scan()
-        self.unscan()
-        after = self.state
-        assert before == after, "unscan did not restore position"
+        self.install_state(backup)
         return token
 
     def consume(self, t):
@@ -254,18 +237,14 @@ class Scanner(EventProducer):
             t = t.encode('UTF-8')
         assert not isinstance(t, unicode)
         self.event('consume', t)
-        if self.scan() == t:
-            self.commit()
+        backup = self.get_state()
+        s = self.scan()
+        if s == t:
             return t
         else:
-            self.unscan()
+            self.install_state(backup)
             return None
 
-    def consume_any(self):
-        tok = self.scan()
-        self.commit()
-        return tok
-    
     def expect(self, t):
         r = self.consume(t)
         if r is None:
@@ -276,7 +255,6 @@ class Scanner(EventProducer):
         print "==" * indent + "%r" % self
         print "--" * indent + "engines: %r" % repr(self.engines)
         print "--" * indent + "state: %r" % self.state
-        print "--" * indent + "reset_state: %r" % self.reset_state
 
 
 class ScannerEngine(object):
@@ -416,10 +394,8 @@ class ProductionScannerEngine(ScannerEngine):
         # default to this so you don't shoot yourself in the foot
         scanner.push_engine(UTF8ScannerEngine())
 
-        save_state = scanner.reset_state
         result = self.interpreter.interpret(self.production)
         (success, token) = result
-        scanner.reset_state = save_state
 
         scanner.pop_engine()
 

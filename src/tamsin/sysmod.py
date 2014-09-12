@@ -69,14 +69,14 @@ def any(self, args):
     if self.scanner.peek() is EOF:
         return (False, Atom("expected any token, found EOF"))
     else:
-        return (True, Atom(self.scanner.consume_any()))
+        return (True, Atom(self.scanner.scan()))
 any.arity = 0
 
 
 def alnum(self, args):
     if (self.scanner.peek() is not EOF and
         self.scanner.peek()[0].isalnum()):
-        return (True, Atom(self.scanner.consume_any()))
+        return (True, Atom(self.scanner.scan()))
     else:
         return (False, Atom("expected alphanumeric, found '%s'" %
                             self.scanner.peek()))
@@ -86,7 +86,7 @@ alnum.arity = 0
 def upper(self, args):
     if (self.scanner.peek() is not EOF and
         self.scanner.peek()[0].isupper()):
-        return (True, Atom(self.scanner.consume_any()))
+        return (True, Atom(self.scanner.scan()))
     else:
         return (False, Atom("expected uppercase alphabetic, found '%s'" %
                             self.scanner.peek()))
@@ -96,7 +96,7 @@ upper.arity = 0
 def startswith(self, args):
     if (self.scanner.peek() is not EOF and
         self.scanner.peek()[0].startswith((str(args[0]),))):
-        return (True, Atom(self.scanner.consume_any()))
+        return (True, Atom(self.scanner.scan()))
     else:
         return (False, Atom("expected '%s, found '%s'" %
                             (args[0], self.scanner.peek())))
