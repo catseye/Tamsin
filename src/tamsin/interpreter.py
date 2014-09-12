@@ -207,10 +207,9 @@ class Interpreter(EventProducer):
             self.context = saved_context
             self.scanner.install_state(saved_scanner_state)
             if succeeded:
-                return (False,
-                   Atom("expected anything except '%s', found '%s'" %
-                        (repr(expr), self.scanner.peek()))
-                )
+                return (False, Atom(self.scanner.error_message(
+                    "anything else", self.scanner.peek()
+                )))
             else:
                 return (True, Atom('nil'))
         elif isinstance(ast, While):

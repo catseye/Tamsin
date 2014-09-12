@@ -36,7 +36,7 @@ void tamsin_eof(struct scanner *s) {
         result = term_new_atom("", 0);
         ok = 1;
     } else {
-        result = term_new_atom_from_cstring("expected EOF found '");
+        result = term_new_atom_from_cstring("expected EOF but found '");
         result = term_concat(result, t);
         result = term_concat(result, &APOS);
         ok = 0;
@@ -47,7 +47,7 @@ void tamsin_any(struct scanner *s) {
     const struct term *t = scan(s);
     if (t == &tamsin_EOF) {
         unscan(s);
-        result = term_new_atom_from_cstring("expected any token, found EOF");
+        result = term_new_atom_from_cstring("expected any token but found EOF");
         ok = 0;
     } else {
         commit(s);
@@ -66,7 +66,7 @@ void tamsin_expect(struct scanner *s, const struct term *expected) {
         unscan(s);
         result = term_new_atom_from_cstring("expected '");
         result = term_concat(result, expected);
-        result = term_concat(result, term_new_atom_from_cstring("' found '"));
+        result = term_concat(result, term_new_atom_from_cstring("' but found '"));
         result = term_concat(result, scanned);
         result = term_concat(result, &APOS);
         ok = 0;
@@ -81,7 +81,7 @@ void tamsin_alnum(struct scanner *s) {
         ok = 1;
     } else {
         unscan(s);
-        result = term_new_atom_from_cstring("expected alphanumeric, found '");
+        result = term_new_atom_from_cstring("expected alphanumeric but found '");
         result = term_concat(result, t);
         result = term_concat(result, &APOS);
         ok = 0;
@@ -96,7 +96,7 @@ void tamsin_upper(struct scanner *s) {
         ok = 1;
     } else {
         unscan(s);
-        result = term_new_atom_from_cstring("expected uppercase alphabetic, found '");
+        result = term_new_atom_from_cstring("expected uppercase but found '");
         result = term_concat(result, t);
         result = term_concat(result, &APOS);
         ok = 0;
@@ -113,7 +113,7 @@ void tamsin_startswith(struct scanner *s, const char *str) {
         unscan(s);
         result = term_new_atom_from_cstring("expected '");
         result = term_concat(result, term_new_atom_from_char(str[0]));
-        result = term_concat(result, term_new_atom_from_cstring("found '"));
+        result = term_concat(result, term_new_atom_from_cstring("...' but found '"));
         result = term_concat(result, t);
         result = term_concat(result, &APOS);
         ok = 0;

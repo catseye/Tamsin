@@ -45,3 +45,27 @@ line number, and column number are reported.
     | main = "h" & "o" & "x".
     + ho
     ? expected 'x' but found EOF at line 1, column 3 in '<stdin>'
+
+    | main = "h" & "o" & $:eof.
+    + hox
+    ? expected EOF but found 'x' at line 1, column 3 in '<stdin>'
+
+    | main = "h" & "o" & $:any.
+    + ho
+    ? expected any token but found EOF at line 1, column 3 in '<stdin>'
+
+    | main = "h" & "o" & $:alnum.
+    + ho&
+    ? expected alphanumeric but found '&' at line 1, column 3 in '<stdin>'
+
+    | main = "h" & "o" & $:upper.
+    + hod
+    ? expected uppercase but found 'd' at line 1, column 3 in '<stdin>'
+
+    | main = "h" & "o" & $:startswith('f').
+    + hod
+    ? expected 'f...' but found 'd' at line 1, column 3 in '<stdin>'
+
+    | main = "h" & "o" & (! "n").
+    + hon
+    ? expected anything else but found 'n' at line 1, column 3 in '<stdin>'

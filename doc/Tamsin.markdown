@@ -49,7 +49,7 @@ defining a grammar for parsing a trivial language.)
     | main = blerf.
     | blerf = "p".
     + k
-    ? expected 'p' found 'k'
+    ? expected 'p' but found 'k'
 
 Productions can be written that don't look at the input.  A rule may also
 consist of the keyword `return`, followed a _term_; this expression simply
@@ -97,11 +97,11 @@ it evaluates to what the RHS evaluated to.
 
     | main = "a" & "p".
     + ak
-    ? expected 'p' found 'k'
+    ? expected 'p' but found 'k'
 
     | main = "a" & "p".
     + ep
-    ? expected 'a' found 'e'
+    ? expected 'a' but found 'e'
 
 If you are too used to C or Javascript or the shell, you may use `&&`
 instead of `&`.
@@ -129,7 +129,7 @@ For example, this program accepts `0` or `1` but nothing else.
 
     | main = "0" | "1".
     + 2
-    ? expected '1' found '2'
+    ? expected '1' but found '2'
 
 If you are too used to C or Javascript or the shell, you may use `||`
 instead of `|`.
@@ -151,7 +151,7 @@ to the opposite.  (Note here also that `&` has a higher precedence than `|`.)
 
     | main = "0" & return 1 | "1" & return 0.
     + 2
-    ? expected '1' found '2'
+    ? expected '1' but found '2'
 
 Evaluation order can be altered by using parentheses, as per usual.
 
@@ -217,14 +217,14 @@ match `0` at the beginning instead, and fails that too.)
     | main = parens & "." & return ok.
     | parens = "(" & parens & ")" | "0".
     + (((0)).
-    ? expected '0' found '('
+    ? expected '0' but found '('
 
 (the error message on this one is much more reasonable...)
 
     | main = parens & "." & return ok.
     | parens = "(" & parens & ")" | "0".
     + ((0))).
-    ? expected '.' found ')'
+    ? expected '.' but found ')'
 
 To consume a comma-seperated list of one or more bits:
 
@@ -243,12 +243,12 @@ To consume a comma-seperated list of one or more bits:
     | main = bit & {"," & bit} & ".".
     | bit = "0" | "1".
     + 0,,1,0.
-    ? expected '.' found ','
+    ? expected '.' but found ','
 
     | main = bit & {"," & bit} & ".".
     | bit = "0" | "1".
     + 0,10,0.
-    ? expected '.' found '0'
+    ? expected '.' but found '0'
 
 Comments
 --------
@@ -554,7 +554,7 @@ This program expects an infinite number of 0's.  It will be disappointed.
     | main = zeroes.
     | zeroes = "0" & zeroes.
     + 00000
-    ? expected '0' found 'EOF'
+    ? expected '0' but found EOF
 
 This program expects a finite number of 0's, and returns a term representing
 how many it found.  It will not be disappointed.
@@ -729,7 +729,7 @@ But if there still is input remaining, it fails.
 
     | main = "a" & "p" & eof.
     + apt
-    ? expected EOF found 't'
+    ? expected EOF but found 't'
 
 Note that, in both cases, `eof` doesn't consume anything.  So if it
 succeeded at the end of input, and the program tries `eof` again, it will
@@ -751,7 +751,7 @@ means "character", but that that can be changed, as you'll see below.)
 
     | main = any & any.
     + a
-    ? expected any token, found EOF
+    ? expected any token but found EOF
 
 ### Optional rules ###
 
@@ -836,7 +836,7 @@ input, such as `any`.
 
     | main = !"k" & any.
     + k
-    ? expected anything except
+    ? expected anything else but found 'k'
 
     | main = !("k" | "r") & any.
     + l
@@ -844,11 +844,11 @@ input, such as `any`.
 
     | main = !("k" | "r") & any.
     + k
-    ? expected anything except
+    ? expected anything else
 
     | main = !("k" | "r") & any.
     + r
-    ? expected anything except
+    ? expected anything else
 
 This is particularly useful for parsing strings and comments and anything
 that contains arbitrary text terminated by a sentinel.
@@ -872,7 +872,7 @@ marks) is syntactic sugar for `"a" & "b" & "c" & return 'abc'`.
 
     | main = “appar”.
     + apple
-    ? expected 'a' found 'l'
+    ? expected 'a' but found 'l'
 
 This is useful for writing scanners in Tamsin that are based on the
 `$:byte` or `$:utf8` scanner, but which return multi-character tokens.
@@ -890,14 +890,14 @@ variable?  You can do that with `«»`:
 
     | main = set E = f & «E».
     + b
-    ? expected 'f' found 'b'
+    ? expected 'f' but found 'b'
 
 Note that you don't have to use the Latin-1 guillemets.  You can use the ASCII
 digraphs instead.
 
     | main = set E = f & <<E>>.
     + b
-    ? expected 'f' found 'b'
+    ? expected 'f' but found 'b'
 
 Terms are flattened for use in `«»`.  So in fact, the `"foo"` syntax is just
 syntactic sugar for `«'foo'»`.
@@ -1000,7 +1000,7 @@ has been hidden under some syntactic sugar.
 
     | main = $:expect(k).
     + l
-    ? expected 'k' found 'l'
+    ? expected 'k' but found 'l'
 
 The section about aliases needs to be written too.
 
@@ -1013,7 +1013,7 @@ alphanumeric.
 
     | main = "(" & {$:alnum → A} & ")" & A.
     + (abc123deefghi459876!jklmnopqRSTUVXYZ0)
-    ? expected ')' found '!'
+    ? expected ')' but found '!'
 
 Here's `$:upper`, which only consumes tokens where the first character is
 uppercase alphabetic.
@@ -1024,7 +1024,7 @@ uppercase alphabetic.
 
     | main = "(" & {$:upper → A} & ")" & A.
     + (ABCDEFGHIJKLMNoPQRSTUVWXYZ)
-    ? expected ')' found 'o'
+    ? expected ')' but found 'o'
 
 Here's `$:startswith`, which only consumes tokens which start with
 the given term.  (For a single-character scanner this isn't very
@@ -1036,7 +1036,7 @@ impressive.)
 
     | main = "(" & {$:startswith('A') → A} & ")" & A.
     + (AAAABAAA)
-    ? expected ')' found 'B'
+    ? expected ')' but found 'B'
 
 Here's `$:mkterm`, which takes an atom and a list and creates a constructor.
 
@@ -1382,7 +1382,7 @@ Note that this makes the «»-form more interesting.
     | main = bracketed(a) & bracketed(b) & return ok.
     | bracketed(X) = «X» & "S" & «X».
     + aSabSa
-    ? expected 'b' found 'a'
+    ? expected 'b' but found 'a'
 
 We need to be able to test arguments somehow.  We can do that with
 pattern-matching, which works in Tamsin very similarly to how it
@@ -1550,7 +1550,7 @@ As you have seen, the default scanner returns single characters.
 
     | main = "abc".
     + abc
-    ? expected 'abc' found 'a'
+    ? expected 'abc' but found 'a'
 
 You can select a different scanner for a rule with `using`.  There are
 two built-in scanners in the built-in `$` module that you can use:
@@ -1564,7 +1564,7 @@ consumes raw bytes.
 
     | main = "abc" using $:utf8.
     + abc
-    ? expected 'abc' found 'a'
+    ? expected 'abc' but found 'a'
 
     | main = ("«" | "♡")/''.
     + «♡««♡←
@@ -1572,7 +1572,7 @@ consumes raw bytes.
 
     | main = {"«" | "♡"} & eof.
     + «♡«→«♡
-    ? expected EOF found '→'
+    ? expected EOF but found '→'
 
 Here we test the `$:byte` scanner...
 
@@ -1582,7 +1582,7 @@ Here we test the `$:byte` scanner...
 
     | main = "abc" using $:byte.
     + abc
-    ? expected 'abc' found 'a'
+    ? expected 'abc' but found 'a'
 
     -> Tests for functionality "Intepret Tamsin program (pre- & post-processed)"
     
@@ -1672,7 +1672,7 @@ Here is how you would use the above scanner, as a scanner, in a program:
     | token = ({" "} & ("(" | ")" | word)) using $:utf8.
     | word = $:alnum → L & {$:alnum → M & set L = L + M} & L.
     + ( quote )
-    ? expected 'cons' found 'quote'
+    ? expected 'cons' but found 'quote'
 
 Note that, if your scanner-production doesn't itself say what scanner
 *it* is `using`, it defaults to the `$:utf8` scanner.
@@ -1701,7 +1701,7 @@ the scanner can understand it.
     | scanner = "a" | "b" | "@".
     | program = "a" & "@" & "b" & return ok.
     + x
-    ? expected 'a' found 'EOF'
+    ? expected 'a' but found EOF
 
 If you don't like that, you can write your scanner to fail the way you want.
 
@@ -1709,7 +1709,7 @@ If you don't like that, you can write your scanner to fail the way you want.
     | scanner = "a" | "b" | "@" | return bleah.
     | program = "a" & "@" & "b" & return ok.
     + x
-    ? expected 'a' found 'bleah'
+    ? expected 'a' but found 'bleah'
 
 On the other hand, if the scanner understands all the tokens, but the parser
 doesn't see the tokens it expects, you get the usual error.
@@ -1718,7 +1718,7 @@ doesn't see the tokens it expects, you get the usual error.
     | scanner = "a" | "b" | "@".
     | program = "a" & "@" & "b" & return ok.
     + b@a
-    ? expected 'a' found 'b'
+    ? expected 'a' but found 'b'
 
 Parsing using a production scanner ignores any extra text given to it,
 just like the built-in parser.
@@ -1776,7 +1776,7 @@ token, and that the char scanner doesn't skip spaces.
     | token = ({" "} & ("(" | ")" | word)) using $:utf8.
     | word = $:alnum → L & {$:alnum → M & set L = L + M} & L.
     + dog cat
-    ? expected 'c' found ' '
+    ? expected 'c' but found ' '
 
 But we can convince it to skip those spaces...
 
@@ -1851,7 +1851,7 @@ production scanner.
     | scan2 = "x" & return 1 | "y" & return 2 | "z" & return 3.
     | program = "c" & "list" & "a".
     + c(yy)a
-    ? expected 'list' found 'EOF'
+    ? expected 'list' but found EOF
 
 Maybe an excessive number of minor variations on that...
 
