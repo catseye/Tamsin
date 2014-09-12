@@ -204,13 +204,21 @@ class Scanner(EventProducer):
         """
         return self.state.report_buffer(position, length)
 
+    def error_message(self, expected, found):
+        if found is EOF:
+            found = 'EOF'
+        else:
+            found = "'%s'" % found
+        return (
+            "expected %s but found %s at line %s, column %s in '%s'" %
+            (expected, found,
+             self.state.line_number,
+             self.state.column_number,
+             self.state.filename)
+        )
+
     def error(self, expected, found):
-        raise ValueError(u"expected '%s' but found '%s' at "
-                          "line %s, column %s in '%s'" %
-                         (expected, found,
-                          self.state.line_number,
-                          self.state.column_number,
-                          self.state.filename))
+        raise ValueError(self.error_message(expected, found))
 
     def scan(self):
         """Returns the next token from the buffer.
@@ -380,15 +388,10 @@ class ProductionScannerEngine(ScannerEngine):
     def scan_impl(self, scanner):
         if scanner.is_at_eof():
             return EOF
-        # if we ever go back to exceptions, we would have a try/catch here
-        
-        # this will cause the scanner to have another engine pushed onto
-        # it.  we rely on that engine to actually get us the token, and it
+
+        # This will cause the scanner to have another engine pushed onto
+        # it.  We rely on that engine to actually get us the token, and it
         # will update the scanner for us.
-        #
-        # BUT the subsidiary scanner may have commited, while WE want to
-        # leave the scanner in a divergent state.  So we save the reset
-        # position, and restore it when the subsidiary scan is done.
 
         assert scanner is self.interpreter.scanner
 

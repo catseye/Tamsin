@@ -155,8 +155,7 @@ class Interpreter(EventProducer):
             if prodref.module == '$':
                 return tamsin.sysmod.call(name, self, args)
             prod = self.program.find_production(prodref)
-            if prod is None:
-                raise ValueError("internal error: unresolved: " + repr(prodref))
+            assert prod is not None, "unresolved: " + repr(prodref)
             self.event('call_candidates', prod)
             return self.interpret(prod, args=args)
         elif isinstance(ast, Send):

@@ -47,7 +47,7 @@ class Parser(EventProducer):
     def isalnum(self):
         return self.scanner.isalnum()
     def error(self, expected):
-        return self.scanner.error(expected)
+        return self.scanner.error(expected, self.peek())
     def peek(self):
         return self.scanner.peek()
     def consume(self, t):
