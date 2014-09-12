@@ -11,14 +11,14 @@ from tamsin.ast import (
 )
 from tamsin.event import EventProducer
 from tamsin.scanner import (
-    EOF, Scanner, TamsinScannerEngine
+    EOF, Scanner, ScannerState, TamsinScannerEngine
 )
 
 
 class Parser(EventProducer):
     def __init__(self, buffer, scanner_engine=None, listeners=None):
         self.listeners = listeners
-        self.scanner = Scanner(buffer, listeners=self.listeners)
+        self.scanner = Scanner(ScannerState(buffer), listeners=self.listeners)
         self.scanner.push_engine(scanner_engine or TamsinScannerEngine())
         self.aliases = {
             'eof': (0, Prodref('$', 'eof')),

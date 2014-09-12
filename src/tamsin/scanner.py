@@ -11,10 +11,10 @@ EOF = object()
 
 
 class ScannerState(object):
-    def __init__(self, buffer, position=0, line_number=1, column_number=1):
+    def __init__(self, buffer, filename='<data>', position=0, line_number=1, column_number=1):
         """Create a new ScannerState object.
 
-        You should treat these as immutable.
+        You should treat ScannerState objects as immutable.
 
         buffer should be a raw string, not unicode.  If position is given,
         line_number and column_number should be given too, to match.
@@ -23,6 +23,7 @@ class ScannerState(object):
         assert buffer is not None
         assert not isinstance(buffer, unicode)
         self._buffer = buffer
+        self._filename = filename
         self._position = position
         self._line_number = line_number
         self._column_number = column_number
@@ -30,6 +31,10 @@ class ScannerState(object):
     @property
     def buffer(self):
         return self._buffer
+
+    @property
+    def filename(self):
+        return self._filename
 
     @property
     def position(self):
@@ -61,8 +66,8 @@ class ScannerState(object):
         return self.buffer[self.position].isalnum()
 
     def chop(self, amount):
-        if self.position > len(self.buffer) - amount:
-            raise ValueError("internal: tried to chop past end of buffer")
+        assert self.position <= len(self.buffer) - amount, \
+            "attempt made to chop past end of buffer"
         result = self.buffer[self.position:self.position + amount]
         line_number = self.line_number
         column_number = self.column_number
@@ -72,9 +77,12 @@ class ScannerState(object):
                 column_number = 1
             else:
                 column_number += 1
-        
-        return (result, ScannerState(self.buffer, position=self.position + amount,
-                                     line_number=line_number, column_number=column_number))
+
+        new_state = ScannerState(
+            self.buffer, filename=self.filename, position=self.position + amount,
+            line_number=line_number, column_number=column_number
+        )
+        return (result, new_state)
 
     def first(self, amount):
         if self.position > len(self.buffer) - amount:
@@ -100,8 +108,8 @@ class ScannerState(object):
                 self.column_number == other.column_number)
 
     def __repr__(self):
-        return "ScannerState(%r, position=%r, line_number=%r, column_number=%r)" % (
-            self.buffer, self.position, self.line_number, self.column_number
+        return "ScannerState(%r, filename=%r, position=%r, line_number=%r, column_number=%r)" % (
+            self.buffer, self.filename, self.position, self.line_number, self.column_number
         )
 
 
@@ -112,8 +120,7 @@ class Scanner(EventProducer):
         """
         self.listeners = listeners
         self.event('set_buffer', buffer)
-        if not isinstance(state, ScannerState):
-            state = ScannerState(str(state))
+        assert isinstance(state, ScannerState)
         self.state = state
         self.reset_state = state
         self.engines = []
@@ -203,10 +210,11 @@ class Scanner(EventProducer):
 
     def error(self, expected, found):
         raise ValueError(u"expected '%s' but found '%s' at "
-                          "line %s, column %s in 'filename'" %
+                          "line %s, column %s in '%s'" %
                          (expected, found,
                           self.state.line_number,
-                          self.state.column_number))
+                          self.state.column_number,
+                          self.state.filename))
 
     def scan(self):
         """Returns the next token from the buffer.

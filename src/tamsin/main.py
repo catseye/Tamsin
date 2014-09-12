@@ -9,7 +9,9 @@ import sys
 
 from tamsin.event import DebugEventListener
 from tamsin.term import Atom
-from tamsin.scanner import Scanner, EOF, UTF8ScannerEngine, TamsinScannerEngine
+from tamsin.scanner import (
+    Scanner, ScannerState, EOF, UTF8ScannerEngine, TamsinScannerEngine
+)
 from tamsin.parser import Parser
 from tamsin.interpreter import Interpreter
 from tamsin.desugarer import Desugarer
@@ -41,7 +43,9 @@ def parse_and_check_args(args):
 
 
 def run(ast, listeners=None):
-    scanner = Scanner(sys.stdin.read(), listeners=listeners)
+    scanner = Scanner(
+        ScannerState(sys.stdin.read(), filename='<stdin>'), listeners=listeners
+    )
     scanner.push_engine(UTF8ScannerEngine())
     interpreter = Interpreter(
         ast, scanner, listeners=listeners
@@ -60,7 +64,9 @@ def main(args, tamsin_dir='.'):
         args = args[1:]
     if args[0] == 'scan':
         with open(args[1], 'r') as f:
-            scanner = Scanner(f.read(), listeners=listeners)
+            scanner = Scanner(
+                ScannerState(f.read(), filename=args[1]), listeners=listeners
+            )
         scanner.push_engine(TamsinScannerEngine())
         tok = None
         while tok is not EOF:
