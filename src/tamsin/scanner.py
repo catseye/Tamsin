@@ -78,6 +78,8 @@ class Scanner(EventProducer):
         self.buffer = buffer
         return chars
 
+    # # # # # # # # # # # # # # # # # # # # # #
+
     def is_at_eof(self):
         """Returns True iff there is no more input to scan.
 
@@ -85,11 +87,7 @@ class Scanner(EventProducer):
         to see if ... something
 
         """
-        (at_eof, buffer) = self.buffer.is_at_eof()
-        self.buffer = buffer
-        return at_eof
-
-    # # # # # # # # # # # # # # # # # # # # # #
+        return self.first(1) == ''
 
     def is_at_utf8(self):
         """Returns the number of bytes following that comprise a UTF-8

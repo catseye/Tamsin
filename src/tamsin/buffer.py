@@ -63,12 +63,6 @@ class Buffer(object):
         """
         raise NotImplementedError
 
-    def is_at_eof(self):
-        """Returns a pair of a boolean and a new Buffer object.
-
-        """
-        raise NotImplementedError
-
 
 class StringBuffer(Buffer):
     def __init__(self, string, **kwargs):
@@ -115,61 +109,50 @@ class StringBuffer(Buffer):
         # did not modify self, so it's OK to return it
         return (chars, self)
 
-    def is_at_eof(self):
-        at_eof = self.position >= len(self.string)
-
-        # did not modify self, so it's OK to return it
-        return (at_eof, self)
-
 
 class FileBuffer(Buffer):
-    def __init__(self, file, **kwargs):
+    # Well, this was a nice try.  But the bottom line is that
+    # filehandles are mutable :/ ... and Buffers can't be mutable
+    # at all.  TODO: make it so that Buffers can be mutable, oi
+    def __init__(self, file, pre_buffer='', **kwargs):
         self.file = file
-        assert False, "do not use!"
+        self.pre_buffer = pre_buffer
         Buffer.__init__(self, **kwargs)
-        try:
-            j = self.file.read(1)
-            self.init_pos = self.file.tell()
-            self.file.seek(0, 0)
-        except IOError as e:
-            import sys
-            print >>sys.stderr, "BAD"
-            print "BAD"
-            raise
+
+    def get_bytes(self, amount):
+        """Returns a new pre_buffer."""
+        bytes_to_read = amount - len(self.pre_buffer)
+        if bytes_to_read <= 0:
+            return self.pre_buffer
+        bytes = self.file.read(bytes_to_read)
+        return self.pre_buffer + bytes
 
     def chop(self, amount):
-        self.file.seek(self.position, 0)
-        result = self.file.read(amount)
+        pre_buffer = self.get_bytes(amount)
+        chars = pre_buffer[0:amount]
+        remaining = pre_buffer[amount:]
 
-        (line_number, column_number) = self.advance(result)
+        (line_number, column_number) = self.advance(chars)
         new_buffer = FileBuffer(self.file,
             filename=self._filename,
+            pre_buffer=remaining,
             position=self.position + amount,
             line_number=line_number,
             column_number=column_number
         )
-        return (result, new_buffer)
+        self.file = None
+        return (chars, new_buffer)
 
     def first(self, amount):
-        self.file.seek(self.position, 0)
-        result = self.file.read(amount)
-        self.file.seek(self.position, 0)
+        pre_buffer = self.get_bytes(amount)
+        chars = pre_buffer[0:amount]
 
         new_buffer = FileBuffer(self.file,
             filename=self._filename,
-            position=self.position + amount,
-            line_number=line_number,
-            column_number=column_number
+            pre_buffer=pre_buffer,
+            position=self.position,
+            line_number=self._line_number,
+            column_number=self._column_number
         )
-        return (result, new_buffer)
-
-    def is_at_eof(self):
-        at_eof = self.first(1) == ''
-
-        new_buffer = FileBuffer(self.file,
-            filename=self._filename,
-            position=self.position + amount,
-            line_number=line_number,
-            column_number=column_number
-        )
-        return (at_eof, new_buffer)
+        self.file = None
+        return (chars, new_buffer)
