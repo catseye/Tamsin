@@ -9,7 +9,8 @@ import sys
 class Buffer(object):
     """Abstract base class for all Buffer objects.
 
-    You should treat Buffer objects as immutable.
+    Buffer objects are mutable, but must be capable of saving and restoring
+    their state indefinitely.
 
     """
     def __init__(self, filename='<data>', position=0, line_number=1, column_number=1):
@@ -17,22 +18,19 @@ class Buffer(object):
         be given too, to match.
 
         """
-        self._filename = filename
+        self.filename = filename
         self.position = position
-        self._line_number = line_number
-        self._column_number = column_number
+        self.line_number = line_number
+        self.column_number = column_number
 
-    @property
-    def filename(self):
-        return self._filename
+    def save_state(self):
+        raise NotImplementedError
 
-    @property
-    def line_number(self):
-        return self._line_number
+    def restore_state(self):
+        raise NotImplementedError
 
-    @property
-    def column_number(self):
-        return self._column_number
+    def pop_state(self):
+        raise NotImplementedError
 
     def advance(self, inp):
         """Given a string that we have just consumed from the buffer,
@@ -74,7 +72,17 @@ class StringBuffer(Buffer):
         """
         assert not isinstance(string, unicode)
         self.string = string
+        self.stack = []
         Buffer.__init__(self, **kwargs)
+
+    def save_state(self):
+        self.stack.append((self.position, self.line_number, self.column_number))
+
+    def restore_state(self):
+        (self.position, self.line_number, self.column_number) = self.stack.pop()
+
+    def pop_state(self):
+        self.stack.pop()
 
     def __str__(self):
         return self.string
@@ -87,27 +95,17 @@ class StringBuffer(Buffer):
     def chop(self, amount):
         assert self.position <= len(self.string) - amount, \
             "attempt made to chop past end of buffer"
-        chars = self.string[self.position:self.position + amount]
+        bytes = self.string[self.position:self.position + amount]
 
-        (line_number, column_number) = self.advance(chars)
-        new_buffer = StringBuffer(self.string,
-            filename=self._filename,
-            position=self.position + amount,
-            line_number=line_number,
-            column_number=column_number
-        )
+        self.position += amount
+        (self.line_number, self.column_number) = self.advance(bytes)
 
-        return (chars, new_buffer)
+        return bytes
 
     def first(self, amount):
-        #assert self.position <= len(self.string) - amount, \
-        #    "attempt made to first past end of buffer"
-        #if self.position > len(self.string) - amount:
-        #    return None
-        chars = self.string[self.position:self.position + amount]
+        bytes = self.string[self.position:self.position + amount]
 
-        # did not modify self, so it's OK to return it
-        return (chars, self)
+        return bytes
 
 
 class FileBuffer(Buffer):
@@ -115,9 +113,20 @@ class FileBuffer(Buffer):
     # filehandles are mutable :/ ... and Buffers can't be mutable
     # at all.  TODO: make it so that Buffers can be mutable, oi
     def __init__(self, file, pre_buffer='', **kwargs):
+        assert False, 'NO'
         self.file = file
         self.pre_buffer = pre_buffer
+        self.stack = []
         Buffer.__init__(self, **kwargs)
+
+    def save_state(self):
+        self.stack.append((self.position, self.line_number, self.column_number))
+
+    def restore_state(self):
+        (self.position, self.line_number, self.column_number) = self.stack.pop()
+
+    def pop_state(self):
+        self.stack.pop()
 
     def get_bytes(self, amount):
         """Returns a new pre_buffer."""
@@ -129,30 +138,14 @@ class FileBuffer(Buffer):
 
     def chop(self, amount):
         pre_buffer = self.get_bytes(amount)
-        chars = pre_buffer[0:amount]
+        bytes = pre_buffer[0:amount]
         remaining = pre_buffer[amount:]
 
-        (line_number, column_number) = self.advance(chars)
-        new_buffer = FileBuffer(self.file,
-            filename=self._filename,
-            pre_buffer=remaining,
-            position=self.position + amount,
-            line_number=line_number,
-            column_number=column_number
-        )
-        self.file = None
-        return (chars, new_buffer)
+        (self.line_number, self.column_number) = self.advance(bytes)
+        return bytes
 
     def first(self, amount):
         pre_buffer = self.get_bytes(amount)
-        chars = pre_buffer[0:amount]
+        bytes = pre_buffer[0:amount]
 
-        new_buffer = FileBuffer(self.file,
-            filename=self._filename,
-            pre_buffer=pre_buffer,
-            position=self.position,
-            line_number=self._line_number,
-            column_number=self._column_number
-        )
-        self.file = None
-        return (chars, new_buffer)
+        return bytes

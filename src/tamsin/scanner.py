@@ -30,16 +30,16 @@ class Scanner(EventProducer):
             self.buffer, self.position
         )
 
-    def get_state(self):
-        """Returns an object which saves the current state of this
+    def get_buffer(self):
+        """Returns an object which represents the current Buffer of this
         Scanner.
 
         """
         return self.buffer
 
-    def install_state(self, state):
-        """Restores the state of this Scanner to that which was saved by
-        a previous call to get_state().
+    def install_buffer(self, state):
+        """Restores the Buffer of this Scanner to that which was saved by
+        a previous call to get_buffer().
 
         """
         self.buffer = state
@@ -50,10 +50,14 @@ class Scanner(EventProducer):
     def pop_engine(self):
         engine = self.engines.pop()
 
-    # # # # # # # Buffer interface # # # # # # #
-    #
-    #  These methods hide the immutability of Buffer.
-    #
+    def save_state(self):
+        return self.buffer.save_state()
+
+    def restore_state(self):
+        return self.buffer.restore_state()
+
+    def pop_state(self):
+        return self.buffer.pop_state()
 
     def chop(self, amount):
         """Returns amount characters from the buffer and advances the
@@ -62,9 +66,7 @@ class Scanner(EventProducer):
         Should only be used by ScannerEngines.
 
         """
-        (chars, buffer) = self.buffer.chop(amount)
-        self.buffer = buffer
-        return chars
+        return self.buffer.chop(amount)
 
     def first(self, amount):
         """Returns amount characters from the buffer.  Does not advance the
@@ -74,11 +76,7 @@ class Scanner(EventProducer):
         reporting.
 
         """
-        (chars, buffer) = self.buffer.first(amount)
-        self.buffer = buffer
-        return chars
-
-    # # # # # # # # # # # # # # # # # # # # # #
+        return self.buffer.first(amount)
 
     def is_at_eof(self):
         """Returns True iff there is no more input to scan.
@@ -149,9 +147,9 @@ class Scanner(EventProducer):
         return token
 
     def peek(self):
-        backup = self.get_state()
+        self.buffer.save_state()
         token = self.scan()
-        self.install_state(backup)
+        self.buffer.restore_state()
         return token
 
     def consume(self, t):
@@ -159,12 +157,13 @@ class Scanner(EventProducer):
             t = t.encode('UTF-8')
         assert not isinstance(t, unicode)
         self.event('consume', t)
-        backup = self.get_state()
+        self.buffer.save_state()
         s = self.scan()
         if s == t:
+            self.buffer.pop_state()
             return t
         else:
-            self.install_state(backup)
+            self.buffer.restore_state()
             return None
 
     def expect(self, t):

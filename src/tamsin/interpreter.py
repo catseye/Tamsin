@@ -135,16 +135,17 @@ class Interpreter(EventProducer):
             return (success, value_rhs)
         elif isinstance(ast, Or):
             saved_context = self.context.clone()
-            saved_scanner_state = self.scanner.get_state()
-            self.event('begin_or', ast.lhs, ast.rhs, saved_context, saved_scanner_state)
+            self.scanner.save_state()
+            self.event('begin_or', ast.lhs, ast.rhs, saved_context)
             (succeeded, result) = self.interpret(ast.lhs)
             if succeeded:
                 self.event('succeed_or', result)
+                self.scanner.pop_state()
                 return (True, result)
             else:
                 self.event('fail_or', self.context, self.scanner, result)
                 self.context = saved_context
-                self.scanner.install_state(saved_scanner_state)
+                self.scanner.restore_state()
                 return self.interpret(ast.rhs)
         elif isinstance(ast, Call):
             prodref = ast.prodref
@@ -187,11 +188,10 @@ class Interpreter(EventProducer):
             (success, result) = self.interpret(ast.texpr)
             buffer = str(result.expand(self.context))
             self.event('interpret_on_buffer', buffer)
-            saved_scanner_state = self.scanner.get_state()
-            new_state = StringBuffer(buffer)
-            self.scanner.install_state(new_state)
+            previous_buffer = self.scanner.get_buffer()
+            self.scanner.install_buffer(StringBuffer(buffer))
             (success, result) = self.interpret(ast.rule)
-            self.scanner.install_state(saved_scanner_state)
+            self.scanner.install_buffer(previous_buffer)
             return (success, result)
         elif isinstance(ast, Set):
             (success, variable) = self.interpret(ast.variable)
@@ -202,11 +202,11 @@ class Interpreter(EventProducer):
         elif isinstance(ast, Not):
             expr = ast.rule
             saved_context = self.context.clone()
-            saved_scanner_state = self.scanner.get_state()
-            self.event('begin_not', expr, saved_context, saved_scanner_state)
+            self.scanner.save_state()
+            self.event('begin_not', expr, saved_context)
             (succeeded, result) = self.interpret(expr)
             self.context = saved_context
-            self.scanner.install_state(saved_scanner_state)
+            self.scanner.restore_state()
             if succeeded:
                 return (False, Atom(self.scanner.error_message(
                     "anything else", self.scanner.peek()
@@ -220,13 +220,15 @@ class Interpreter(EventProducer):
             successful_result = result
             while succeeded:
                 saved_context = self.context.clone()
-                saved_scanner_state = self.scanner.get_state()
+                self.scanner.save_state()
                 (succeeded, result) = self.interpret(ast.rule)
                 if succeeded:
+                    self.scanner.pop_state()
                     successful_result = result
                     self.event('repeating_while', result)
+                else:
+                    self.scanner.restore_state()
             self.context = saved_context
-            self.scanner.install_state(saved_scanner_state)
             self.event('end_while', result)
             return (True, successful_result)
         elif isinstance(ast, Concat):

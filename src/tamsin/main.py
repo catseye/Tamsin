@@ -23,8 +23,8 @@ from tamsin.compiler import Compiler
 def parse(filename):
     with open(filename, 'r') as f:
         scanner = Scanner(
-            FileBuffer(f, filename=filename),
-            #StringBuffer(f.read(), filename=filename),
+            #FileBuffer(f, filename=filename),
+            StringBuffer(f.read(), filename=filename),
             engines=(TamsinScannerEngine(),)
         )
         parser = Parser(scanner)
@@ -49,8 +49,8 @@ def parse_and_check_args(args):
 
 def run(ast, listeners=None):
     scanner = Scanner(
-        FileBuffer(sys.stdin, filename='<stdin>'),
-        #StringBuffer(sys.stdin.read(), filename='<stdin>'),
+        #FileBuffer(sys.stdin, filename='<stdin>'),
+        StringBuffer(sys.stdin.read(), filename='<stdin>'),
         engines=(UTF8ScannerEngine(),),
         listeners=listeners
     )
