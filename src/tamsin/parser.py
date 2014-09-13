@@ -145,8 +145,8 @@ class Parser(EventProducer):
     def expr3(self):
         lhs = self.expr4()
         if self.consume(u'→') or self.consume('->'):
-            v = self.variable()
-            lhs = Send(lhs, v)
+            term = self.term()
+            lhs = Send(lhs, term)
         return lhs
 
     def expr4(self):

@@ -54,7 +54,7 @@ defining a grammar for parsing a trivial language.)
 Productions can be written that don't look at the input.  A rule may also
 consist of the keyword `return`, followed a _term_; this expression simply
 evaluates to that term and returns it.  (More on terms later; for now,
-think of them as strings.)
+think of them as strings without any quotes around them.)
 
 So, the following program always outputs `blerp`, no matter what the input is.
 
@@ -288,12 +288,6 @@ digraph instead.
     + ab.
     = a
 
-Names of Variables must be Capitalized.
-
-    | main = blerp → b & return b.
-    | blerp = "b".
-    ? expected
-
 In fact, the result of not just a production, but any rule, may be sent
 into a variable by `→`.  Note that `→` has a higher precedence than `&`.
 
@@ -330,6 +324,11 @@ alternative.
     |        return E.
     + 02
     = original
+
+Names of Variables must be Capitalized.
+
+    | main = set b = blerp & return b.
+    ? expected
 
 Terms
 -----
@@ -416,9 +415,10 @@ Also, `\xXX` escapes will always be output in lowercase, e.g. `\x0a`, not
 The input to a Tamsin production is, in fact, an atom (although it's hardly
 atomic; "atom" is sort of a quaint moniker for the role these objects play.)
 
-The contexts in Tamsin which expect a term expression are `return`, `set`, and
-arguments to productions (but you haven't seen those yet.)  In these contexts,
-a bareword evaluates to an atom (rather than a non-terminal.)
+The contexts in Tamsin which expect a term expression are `return`, `set`, the
+right-hand side of → (which you haven't seen yet,) and arguments to productions
+(which you also haven't seen yet.)  In these contexts, a bareword evaluates to
+an atom rather than a non-terminal.
 
     | main = return hello.
     = hello
@@ -435,7 +435,7 @@ spaces or other things which are not "bareword", enclose it in single quotes.
 Note that the atom `'X'` is not the same as the variable `X`.  Nor is the
 atom `'tree(a,b)'` the same as the constructor `tree(a,b)`.
 
-In a term context, a constuctor may be given with parentheses after the
+In a term context, a constructor may be given with parentheses after the
 string.
 
     | main = return hello(world).
@@ -449,8 +449,8 @@ The bareword rule applies in subterms.
     | main = return hello('beautiful world').
     = hello(beautiful world)
 
-In a term context, variables may be given.  The term is always expanded
-during evaluation.
+In a term context, variables may be given.  Terms are expanded during
+evaluation, unless they are patterns (which we'll get to eventually.)
 
     | main = set E = world & return hello(E).
     = hello(world)
@@ -992,7 +992,7 @@ The module `$` contains a number of built-in productions which would not
 be possible or practical to implement in Tamsin.  See Appendix C for a list.
 
 In fact, we have been using the `$` module already!  But our usage of it
-has been hidden under some syntactic sugar.
+has been hidden under some syntactic sugar.  For example, `"k"` is actually...
 
     | main = $:expect(k).
     + k
@@ -1044,8 +1044,8 @@ Here's `$:mkterm`, which takes an atom and a list and creates a constructor.
     = atom(a, b, c)
 
 Here's `$:unquote`, which takes three terms, X, L and R, where L and R
-must be one-character atoms.  If X begins with L and ends with R then
-the contents in-between will be returned as an atom.  Otherwise fails.
+must be atoms.  If X begins with L and ends with R then the contents
+in-between will be returned as an atom.  Otherwise fails.
 
     | main = $:unquote('"hello"', '"', '"').
     = hello
@@ -1453,6 +1453,35 @@ Note that the list sugar syntax can also be used in patterns.
     = c
     = end
     = ok
+
+Advanced Assignment
+-------------------
+
+The right-hand side of `→` can actually be more than a variable name;
+it can be a pattern term, just like is used in the arguments, above.
+This can be useful for "deconstructing" a compound return value from a
+production to extract the parts you want.
+
+    | main = foo → pair(A,B) & return A.
+    | foo = return pair(wellington, trainer).
+    = wellington
+
+    | main = foo → pair(A,B) & return B.
+    | foo = return pair(wellington, trainer).
+    = trainer
+
+Even without variables, this can also be useful simply to assert something
+returns some value.
+
+    | main = foo → b & print 'yes' | print 'no'.
+    | foo = return a.
+    = no
+    = no
+
+    | main = foo → b & print 'yes' | print 'no'.
+    | foo = return b.
+    = yes
+    = yes
 
 Advanced Scanning
 -----------------
@@ -1994,7 +2023,7 @@ written in Tamsin and can be found in `eg/tamsin-parser.tamsin`.
     Expr0      ::= Expr1 {("||" | "|") Expr1}.
     Expr1      ::= Expr2 {("&&" | "&") Expr2}.
     Expr2      ::= Expr3 ["using" ProdRef].
-    Expr3      ::= Expr4 [("→" | "->") Variable].
+    Expr3      ::= Expr4 [("→" | "->") Term].
     Expr4      ::= Expr5 ["/" Texpr ["/" Term)]].
     Expr4      ::= "(" Expr0 ")"
                  | "[" Expr0 "]"

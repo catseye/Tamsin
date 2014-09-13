@@ -3,6 +3,7 @@ TODO
 
 ### higher-priority ###
 
+*   implement buffers in C in libtamsin
 *   allow switching the kind of buffer that is used when `@` is used:
     *   `rule @ %stdin` is the default; it is implied when no `@`
     *   `rule @ %mmap` to use an MmapBuffer

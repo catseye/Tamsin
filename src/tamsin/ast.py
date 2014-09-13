@@ -238,20 +238,20 @@ class Call(AST):
 
 
 class Send(AST):
-    def __init__(self, rule, variable):
+    def __init__(self, rule, pattern):
         self.rule = rule
-        self.variable = variable
+        self.pattern = pattern
 
     def __repr__(self):
         return u"Send(%r, %r)" % (
             self.rule,
-            self.variable
+            self.pattern
         )
 
     def __str__(self):
         return "send(%s, %s)" % (
             self.rule,
-            self.variable
+            self.pattern
         )
 
 

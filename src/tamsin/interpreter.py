@@ -161,9 +161,15 @@ class Interpreter(EventProducer):
             self.event('call_candidates', prod)
             return self.interpret(prod, args=args)
         elif isinstance(ast, Send):
-            (success, variable) = self.interpret(ast.variable)
             (success, result) = self.interpret(ast.rule)
-            self.context.store(variable.name, result)
+            #(success, variable) = self.interpret(ast.pattern)  # ... ?
+            #self.context.store(variable.name, result)
+            formals = [self.interpret(f)[1] for f in [ast.pattern]]
+            bindings = Term.match_all(formals, [result])
+            if bindings == False:
+                return (False, Atom('nomatch'))
+            for name in bindings.keys():
+                self.context.store(name, bindings[name])
             return (success, result)
         elif isinstance(ast, Using):
             sub = ast.rule

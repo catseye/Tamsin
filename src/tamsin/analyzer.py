@@ -70,8 +70,8 @@ class Analyzer(EventProducer):
         elif isinstance(ast, Call):
             return Call(self.analyze(ast.prodref), ast.args)
         elif isinstance(ast, Send):
-            assert isinstance(ast.variable, VariableNode), ast
-            return Send(self.analyze(ast.rule), ast.variable)
+            assert isinstance(ast.pattern, TermNode), ast
+            return Send(self.analyze(ast.rule), self.analyze(ast.pattern))
         elif isinstance(ast, Set):
             assert isinstance(ast.variable, VariableNode), ast
             return Set(ast.variable, self.analyze(ast.texpr))
@@ -109,7 +109,7 @@ class Analyzer(EventProducer):
         elif isinstance(ast, Call):
             pass
         elif isinstance(ast, Send):
-            self.collect_locals(ast.variable, locals_)
+            # self.collect_locals(ast.pattern, locals_)  # ...? it's a pattern
             self.collect_locals(ast.rule, locals_)
         elif isinstance(ast, Set):
             self.collect_locals(ast.variable, locals_)

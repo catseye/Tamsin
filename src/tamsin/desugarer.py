@@ -71,7 +71,10 @@ class Desugarer(EventProducer):
         elif isinstance(ast, Call):
             return ast
         elif isinstance(ast, Send):
-            return Send(self.desugar(ast.rule), ast.variable)
+            self.pattern = True
+            pattern = self.desugar(ast.pattern)
+            self.pattern = False
+            return Send(self.desugar(ast.rule), pattern)
         elif isinstance(ast, Set):
             return Set(ast.variable, self.desugar(ast.texpr))
         elif isinstance(ast, Not):
