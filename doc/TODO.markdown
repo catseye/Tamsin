@@ -3,20 +3,31 @@ TODO
 
 ### higher-priority ###
 
-*   apropos to that, using an ad-hoc syntax, is:
-    *   `production @ %stdin` is the default; it is implied when no `@`
-    *   `production @ %mmap` to use the mmap scanner
-    *   `production @ %line` to use an interactive terminal line editor-ish
-        scanner or something.
+*   allow switching the kind of buffer that is used when `@` is used:
+    *   `rule @ %stdin` is the default; it is implied when no `@`
+    *   `rule @ %mmap` to use an MmapBuffer
+    *   `rule @ %line` to use a LineEditorBuffer
+    *   `rule @ $:open('file.txt')` ?
 *   `$:add`, `$:sub`, `$:mul`, `$:div`, `$:rem`, for atoms which look like
-    integers: `["-"] & {$:digit}`.  or for an actual integer type.
+    integers: `["-"] & {$:digit}`.
 *   `$:tell` and `$:seek` the implicit buffer — for VM's etc — although
     note, this may have scary consequences when combined with backtracking
 *   pattern match in send: (can't go in set b/c it looks like a nonterminal)
     *   `fields → fields(H,T) & H`
+
+### medium-priority ###
+
+*   Starting with knowns about `$` builtins, an analysis to determine, for Rule:
+    - may consume input, never consumes input
+    - may fail, always fails
+    - may succeed, always succeeds... (may_backtrack?)
+*   production values
+    *   `$:fold(^production, nil, cons)`
+    *   `$:fold(^($:alnum & " "), '', ^L+','+R)`
 *   codegen and emitter phases in compiler.  take current compiler phase,
     make it construct a low-level representation instead (codegen), then
     have a phase that writes out C code from that low-level repr (emitter)
+*   non-backtracking versions of `|` and `{}`:  `|!` and `{}!`
 
 ### testing ###
 
@@ -30,34 +41,20 @@ TODO
 
 ### lower-priority ###
 
-*   `(foo → S | ok)` & print S ... should set S to error if foo failed?
-*   or `(foo |→ S ok)` ?
 *   `ctype` module, with `alpha` and `digit` and etc.
 *   `list` module: `deep_reverse`
 *   use Tamsin repr in error messages
 *   __str__ should be Tamsin repr()?
-*   `format`, using `@` — in Tamsin (don't we have this?)
-*   `\s` production for whitespace
-*   `\f` escape for form feed (why??)
-*   non-backtracking versions of `|` and `{}`:  `|!` and `{}!`
+*   regex-like shortcuts: `\w` for "word", `\s` for "whitespace", etc.
 *   have compiler replace calls to `list` functions
     by "more efficient" versions written in C -- if they really are...
 *   and maybe even garbage-collect terms in libtamsin
 *   figure out why reading a 4M file in a compiled program TAKES DOWN UBUNTU
 *   make it possible to recover from more errors using `|` (don't throw
     exceptions so often)
-*   fold: often you want to construct terms "the other way" or to "join"
-    a string with delimiters; can we handle those cases too?
-    *   actual production values would be really nice; then we could
-        `$:fold(production, nil, cons)`
-        or even
-        `$:fold(^($:alnum & " "), '', ^L+','+R)`
 *   stronger tests for scanner, parser: dump all falderal testbodies to files
 *   option for ref interp to not output result (or by default, don't)
 *   "mini" interpreter that handles variables (ouch)
-*   SOME WAY TO DISTINGUISH PRODUCTIONS WHICH MAY CONSUME INPUT AND
-    PRODUCTIONS WHICH NEVER CONSUME INPUT (in the `$` module, and generally).
-*   actual numeric values, rather than atoms-which-contain-only-digits
 *   error handling: skip to next sentinel and report more errors
 *   module-level updatable variables.  or globals.  or "process dictionary"
     `$:store()` and `$:fetch()`.  or database.
@@ -68,7 +65,6 @@ TODO
     *   `walk(T@tree(L,R)) = ...`
 *   maps, implemented as hash tables.
     *   `Table ← {} & fields → F@fields(H,T) & Table[H] ← T`
-*   on that topic — production values and/or lambda productions...
 *   pretty-print AST for error messages
 
 ### symbol fun ###
@@ -96,10 +92,6 @@ TODO
 *   term-rewriting library; a la Treacle; should make desugarer almost trivial
 *   algebraically cool version of `|`, perhaps as a worked example
     (implement Bakerloo in Tamsin)
-*   analysis: always_succeeds(Rule)
-*   analysis: may_backtrack(Rule)
-*   analysis: may_consume_input(Rule)
-*   regex-like shortcuts: `\w` for "word", `\s` for "whitespace", etc.
 *   EOF and nil are the same?  it would make sense... call it `end`? (do we?)
 *   productions with names with arbitrary characters in them.
 *   something like «foo» but foo is the name of a *non*terminal — symbolic
@@ -121,4 +113,5 @@ TODO
     I don't think this is very necessary because you can usually just say
     `(foo & bar) | baz` — but only if `bar` always succeeds, which it
     usually does (to return something)
-
+*   `(foo → S | ok)` & print S ... should set S to error if foo failed?
+    or `(foo |→ S ok)` ?
