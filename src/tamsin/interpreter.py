@@ -145,7 +145,7 @@ class Interpreter(EventProducer):
             else:
                 self.event('fail_or', self.context, self.scanner, result)
                 self.context = saved_context
-                self.scanner.restore_state()
+                self.scanner.restore_state("after or")
                 return self.interpret(ast.rhs)
         elif isinstance(ast, Call):
             prodref = ast.prodref
@@ -206,7 +206,7 @@ class Interpreter(EventProducer):
             self.event('begin_not', expr, saved_context)
             (succeeded, result) = self.interpret(expr)
             self.context = saved_context
-            self.scanner.restore_state()
+            self.scanner.restore_state("after not")
             if succeeded:
                 return (False, Atom(self.scanner.error_message(
                     "anything else", self.scanner.peek()
@@ -227,7 +227,7 @@ class Interpreter(EventProducer):
                     successful_result = result
                     self.event('repeating_while', result)
                 else:
-                    self.scanner.restore_state()
+                    self.scanner.restore_state("after while")
             self.context = saved_context
             self.event('end_while', result)
             return (True, successful_result)

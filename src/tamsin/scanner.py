@@ -53,7 +53,7 @@ class Scanner(EventProducer):
     def save_state(self):
         return self.buffer.save_state()
 
-    def restore_state(self):
+    def restore_state(self, reason):
         return self.buffer.restore_state()
 
     def pop_state(self):

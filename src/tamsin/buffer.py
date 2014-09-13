@@ -109,43 +109,44 @@ class StringBuffer(Buffer):
 
 
 class FileBuffer(Buffer):
-    # Well, this was a nice try.  But the bottom line is that
-    # filehandles are mutable :/ ... and Buffers can't be mutable
-    # at all.  TODO: make it so that Buffers can be mutable, oi
-    def __init__(self, file, pre_buffer='', **kwargs):
-        assert False, 'NO'
+    def __init__(self, file, **kwargs):
         self.file = file
-        self.pre_buffer = pre_buffer
+        # stuff we have read out of the file, but need to keep
+        self.pre_buffer = ''
+        # the position in the file where we started reading into pre_buffer
+        self.pre_position = 0
         self.stack = []
         Buffer.__init__(self, **kwargs)
 
     def save_state(self):
-        self.stack.append((self.position, self.line_number, self.column_number))
+        state = (self.position, self.line_number, self.column_number)
+        self.stack.append(state)
 
     def restore_state(self):
-        (self.position, self.line_number, self.column_number) = self.stack.pop()
+        state = self.stack.pop()
+        (self.position, self.line_number, self.column_number) = state
+        # if stack is empty, discard everything before self.position from self.pre_thing
 
     def pop_state(self):
         self.stack.pop()
-
-    def get_bytes(self, amount):
-        """Returns a new pre_buffer."""
-        bytes_to_read = amount - len(self.pre_buffer)
-        if bytes_to_read <= 0:
-            return self.pre_buffer
-        bytes = self.file.read(bytes_to_read)
-        return self.pre_buffer + bytes
+        # if stack is empty, discard everything before self.position from self.pre_thing
 
     def chop(self, amount):
-        pre_buffer = self.get_bytes(amount)
-        bytes = pre_buffer[0:amount]
-        remaining = pre_buffer[amount:]
+        pos = self.position - self.pre_position
+        bytes = self.pre_buffer[pos:pos + amount]
+        bytes_to_read = amount - len(bytes)
+        if bytes_to_read > 0:
+            self.pre_buffer += self.file.read(bytes_to_read)
+            bytes = self.pre_buffer[pos:pos + amount]
+            #assert len(pre_bytes) == amount   # no, b/c what about EOF?
 
+        self.position += amount
         (self.line_number, self.column_number) = self.advance(bytes)
+        # if stack is empty, discard everything before self.position from self.pre_thing
         return bytes
 
     def first(self, amount):
-        pre_buffer = self.get_bytes(amount)
-        bytes = pre_buffer[0:amount]
-
+        self.save_state()
+        bytes = self.chop(amount)
+        self.restore_state()
         return bytes
