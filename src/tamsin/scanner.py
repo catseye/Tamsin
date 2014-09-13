@@ -50,6 +50,34 @@ class Scanner(EventProducer):
     def pop_engine(self):
         engine = self.engines.pop()
 
+    # # # # # # # Buffer interface # # # # # # #
+    #
+    #  These methods hide the immutability of Buffer.
+    #
+
+    def chop(self, amount):
+        """Returns amount characters from the buffer and advances the
+        scan position by amount.
+
+        Should only be used by ScannerEngines.
+
+        """
+        (chars, buffer) = self.buffer.chop(amount)
+        self.buffer = buffer
+        return chars
+
+    def first(self, amount):
+        """Returns amount characters from the buffer.  Does not advance the
+        scan position.
+
+        Should only be used by ScannerEngines, and then only in error
+        reporting.
+
+        """
+        (chars, buffer) = self.buffer.first(amount)
+        self.buffer = buffer
+        return chars
+
     def is_at_eof(self):
         """Returns True iff there is no more input to scan.
 
@@ -57,7 +85,11 @@ class Scanner(EventProducer):
         to see if ... something
 
         """
-        return self.buffer.is_at_eof()
+        (at_eof, buffer) = self.buffer.is_at_eof()
+        self.buffer = buffer
+        return at_eof
+
+    # # # # # # # # # # # # # # # # # # # # # #
 
     def is_at_utf8(self):
         """Returns the number of bytes following that comprise a UTF-8
@@ -75,27 +107,6 @@ class Scanner(EventProducer):
             return 4
         else:
             return 0
-
-    def chop(self, amount):
-        """Returns amount characters from the buffer and advances the
-        scan position by amount.
-
-        Should only be used by ScannerEngines.
-
-        """
-        (result, buffer) = self.buffer.chop(amount)
-        self.buffer = buffer
-        return result
-
-    def first(self, amount):
-        """Returns amount characters from the buffer.  Does not advance the
-        scan position.
-
-        Should only be used by ScannerEngines, and then only in error
-        reporting.
-
-        """
-        return self.buffer.first(amount)
 
     def startswith(self, strings):
         for s in strings:

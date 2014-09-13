@@ -23,7 +23,8 @@ from tamsin.compiler import Compiler
 def parse(filename):
     with open(filename, 'r') as f:
         scanner = Scanner(
-            FileBuffer(f, filename=filename),
+            #FileBuffer(f, filename=filename),
+            StringBuffer(f.read(), filename=filename),
             engines=(TamsinScannerEngine(),)
         )
         parser = Parser(scanner)

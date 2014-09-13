@@ -50,12 +50,23 @@ class Buffer(object):
         return (line_number, column_number)
 
     def chop(self, amount):
+        """Returns a pair of `amount` characters chopped off the front of
+        the buffer, and a new Buffer object.
+
+        """
         raise NotImplementedError
 
     def first(self, amount):
+        """Returns a pair of the first `amount` characters in the buffer
+        (without consuming them) and a new Buffer object.
+
+        """
         raise NotImplementedError
 
     def is_at_eof(self):
+        """Returns a pair of a boolean and a new Buffer object.
+
+        """
         raise NotImplementedError
 
 
@@ -82,9 +93,9 @@ class StringBuffer(Buffer):
     def chop(self, amount):
         assert self.position <= len(self.string) - amount, \
             "attempt made to chop past end of buffer"
-        result = self.string[self.position:self.position + amount]
+        chars = self.string[self.position:self.position + amount]
 
-        (line_number, column_number) = self.advance(result)
+        (line_number, column_number) = self.advance(chars)
         new_buffer = StringBuffer(self.string,
             filename=self._filename,
             position=self.position + amount,
@@ -92,22 +103,29 @@ class StringBuffer(Buffer):
             column_number=column_number
         )
 
-        return (result, new_buffer)
+        return (chars, new_buffer)
 
     def first(self, amount):
-        if self.position > len(self.string) - amount:
-            return None
+        #assert self.position <= len(self.string) - amount, \
+        #    "attempt made to first past end of buffer"
+        #if self.position > len(self.string) - amount:
+        #    return None
         chars = self.string[self.position:self.position + amount]
-        #print >>sys.stderr, "peeked '%s'" % chars
-        return chars
+
+        # did not modify self, so it's OK to return it
+        return (chars, self)
 
     def is_at_eof(self):
-        return self.position >= len(self.string)
+        at_eof = self.position >= len(self.string)
+
+        # did not modify self, so it's OK to return it
+        return (at_eof, self)
 
 
 class FileBuffer(Buffer):
     def __init__(self, file, **kwargs):
         self.file = file
+        assert False, "do not use!"
         Buffer.__init__(self, **kwargs)
         try:
             j = self.file.read(1)
@@ -130,7 +148,6 @@ class FileBuffer(Buffer):
             line_number=line_number,
             column_number=column_number
         )
-
         return (result, new_buffer)
 
     def first(self, amount):
@@ -138,7 +155,21 @@ class FileBuffer(Buffer):
         result = self.file.read(amount)
         self.file.seek(self.position, 0)
 
-        return result
+        new_buffer = FileBuffer(self.file,
+            filename=self._filename,
+            position=self.position + amount,
+            line_number=line_number,
+            column_number=column_number
+        )
+        return (result, new_buffer)
 
     def is_at_eof(self):
-        return self.first(1) == ''
+        at_eof = self.first(1) == ''
+
+        new_buffer = FileBuffer(self.file,
+            filename=self._filename,
+            position=self.position + amount,
+            line_number=line_number,
+            column_number=column_number
+        )
+        return (at_eof, new_buffer)
