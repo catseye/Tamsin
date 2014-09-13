@@ -122,14 +122,19 @@ class FileBuffer(Buffer):
         state = (self.position, self.line_number, self.column_number)
         self.stack.append(state)
 
+    def _truncate_pre_buffer(self):
+        if not self.stack and self.position > self.pre_position:
+            self.pre_buffer = self.pre_buffer[self.position - self.pre_position:]
+            self.pre_position = self.position
+
     def restore_state(self):
         state = self.stack.pop()
         (self.position, self.line_number, self.column_number) = state
-        # if stack is empty, discard everything before self.position from self.pre_thing
+        self._truncate_pre_buffer()
 
     def pop_state(self):
         self.stack.pop()
-        # if stack is empty, discard everything before self.position from self.pre_thing
+        self._truncate_pre_buffer()
 
     def chop(self, amount):
         pos = self.position - self.pre_position
@@ -142,7 +147,7 @@ class FileBuffer(Buffer):
 
         self.position += amount
         (self.line_number, self.column_number) = self.advance(bytes)
-        # if stack is empty, discard everything before self.position from self.pre_thing
+        self._truncate_pre_buffer()
         return bytes
 
     def first(self, amount):
