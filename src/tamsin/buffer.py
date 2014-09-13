@@ -58,29 +58,6 @@ class Buffer(object):
     def is_at_eof(self):
         raise NotImplementedError
 
-    def is_at_utf8(self):
-        k = ord(self.first(1))
-        if k & 0b11100000 == 0b11000000:
-            return 2
-        elif k & 0b11110000 == 0b11100000:
-            return 3
-        elif k & 0b11111000 == 0b11110000:
-            return 4
-        else:
-            return 0
-
-    def isalnum(self):
-        return self.first(1).isalnum()
-
-    def startswith(self, strings):
-        for s in strings:
-            if self.first(len(s)) == s:
-                return True
-        return False
-
-    def copy(self):
-        raise NotImplementedError
-
 
 class StringBuffer(Buffer):
     def __init__(self, string, **kwargs):

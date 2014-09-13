@@ -66,7 +66,15 @@ class Scanner(EventProducer):
         Should only be used by ScannerEngines.
 
         """
-        return self.buffer.is_at_utf8()
+        k = ord(self.first(1))
+        if k & 0b11100000 == 0b11000000:
+            return 2
+        elif k & 0b11110000 == 0b11100000:
+            return 3
+        elif k & 0b11111000 == 0b11110000:
+            return 4
+        else:
+            return 0
 
     def chop(self, amount):
         """Returns amount characters from the buffer and advances the
@@ -90,10 +98,13 @@ class Scanner(EventProducer):
         return self.buffer.first(amount)
 
     def startswith(self, strings):
-        return self.buffer.startswith(strings)
+        for s in strings:
+            if self.first(len(s)) == s:
+                return True
+        return False
 
     def isalnum(self):
-        return self.buffer.isalnum()
+        return self.first(1).isalnum()
 
     def error_message(self, expected, found):
         if found is EOF:
