@@ -34,6 +34,21 @@ class Buffer(object):
     def column_number(self):
         return self._column_number
 
+    def advance(self, inp):
+        """Given a string that we have just consumed from the buffer,
+        return new line_number and column_number.
+
+        """
+        line_number = self.line_number
+        column_number = self.column_number
+        for char in inp:
+            if char == '\n':
+                line_number += 1
+                column_number = 1
+            else:
+                column_number += 1
+        return (line_number, column_number)
+
     def chop(self, amount):
         raise NotImplementedError
 
@@ -87,27 +102,12 @@ class StringBuffer(Buffer):
             self.string, self.filename, self.position, self.line_number, self.column_number
         )
 
-    def __eq__(self, other):
-        return (self.string == other.string and
-                self._filename == other.filename and
-                self.position == other.position and
-                self._line_number == other.line_number and
-                self._column_number == other.column_number)
-
     def chop(self, amount):
         assert self.position <= len(self.string) - amount, \
             "attempt made to chop past end of buffer"
         result = self.string[self.position:self.position + amount]
 
-        line_number = self.line_number
-        column_number = self.column_number
-        for char in result:
-            if char == '\n':
-                line_number += 1
-                column_number = 1
-            else:
-                column_number += 1
-
+        (line_number, column_number) = self.advance(result)
         new_buffer = StringBuffer(self.string,
             filename=self._filename,
             position=self.position + amount,
@@ -142,26 +142,11 @@ class FileBuffer(Buffer):
             print "BAD"
             raise
 
-    def __eq__(self, other):
-        return (self.file == other.file and
-                self._filename == other.filename and
-                self.position == other.position and
-                self._line_number == other.line_number and
-                self._column_number == other.column_number)
-
     def chop(self, amount):
         self.file.seek(self.position, 0)
         result = self.file.read(amount)
 
-        line_number = self.line_number
-        column_number = self.column_number
-        for char in result:
-            if char == '\n':
-                line_number += 1
-                column_number = 1
-            else:
-                column_number += 1
-
+        (line_number, column_number) = self.advance(result)
         new_buffer = FileBuffer(self.file,
             filename=self._filename,
             position=self.position + amount,
