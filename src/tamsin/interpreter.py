@@ -168,9 +168,9 @@ class Interpreter(EventProducer):
             sub = ast.rule
             prodref = ast.prodref
             scanner_name = prodref.name
-            if prodref.module == '$' and scanner_name == u'byte':
+            if prodref.module == '$' and scanner_name == 'byte':
                 new_engine = ByteScannerEngine()
-            elif prodref.module == '$' and scanner_name == u'utf8':
+            elif prodref.module == '$' and scanner_name == 'utf8':
                 new_engine = UTF8ScannerEngine()
             else:
                 prod = self.program.find_production(prodref)

@@ -253,11 +253,9 @@ class UTF8ScannerEngine(ScannerEngine):
     def scan_impl(self, scanner):
         if scanner.is_at_eof():
             return EOF
-        
         c = scanner.is_at_utf8()
         if c > 0:
             return scanner.chop(c)
-        
         return scanner.chop(1)
 
 
@@ -265,7 +263,6 @@ class ByteScannerEngine(ScannerEngine):
     def scan_impl(self, scanner):
         if scanner.is_at_eof():
             return EOF
-        #print repr(scanner.buffer[scanner.position])
         return scanner.chop(1)
 
 

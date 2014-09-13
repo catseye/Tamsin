@@ -132,6 +132,15 @@ class FileBuffer(Buffer):
     def __init__(self, file, **kwargs):
         self.file = file
         Buffer.__init__(self, **kwargs)
+        try:
+            j = self.file.read(1)
+            self.init_pos = self.file.tell()
+            self.file.seek(0, 0)
+        except IOError as e:
+            import sys
+            print >>sys.stderr, "BAD"
+            print "BAD"
+            raise
 
     def __eq__(self, other):
         return (self.file == other.file and
@@ -141,7 +150,7 @@ class FileBuffer(Buffer):
                 self._column_number == other.column_number)
 
     def chop(self, amount):
-        self.file.seek(self.position)
+        self.file.seek(self.position, 0)
         result = self.file.read(amount)
 
         line_number = self.line_number
@@ -163,9 +172,9 @@ class FileBuffer(Buffer):
         return (result, new_buffer)
 
     def first(self, amount):
-        self.file.seek(self.position)
+        self.file.seek(self.position, 0)
         result = self.file.read(amount)
-        self.file.seek(self.position)
+        self.file.seek(self.position, 0)
 
         return result
 
