@@ -49,7 +49,7 @@ def parse_and_check_args(args):
 
 def run(ast, listeners=None):
     scanner = Scanner(
-        StringBuffer(sys.stdin.read(), filename='<stdin>'),
+        FileBuffer(sys.stdin, filename='<stdin>'),
         engines=(UTF8ScannerEngine(),),
         listeners=listeners
     )

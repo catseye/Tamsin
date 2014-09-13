@@ -9,7 +9,7 @@ from tamsin.ast import (
     Send, Set, Concat, Using, On, Fold,
     AtomNode, VariableNode, ConstructorNode,
 )
-from tamsin.buffer import FileBuffer, StringBuffer
+from tamsin.buffer import FileBuffer
 from tamsin.event import EventProducer
 from tamsin.scanner import (
     EOF, Scanner, TamsinScannerEngine
@@ -31,13 +31,12 @@ class Parser(EventProducer):
     @classmethod
     def for_file(class_, filename):
         with open(filename, 'r') as f:
-            contents = f.read()
-        return Parser(
-            Scanner(
-                StringBuffer(contents, filename=filename),
-                engines=(TamsinScannerEngine(),),
+            return Parser(
+                Scanner(
+                    FileBuffer(f, filename=filename),
+                    engines=(TamsinScannerEngine(),),
+                )
             )
-        )
 
     def eof(self):
         return self.scanner.eof()

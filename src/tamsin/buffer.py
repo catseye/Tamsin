@@ -141,6 +141,7 @@ class FileBuffer(Buffer):
                 self._column_number == other.column_number)
 
     def chop(self, amount):
+        self.file.seek(self.position)
         result = self.file.read(amount)
 
         line_number = self.line_number
@@ -162,10 +163,11 @@ class FileBuffer(Buffer):
         return (result, new_buffer)
 
     def first(self, amount):
+        self.file.seek(self.position)
         result = self.file.read(amount)
-        self.file.seek(-1 * amount, 1)
+        self.file.seek(self.position)
 
         return result
 
     def is_at_eof(self):
-        return self.file.closed
+        return self.first(1) == ''
