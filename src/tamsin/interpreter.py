@@ -12,7 +12,7 @@ from tamsin.buffer import StringBuffer
 from tamsin.term import Term, Atom
 from tamsin.event import EventProducer
 from tamsin.scanner import (
-    ScannerState, ByteScannerEngine, UTF8ScannerEngine, ProductionScannerEngine
+    ByteScannerEngine, UTF8ScannerEngine, ProductionScannerEngine
 )
 import tamsin.sysmod
 
@@ -188,7 +188,7 @@ class Interpreter(EventProducer):
             buffer = str(result.expand(self.context))
             self.event('interpret_on_buffer', buffer)
             saved_scanner_state = self.scanner.get_state()
-            new_state = ScannerState(StringBuffer(buffer))
+            new_state = StringBuffer(buffer)
             self.scanner.install_state(new_state)
             (success, result) = self.interpret(ast.rule)
             self.scanner.install_state(saved_scanner_state)

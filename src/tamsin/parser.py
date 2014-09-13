@@ -9,9 +9,10 @@ from tamsin.ast import (
     Send, Set, Concat, Using, On, Fold,
     AtomNode, VariableNode, ConstructorNode,
 )
+from tamsin.buffer import StringBuffer
 from tamsin.event import EventProducer
 from tamsin.scanner import (
-    EOF, Scanner, ScannerState, TamsinScannerEngine
+    EOF, Scanner, TamsinScannerEngine
 )
 
 
@@ -33,7 +34,7 @@ class Parser(EventProducer):
             contents = f.read()
         return Parser(
             Scanner(
-                ScannerState(contents, filename=filename),
+                StringBuffer(contents, filename=filename),
                 engines=(TamsinScannerEngine(),),
             )
         )

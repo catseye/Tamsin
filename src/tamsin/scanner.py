@@ -11,80 +11,15 @@ from tamsin.term import Term
 EOF = object()
 
 
-class ScannerState(object):
-    def __init__(self, buffer):
-        """Create a new ScannerState object.
-
-        You should treat ScannerState objects as immutable.
-
-        buffer should be a raw string, not unicode.  If position is given,
-        line_number and column_number should be given too, to match.
-
-        """
-        assert isinstance(buffer, Buffer)
-        self._buffer = buffer
-
-    @property
-    def filename(self):
-        return self._buffer.filename
-
-    @property
-    def line_number(self):
-        return self._buffer.line_number
-
-    @property
-    def column_number(self):
-        return self._buffer.column_number
-
-    def is_at_eof(self):
-        return self._buffer.is_at_eof()
-
-    def is_at_utf8(self):
-        k = ord(self._buffer.first(1))
-        if k & 0b11100000 == 0b11000000:
-            return 2
-        elif k & 0b11110000 == 0b11100000:
-            return 3
-        elif k & 0b11111000 == 0b11110000:
-            return 4
-        else:
-            return 0
-
-    def isalnum(self):
-        return self._buffer.first(1).isalnum()
-
-    def chop(self, amount):
-        (result, new_buffer) = self._buffer.chop(amount)
-        new_state = ScannerState(new_buffer)
-        return (result, new_state)
-
-    def first(self, amount):
-        return self._buffer.first(amount)
-
-    def startswith(self, strings):
-        for s in strings:
-            if self._buffer.first(len(s)) == s:
-                return True
-        return False
-
-    def __eq__(self, other):
-        return self._buffer == other._buffer
-
-    def __repr__(self):
-        return "ScannerState(%r)" % (
-            self._buffer
-        )
-
-
 class Scanner(EventProducer):
-    def __init__(self, state, engines=None, listeners=None):
+    def __init__(self, buffer, engines=None, listeners=None):
         """Create a new Scanner object.
 
         """
         self.listeners = listeners
         self.event('set_buffer', buffer)
-        assert isinstance(state, ScannerState)
-        self.state = state
+        assert isinstance(buffer, Buffer)
+        self.buffer = buffer
         self.engines = []
         if engines is not None:
             for engine in engines:
@@ -100,14 +35,14 @@ class Scanner(EventProducer):
         Scanner.
 
         """
-        return self.state
+        return self.buffer
 
     def install_state(self, state):
         """Restores the state of this Scanner to that which was saved by
         a previous call to get_state().
 
         """
-        self.state = state
+        self.buffer = state
 
     def push_engine(self, engine):
         self.engines.append(engine)
@@ -122,7 +57,7 @@ class Scanner(EventProducer):
         to see if ... something
 
         """
-        return self.state.is_at_eof()
+        return self.buffer.is_at_eof()
 
     def is_at_utf8(self):
         """Returns the number of bytes following that comprise a UTF-8
@@ -131,7 +66,7 @@ class Scanner(EventProducer):
         Should only be used by ScannerEngines.
 
         """
-        return self.state.is_at_utf8()
+        return self.buffer.is_at_utf8()
 
     def chop(self, amount):
         """Returns amount characters from the buffer and advances the
@@ -140,8 +75,8 @@ class Scanner(EventProducer):
         Should only be used by ScannerEngines.
 
         """
-        (result, state) = self.state.chop(amount)
-        self.state = state
+        (result, buffer) = self.buffer.chop(amount)
+        self.buffer = buffer
         return result
 
     def first(self, amount):
@@ -152,13 +87,13 @@ class Scanner(EventProducer):
         reporting.
 
         """
-        return self.state.first(amount)
+        return self.buffer.first(amount)
 
     def startswith(self, strings):
-        return self.state.startswith(strings)
+        return self.buffer.startswith(strings)
 
     def isalnum(self):
-        return self.state.isalnum()
+        return self.buffer.isalnum()
 
     def error_message(self, expected, found):
         if found is EOF:
@@ -168,9 +103,9 @@ class Scanner(EventProducer):
         return (
             "expected %s but found %s at line %s, column %s in '%s'" %
             (expected, found,
-             self.state.line_number,
-             self.state.column_number,
-             self.state.filename)
+             self.buffer.line_number,
+             self.buffer.column_number,
+             self.buffer.filename)
         )
 
     def error(self, expected, found):
@@ -221,7 +156,7 @@ class Scanner(EventProducer):
     def dump(self, indent=1):
         print "==" * indent + "%r" % self
         print "--" * indent + "engines: %r" % repr(self.engines)
-        print "--" * indent + "state: %r" % self.state
+        print "--" * indent + "buffer: %r" % self.buffer
 
 
 class ScannerEngine(object):
