@@ -836,7 +836,7 @@ input, such as `any`.
 
     | main = !"k" & any.
     + k
-    ? expected anything else but found 'k'
+    ? expected anything else
 
     | main = !("k" | "r") & any.
     + l

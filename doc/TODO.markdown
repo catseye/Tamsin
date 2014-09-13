@@ -3,8 +3,6 @@ TODO
 
 ### higher-priority ###
 
-*   don't consume stdin until asked to scan.  demand_buffer.  per-line loop.
-    or rather, per-inputconsumechunk
 *   apropos to that, using an ad-hoc syntax, is:
     *   `production @ %stdin` is the default; it is implied when no `@`
     *   `production @ %mmap` to use the mmap scanner
@@ -14,7 +12,6 @@ TODO
     integers: `["-"] & {$:digit}`.  or for an actual integer type.
 *   `$:tell` and `$:seek` the implicit buffer — for VM's etc — although
     note, this may have scary consequences when combined with backtracking
-*   error reporting: line and column number (at least in Python version)
 *   pattern match in send: (can't go in set b/c it looks like a nonterminal)
     *   `fields → fields(H,T) & H`
 *   codegen and emitter phases in compiler.  take current compiler phase,
@@ -33,6 +30,8 @@ TODO
 
 ### lower-priority ###
 
+*   `(foo → S | ok)` & print S ... should set S to error if foo failed?
+*   or `(foo |→ S ok)` ?
 *   `ctype` module, with `alpha` and `digit` and etc.
 *   `list` module: `deep_reverse`
 *   use Tamsin repr in error messages

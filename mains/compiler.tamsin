@@ -281,7 +281,7 @@ tamsin_compiler {
       emitln('if (ok) {') &
       indent &
       emitln('ok = 0;') &
-      emitln('result = term_new_atom_from_cstring("expected anything except");') &
+      emitln('result = term_new_atom_from_cstring("expected anything else");') &
       outdent &
       emitln('} else {') &
       indent &

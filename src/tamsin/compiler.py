@@ -370,7 +370,7 @@ class Compiler(object):
             self.emit("if (ok) {")
             self.indent()
             self.emit("ok = 0;")
-            self.emit(r'result = term_new_atom_from_cstring("expected anything except");')
+            self.emit(r'result = term_new_atom_from_cstring("expected anything else");')
             self.outdent()
             self.emit("} else {")
             self.indent()

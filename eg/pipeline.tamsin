@@ -1,0 +1,7 @@
+# Demonstrate that Tamsin programs can handle being given a stream on input,
+# and producing a stream on output.  (This was not true in versions 0.5 and
+# prior)
+
+main = {token -> A & whitespace & print A}.
+token = S <- '' & {$:alnum -> T & S <- S + T} & return S.
+whitespace = {" " | "\n"}.

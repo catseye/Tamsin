@@ -66,9 +66,13 @@ void tamsin_expect(struct scanner *s, const struct term *expected) {
         unscan(s);
         result = term_new_atom_from_cstring("expected '");
         result = term_concat(result, expected);
-        result = term_concat(result, term_new_atom_from_cstring("' but found '"));
-        result = term_concat(result, scanned);
-        result = term_concat(result, &APOS);
+        if (scanned == &tamsin_EOF) {
+            result = term_concat(result, term_new_atom_from_cstring("' but found EOF"));
+        } else {
+            result = term_concat(result, term_new_atom_from_cstring("' but found '"));
+            result = term_concat(result, scanned);
+            result = term_concat(result, &APOS);
+        }
         ok = 0;
     }
 }
