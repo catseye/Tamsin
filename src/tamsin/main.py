@@ -7,7 +7,7 @@ import os
 import subprocess
 import sys
 
-from tamsin.buffer import StringBuffer
+from tamsin.buffer import FileBuffer, StringBuffer
 from tamsin.event import DebugEventListener
 from tamsin.term import Atom
 from tamsin.scanner import (

@@ -9,7 +9,7 @@ from tamsin.ast import (
     Send, Set, Concat, Using, On, Fold,
     AtomNode, VariableNode, ConstructorNode,
 )
-from tamsin.buffer import StringBuffer
+from tamsin.buffer import FileBuffer, StringBuffer
 from tamsin.event import EventProducer
 from tamsin.scanner import (
     EOF, Scanner, TamsinScannerEngine

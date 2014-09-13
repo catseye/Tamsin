@@ -12,6 +12,28 @@ class Buffer(object):
     You should treat Buffer objects as immutable.
 
     """
+    def __init__(self, filename='<data>', position=0, line_number=1, column_number=1):
+        """If `position` is given, `line_number` and `column_number` should
+        be given too, to match.
+
+        """
+        self._filename = filename
+        self.position = position
+        self._line_number = line_number
+        self._column_number = column_number
+
+    @property
+    def filename(self):
+        return self._filename
+
+    @property
+    def line_number(self):
+        return self._line_number
+
+    @property
+    def column_number(self):
+        return self._column_number
+
     def chop(self, amount):
         raise NotImplementedError
 
@@ -46,7 +68,7 @@ class Buffer(object):
 
 
 class StringBuffer(Buffer):
-    def __init__(self, string, filename='<data>', position=0, line_number=1, column_number=1):
+    def __init__(self, string, **kwargs):
         """Create a new StringBuffer object.
 
         `string` should be a raw string, not unicode.  If `position` is given,
@@ -55,22 +77,7 @@ class StringBuffer(Buffer):
         """
         assert not isinstance(string, unicode)
         self.string = string
-        self._filename = filename
-        self.position = position
-        self._line_number = line_number
-        self._column_number = column_number
-
-    @property
-    def filename(self):
-        return self._filename
-
-    @property
-    def line_number(self):
-        return self._line_number
-
-    @property
-    def column_number(self):
-        return self._column_number
+        Buffer.__init__(self, **kwargs)
 
     def __str__(self):
         return self.string
@@ -120,5 +127,45 @@ class StringBuffer(Buffer):
     def is_at_eof(self):
         return self.position >= len(self.string)
 
-    def copy(self):
-        return StringBuffer(self.string, position=self.position)
+
+class FileBuffer(Buffer):
+    def __init__(self, file, **kwargs):
+        self.file = file
+        Buffer.__init__(self, **kwargs)
+
+    def __eq__(self, other):
+        return (self.file == other.file and
+                self._filename == other.filename and
+                self.position == other.position and
+                self._line_number == other.line_number and
+                self._column_number == other.column_number)
+
+    def chop(self, amount):
+        result = self.file.read(amount)
+
+        line_number = self.line_number
+        column_number = self.column_number
+        for char in result:
+            if char == '\n':
+                line_number += 1
+                column_number = 1
+            else:
+                column_number += 1
+
+        new_buffer = FileBuffer(self.file,
+            filename=self._filename,
+            position=self.position + amount,
+            line_number=line_number,
+            column_number=column_number
+        )
+
+        return (result, new_buffer)
+
+    def first(self, amount):
+        result = self.file.read(amount)
+        self.file.seek(-1 * amount, 1)
+
+        return result
+
+    def is_at_eof(self):
+        return self.file.closed
