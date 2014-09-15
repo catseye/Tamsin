@@ -1,9 +1,13 @@
 TODO
 ====
 
-### higher-priority ###
+### C implementation ###
 
 *   implement buffers in C in libtamsin
+*   implement pattern match in send in C compiler
+
+### higher-priority ###
+
 *   allow switching the kind of buffer that is used when `@` is used:
     *   `rule @ %stdin` is the default; it is implied when no `@`
     *   `rule @ %mmap` to use an MmapBuffer
@@ -13,8 +17,6 @@ TODO
     integers: `["-"] & {$:digit}`.
 *   `$:tell` and `$:seek` the implicit buffer — for VM's etc — although
     note, this may have scary consequences when combined with backtracking
-*   pattern match in send: (can't go in set b/c it looks like a nonterminal)
-    *   `fields → fields(H,T) & H`
 
 ### medium-priority ###
 

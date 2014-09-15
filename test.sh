@@ -2,6 +2,7 @@
 
 FILES="
     doc/Tamsin.markdown
+    doc/System_Module.markdown
     doc/Tested_Examples.markdown
 "
 GLOB="eg/*.tamsin lib/*.tamsin mains/*.tamsin"
