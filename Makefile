@@ -50,5 +50,14 @@ bin/micro-tamsin: c_src/libtamsin.a c_src/tamsin.h \
 	bin/tamsin compile $(MICRO_TAMSIN_LIBS) mains/micro-tamsin.tamsin > tmp/foo.c
 	$(CC) $(CFLAGS) tmp/foo.c -o $@ -ltamsin
 
+
+MINI_TAMSIN_LIBS=lib/list.tamsin lib/tamsin_scanner.tamsin \
+                 lib/tamsin_parser.tamsin
+bin/mini-tamsin: c_src/libtamsin.a c_src/tamsin.h \
+                     $(MINI_TAMSIN_LIBS) \
+                     mains/mini-tamsin.tamsin
+	bin/tamsin compile $(MINI_TAMSIN_LIBS) mains/mini-tamsin.tamsin > tmp/foo.c
+	$(CC) $(CFLAGS) tmp/foo.c -o $@ -ltamsin
+
 clean:
 	rm -f c_src/libtamsin.a c_src/*.o $(PROGS)

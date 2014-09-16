@@ -329,6 +329,8 @@ class Compiler(object):
                 self.emit("prod_%s_%s(%s);" % (prodmod, name, args))
         elif isinstance(ast, Send):
             self.compile_r(ast.rule)
+            # EMIT PATTERN ... which means generalizing the crap that is
+            # currently in the ProdBranch case up there, way up there ^^^
             lname = self.emit_lvalue(ast.variable)
             self.emit("%s = result;" % lname)
         elif isinstance(ast, Set):

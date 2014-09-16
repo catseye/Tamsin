@@ -162,6 +162,11 @@ elif [ x$1 = xmicro ]; then
     echo "*** Testing Micro-Tamsin interpreter..."
     FILES="doc/Micro-Tamsin.markdown"
     falderal $VERBOSE --substring-error fixture/micro-tamsin.markdown $FILES
+elif [ x$1 = xmini ]; then
+    make bin/mini-tamsin || exit 1
+    echo "*** Testing Mini-Tamsin interpreter..."
+    FILES="doc/Micro-Tamsin.markdown"   # note: does not use Mini-Tamsin.md yet
+    falderal $VERBOSE --substring-error fixture/mini-tamsin.markdown $FILES
 else
     echo "Unknown test '$1'."
     exit 1

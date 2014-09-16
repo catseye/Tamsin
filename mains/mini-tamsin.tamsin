@@ -1,0 +1,61 @@
+# Interpreter for "Mini-Tamsin", written in Tamsin.
+# (see doc/Mini-Tamsin.markdown.)
+# Distributed under a BSD-style license; see LICENSE.
+
+# REQUIRES lib/tamsin_scanner.tamsin
+# REQUIRES lib/tamsin_parser.tamsin
+
+main = tamsin_parser:parse → AST & tamsin_scanner:skippable & "/" &
+       new_state → S &
+       interpret(AST, S, AST).
+
+#
+# FIXME there are several rather major shortcomings with this, still!
+#
+
+new_state = return state().
+
+#
+# interpret(EntireProgram, State, CurrentProgramPart)
+# returns a pair(Result, NewState)
+#
+interpret(P, S, program(L)) =
+    tamsin_parser:find_production_global('main', 'main', P) → Main &
+    new_state → S &
+    interpret(P, S, Main).
+
+interpret(P, S, production(N, list(prodbranch(Fs, Ls, E), nil))) =
+    interpret(P, S, E).
+
+interpret(P, S, call(prodref('$', 'return'), list(atom(X), nil))) =
+    return pair(X, S).
+
+interpret(P, S, call(prodref('$', 'expect'), list(atom(X), nil))) =
+    «X» → R &          # FIXME this isn't going to work if «X» fails, is it.
+    return pair(R, S).
+
+interpret(P, S, call(prodref('$', 'print'), list(atom(X), nil))) =
+    print X &
+    return pair(X, S).
+
+interpret(P, S, call(prodref('', N), A)) =
+    interpret(P, S, call(prodref('main', N), A)).
+
+interpret(P, S, call(prodref(M, N), A)) =
+    tamsin_parser:find_production_global(M, N, P) → Prod &
+    new_state → S2 &
+    interpret(P, S2, Prod).
+
+interpret(P, S, or(L, R)) =
+    interpret(P, S, L) → pair(Res, S2) &
+    (Res & return pair(Res, S2)) | interpret(P, S, R).
+    # FIXME what happens to S?  I think this is right though
+
+interpret(P, S, and(L, R)) =
+    interpret(P, S, L) → pair(Res, S2) &
+    interpret(P, S2, R).
+
+# interpret(P, S, not(X)) = !interpret(P, S, X).
+
+interpret(P, S, while(X)) =
+    {interpret(P, S, X) → pair(Res, S2) & set S = S2}.

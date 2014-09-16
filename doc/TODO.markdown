@@ -17,6 +17,10 @@ TODO
     integers: `["-"] & {$:digit}`.
 *   `$:tell` and `$:seek` the implicit buffer — for VM's etc — although
     note, this may have scary consequences when combined with backtracking
+*   `(foo → S | ok)` & print S ... should set S to error if foo failed?
+    or `(foo |→ S ok)` ?  This is necessary for the meta-circular
+    interpreter: to implement `A | B` we want to interpret `A` and see
+    if it failed or not.  i.e. We want to be able to reify errors...
 
 ### medium-priority ###
 
@@ -116,5 +120,3 @@ TODO
     I don't think this is very necessary because you can usually just say
     `(foo & bar) | baz` — but only if `bar` always succeeds, which it
     usually does (to return something)
-*   `(foo → S | ok)` & print S ... should set S to error if foo failed?
-    or `(foo |→ S ok)` ?
