@@ -9,12 +9,19 @@ import tamsin.sysmod
 
 
 class CodeNode(object):
-    def __init__(self, *args, **kwargs)
-        self.args = args
+    def __init__(self, *args, **kwargs):
+        self.args = list(args)
         self.kwargs = kwargs
 
     def append(self, item):
         self.args.append(item)
+
+    def __repr__(self):
+        return "%s(%s, %s)" % (
+            self.__class__.name,
+            ', '.join([repr(a) for a in self.args]),
+            ', '.join('%s=%r' % (key, self.kwargs[key]) for key in self.kwargs)
+        )
 
 
 class Program(CodeNode):
@@ -49,6 +56,10 @@ class And(CodeNode):
     pass
 
 
+class Not(CodeNode):
+    pass
+
+
 class PatternMatch(CodeNode):
     pass
 
@@ -69,10 +80,17 @@ class RestoreState(CodeNode):
     pass
 
 
+class Call(CodeNode):
+    pass
+
+
+class NoMatch(CodeNode):
+    pass
+
+
 class CodeGen(object):
     def __init__(self, program):
         self.program = program
-        self.ir = []
 
     def generate(self):
         main = self.program.find_production(a.Prodref('main', 'main'))
@@ -83,7 +101,7 @@ class CodeGen(object):
         for module in self.program.modlist:
             for prod in module.prodlist:
                 program.append(
-                    Prototype(module=module, prod=prod, formals=formals)
+                    Prototype(module=module, prod=prod, formals=prod.branches[0].formals)
                 )
 
         for module in self.program.modlist:
@@ -94,15 +112,15 @@ class CodeGen(object):
 
         return program
 
-    def gen_subroutine(self, module, prod, formals)
+    def gen_subroutine(self, module, prod, formals):
         s = Subroutine(formals)
+        s.append(self.gen_unifier(prod, prod.branches[0]))  # becoming so wrong
         s.append(self.gen_branches(module, prod, prod.branches))            
-        s.append()
         return s
 
-    def gen_unifier(self, all_pattern_variables):
-        all_pattern_variables = []
-        
+    def gen_unifier(self, prod, branch):
+        prod.all_pattern_variables = []
+
         pat_names = []
         for fml_num, formal in enumerate(branch.formals):
             pat_names.append(self.gen_ast(formal))
@@ -110,15 +128,15 @@ class CodeGen(object):
             variables = []
             formal.collect_variables(variables)
             for variable in variables:
-               if variable not in all_pattern_variables:
-                   all_pattern_variables.append(variable)
+               if variable not in prod.all_pattern_variables:
+                   prod.all_pattern_variables.append(variable)
 
-        return Unifier(all_pattern_variables)
+        return Unifier(prod.all_pattern_variables)
 
     def gen_no_match(self, module, prod, formals):
         return NoMatch(module, prod, formals)
 
-    def gen_branches(self, module, prod, branches)
+    def gen_branches(self, module, prod, branches):
         if not branches:
             return Return(NoMatch(module, prod))
         test = Not()
@@ -133,18 +151,18 @@ class CodeGen(object):
             self.gen_branches(module, prod, branches)
         )
 
-    def gen_branch(self, module, prod, branches)
+    def gen_branch(self, module, prod, branch):
         b = Block()
 
         # get variables which are found in patterns for this branch
-        for var in all_pattern_variables:
+        for var in prod.all_pattern_variables:
             #self.emit('const struct term *%s = unifier[%s];' %
             #    (var.name, var.index)
             #)
             #self.emit('assert(%s != NULL);' % var.name);
             b.append(GetMatchedVar(var))
         
-        all_pattern_variable_names = [x.name for x in all_pattern_variables]
+        all_pattern_variable_names = [x.name for x in prod.all_pattern_variables]
         for local in branch.locals_:
             if local not in all_pattern_variable_names:
                 #self.emit("const struct term *%s;" % local)
@@ -153,7 +171,7 @@ class CodeGen(object):
         b.append(self.gen_ast(branch.body))
         return b
 
-    def gen_ast(self, module, ast):
+    def gen_ast(self, ast):
         if isinstance(ast, a.And):
             return Block(
                 self.gen_ast(ast.lhs),
@@ -188,7 +206,7 @@ class CodeGen(object):
                 return Builtin(name, argnames)
             else:
                 args = []  # ', '.join([self.compile_r(a) for a in args])
-                return Call(module, prod, name, args)
+                return Call(prodmod, name, args)
         elif isinstance(ast, a.Send):
             self.compile_r(ast.rule)
             # EMIT PATTERN ... which means generalizing the crap that is
@@ -204,14 +222,17 @@ class CodeGen(object):
             self.emit("ok = 1;")
         elif isinstance(ast, a.While):
             return Block(
+                DeclareLocal('srname', AtomNode('nil')),
                 DeclState(),
-                srname = self.compile_r(AtomNode('nil')),
+                self.compile_r(),
                 SetVar('ok', '1'),
-                While(GetVar('ok'), Block(
-                    SaveState(),
-                    self.gen_ast(ast.rule),
-                    If(GetVar('ok'),
-                        SetVar(srname, 'result')
+                While(GetVar('ok'),
+                    Block(
+                        SaveState(),
+                        self.gen_ast(ast.rule),
+                        If(GetVar('ok'),
+                            SetVar(srname, 'result')
+                        )
                     )
                 ),
                 RestoreState(),
