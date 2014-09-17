@@ -3,7 +3,7 @@
 # Copyright (c)2014 Chris Pressey, Cat's Eye Technologies.
 # Distributed under a BSD-style license; see LICENSE for more information.
 
-from tamsin import ast as a
+from tamsin import ast as ack
 from tamsin.term import Atom, Constructor, Variable
 import tamsin.sysmod
 
@@ -18,7 +18,7 @@ class CodeNode(object):
 
     def __repr__(self):
         return "%s(%s, %s)" % (
-            self.__class__.name,
+            self.__class__.__name__,
             ', '.join([repr(a) for a in self.args]),
             ', '.join('%s=%r' % (key, self.kwargs[key]) for key in self.kwargs)
         )
@@ -80,6 +80,10 @@ class RestoreState(CodeNode):
     pass
 
 
+class Builtin(CodeNode):
+    pass
+
+
 class Call(CodeNode):
     pass
 
@@ -88,12 +92,16 @@ class NoMatch(CodeNode):
     pass
 
 
+class SetVar(CodeNode):
+    pass
+
+
 class CodeGen(object):
     def __init__(self, program):
         self.program = program
 
     def generate(self):
-        main = self.program.find_production(a.Prodref('main', 'main'))
+        main = self.program.find_production(ack.Prodref('main', 'main'))
         if not main:
             raise ValueError("no 'main:main' production defined")
 
@@ -172,14 +180,14 @@ class CodeGen(object):
         return b
 
     def gen_ast(self, ast):
-        if isinstance(ast, a.And):
+        if isinstance(ast, ack.And):
             return Block(
                 self.gen_ast(ast.lhs),
                 If(GetVar('ok'),
                     self.gen_ast(ast.rhs)
                 )
             )
-        elif isinstance(ast, a.Or):
+        elif isinstance(ast, ack.Or):
             return Block(
                 DeclState(),
                 SaveState(),
@@ -187,40 +195,40 @@ class CodeGen(object):
                 If(Not(GetVar('ok')),
                     Block(
                         RestoreState(),
-                        self.gen_asr(ast.rhs)
+                        self.gen_ast(ast.rhs)
                     )
                 )
             )
-        elif isinstance(ast, a.Call):
+        elif isinstance(ast, ack.Call):
             prodref = ast.prodref
             prodmod = prodref.module or 'main'
             name = prodref.name
             args = ast.args
-
             if prodmod == '$':
-                argnames = []
+                c = Builtin(name=name)
                 arity = tamsin.sysmod.arity(name)
                 for i in xrange(0, arity):
-                    argnames.insert(0, self.compile_r(args[i]))
-
-                return Builtin(name, argnames)
+                    c.append(self.gen_ast(args[i]))
             else:
-                args = []  # ', '.join([self.compile_r(a) for a in args])
-                return Call(prodmod, name, args)
-        elif isinstance(ast, a.Send):
-            self.compile_r(ast.rule)
-            # EMIT PATTERN ... which means generalizing the crap that is
-            # currently in the ProdBranch case up there, way up there ^^^
-            lname = self.emit_lvalue(ast.variable)
-            self.emit("%s = result;" % lname)
-        elif isinstance(ast, a.Set):
+                c = Call(module=prodmod, name=name)
+                for a in args:
+                    c.append(self.get_ast(a))
+            return c
+        elif isinstance(ast, ack.Send):
+            return Block(
+                self.gen_ast(ast.rule),
+                # EMIT PATTERN ... which means generalizing the crap that is
+                # currently in the ProdBranch case up there, way up there ^^^
+                SetVar(ast.pattern, 'result')
+            )
+        elif isinstance(ast, ack.Set):
             self.emit("/* %r */" % ast)
             name = self.compile_r(ast.texpr)
             lname = self.emit_lvalue(ast.variable)
             self.emit("%s = %s;" % (lname, name))
             self.emit("result = %s;" % name)
             self.emit("ok = 1;")
-        elif isinstance(ast, a.While):
+        elif isinstance(ast, ack.While):
             return Block(
                 DeclareLocal('srname', AtomNode('nil')),
                 DeclState(),
@@ -239,7 +247,7 @@ class CodeGen(object):
                 SetVar('result', srname),
                 SetVar('ok', '1')
             )
-        elif isinstance(ast, a.Not):
+        elif isinstance(ast, ack.Not):
             return Block(
                 DeclState(),
                 SaveState(),
@@ -255,13 +263,13 @@ class CodeGen(object):
                     )
                 )
             )
-        elif isinstance(ast, Using):
+        elif isinstance(ast, ack.Using):
             return Block(
                 ScannerPushEngine(ast.prodref.module, ast.prodref.name),
                 self.gen_ast(ast.rule),
                 ScannerPopEngine(),
             )
-        elif isinstance(ast, On):
+        elif isinstance(ast, ack.On):
             return Block(
                 self.gen_ast(ast.texpr),
                 #flat_name = self.new_name()
@@ -275,7 +283,7 @@ class CodeGen(object):
                 self.gen_ast(ast.rule),
                 RestoreState()
             )
-        elif isinstance(ast, Concat):
+        elif isinstance(ast, ack.Concat):
             name_lhs = self.compile_r(ast.lhs);
             name_rhs = self.compile_r(ast.rhs);
             name = self.new_name()
@@ -283,38 +291,13 @@ class CodeGen(object):
                 (name, name_lhs, name_rhs)
             )
             return name
-        elif isinstance(ast, AtomNode):
-            name = self.new_name()
-            self.emit('const struct term *%s = term_new_atom("%s", %s);' %
-                (name, escaped(ast.text), len(ast.text))
-            )
-            return name
-
-        elif isinstance(ast, VariableNode):
-            name = self.new_name()
-            self.emit('const struct term *%s = %s;' %
-                (name, ast.name)
-            )
-            return name
-        elif isinstance(ast, PatternVariableNode):
-            name = self.new_name()
-            self.emit('const struct term *%s = term_new_variable("%s", %s, %s);' %
-                 (name, ast.name, len(ast.name), ast.index)
-            )
-            return name
-        elif isinstance(ast, ConstructorNode):
-            termlist_name = self.new_name()
-            self.emit('struct termlist *%s = NULL;' % termlist_name);
-            for c in reversed(ast.contents):
-                subname = self.compile_r(c)
-                self.emit('termlist_add_term(&%s, %s);' % (termlist_name, subname))
-            name = self.new_name()
-            self.emit('const struct term *%s = term_new_constructor("%s", %s, %s);' %
-                (name, escaped(ast.text), len(ast.text), termlist_name)
-            )
-            return name
+        elif isinstance(ast, ack.TermNode):
+            return ast
         else:
             raise NotImplementedError(repr(ast))
+
+    def new_name(self):
+        return 'foo'
 
     def emit_lvalue(self, ast):
         """Does not actually emit anything.  (Yet.)"""
