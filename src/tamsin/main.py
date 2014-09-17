@@ -99,6 +99,12 @@ def main(args, tamsin_dir='.'):
         ast = parse_and_check_args(args[1:])
         compiler = Compiler(ast, sys.stdout)
         compiler.compile()
+    elif args[0] == 'codegen':
+        ast = parse_and_check_args(args[1:])
+        from tamsin.codegen import CodeGen
+        generator = CodeGen(ast)
+        result = generator.generate()
+        print result
     elif args[0] == 'doublecompile':
         # http://www.youtube.com/watch?v=6WxJECOFg8w
         ast = parse_and_check_args(args[1:])
