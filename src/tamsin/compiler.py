@@ -331,7 +331,9 @@ class Compiler(object):
             self.compile_r(ast.rule)
             # EMIT PATTERN ... which means generalizing the crap that is
             # currently in the ProdBranch case up there, way up there ^^^
-            lname = self.emit_lvalue(ast.variable)
+            # *** awfulhak to make compiler fail less ***
+            variable = VariableNode(ast.pattern.name)
+            lname = self.emit_lvalue(variable)
             self.emit("%s = result;" % lname)
         elif isinstance(ast, Set):
             self.emit("/* %r */" % ast)

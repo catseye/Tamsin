@@ -7,7 +7,7 @@ from tamsin.ast import (
     Program, Module, Production, ProdBranch,
     And, Or, Not, While, Call, Send, Set,
     Using, On, Concat, Prodref,
-    TermNode, VariableNode, AtomNode, ConstructorNode
+    TermNode, VariableNode, PatternVariableNode, AtomNode, ConstructorNode
 )
 from tamsin.term import Term
 from tamsin.event import EventProducer
@@ -109,7 +109,7 @@ class Analyzer(EventProducer):
         elif isinstance(ast, Call):
             pass
         elif isinstance(ast, Send):
-            # self.collect_locals(ast.pattern, locals_)  # ...? it's a pattern
+            self.collect_locals(ast.pattern, locals_)
             self.collect_locals(ast.rule, locals_)
         elif isinstance(ast, Set):
             self.collect_locals(ast.variable, locals_)
@@ -117,6 +117,10 @@ class Analyzer(EventProducer):
         elif isinstance(ast, Not) or isinstance(ast, While):
             self.collect_locals(ast.rule, locals_)
         elif isinstance(ast, VariableNode):
+            if ast.name not in locals_:
+                locals_.append(ast.name)
+        elif isinstance(ast, PatternVariableNode):
+            # will probably be needed for Send().  but, not sure.  FIXME
             if ast.name not in locals_:
                 locals_.append(ast.name)
         elif isinstance(ast, ConstructorNode):
