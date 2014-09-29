@@ -27,6 +27,35 @@ best an LL(n) grammar, and try to write a left-recursive rule:
 
     expr = !"\n" & expr
 
+Advanced Assignment
+-------------------
+
+The right-hand side of `→` can actually be more than a variable name;
+it can be a pattern term, just like is used in the arguments, above.
+This can be useful for "deconstructing" a compound return value from a
+production to extract the parts you want.
+
+    | main = foo → pair(A,B) & return A.
+    | foo = return pair(wellington, trainer).
+    = wellington
+
+    | main = foo → pair(A,B) & return B.
+    | foo = return pair(wellington, trainer).
+    = trainer
+
+Even without variables, this can also be useful simply to assert something
+returns some value.
+
+    | main = foo → b & print 'yes' | print 'no'.
+    | foo = return a.
+    = no
+    = no
+
+    | main = foo → b & print 'yes' | print 'no'.
+    | foo = return b.
+    = yes
+    = yes
+
 Advanced Programming
 --------------------
 
