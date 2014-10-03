@@ -4,6 +4,7 @@
 # Distributed under a BSD-style license; see LICENSE for more information.
 
 from tamsin import ast as ack
+from tamsin.ast import AtomNode
 from tamsin.term import Atom, Constructor, Variable
 import tamsin.sysmod
 
@@ -53,11 +54,19 @@ class If(CodeNode):
     pass
 
 
+class While(CodeNode):
+    pass
+
+
 class And(CodeNode):
     pass
 
 
 class Not(CodeNode):
+    pass
+
+
+class DeclareLocal(CodeNode):
     pass
 
 
@@ -250,19 +259,18 @@ class CodeGen(object):
             return Block(
                 DeclareLocal('srname', AtomNode('nil')),
                 DeclState(),
-                self.compile_r(),
                 SetVar('ok', '1'),
                 While(GetVar('ok'),
                     Block(
                         SaveState(),
                         self.gen_ast(ast.rule),
                         If(GetVar('ok'),
-                            SetVar(srname, 'result')
+                            SetVar('srname', 'result')
                         )
                     )
                 ),
                 RestoreState(),
-                SetVar('result', srname),
+                SetVar('result', 'srname'),
                 SetVar('ok', '1')
             )
         elif isinstance(ast, ack.Not):

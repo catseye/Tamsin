@@ -11,8 +11,9 @@ with -ltamsin.
 
 from tamsin.codegen import (
     CodeNode, Program, Prototype, Subroutine,
-    Block, If, And, Not, Return, Builtin, Call, NoMatch, Truth,
-    GetVar, SetVar, Unifier, PatternMatch,
+    Block, If, While, And, Not, Return, Builtin, Call, Truth,
+    DeclareLocal, GetVar, SetVar,
+    Unifier, PatternMatch, NoMatch,
     DeclState, SaveState, RestoreState,
 )
 from tamsin.ast import AtomNode   # bah
@@ -169,9 +170,18 @@ class Emitter(object):
             self.indent()
             self.traverse(codenode[1])
             self.outdent()
-            self.emitln("} else {")
+            if len(codenode.args) == 3:
+                self.emitln("} else {")
+                self.indent()
+                self.traverse(codenode[2])
+                self.outdent()
+            self.emitln("}")
+        elif isinstance(codenode, While):
+            self.emit("while (")
+            self.traverse(codenode[0])
+            self.emitkln(") {")
             self.indent()
-            self.traverse(codenode[2])
+            self.traverse(codenode[1])
             self.outdent()
             self.emitln("}")
         elif isinstance(codenode, Not):
@@ -183,8 +193,22 @@ class Emitter(object):
         elif isinstance(codenode, Block):
             for arg in codenode.args:
                 self.traverse(arg)
+        elif isinstance(codenode, DeclareLocal):
+            self.emit("const struct term *%s = " % codenode[0])
+            self.traverse(codenode[1])
+            self.emitkln(';')
+        elif isinstance(codenode, Call):
+            self.emitln("prod_%s_%s(%s);" %
+                (codenode['module'], codenode['name'], '')
+            )
+        elif isinstance(codenode, GetVar):
+            self.emitk(codenode[0])
+        elif isinstance(codenode, SetVar):
+            self.emit(codenode[0])
+            self.emitk(' = ')
+            self.emitk(codenode[1])
+            self.emitkln(';')
         elif isinstance(codenode, Builtin):
-            self.emitln("/* %r */" % codenode)
             if codenode['name'] == 'print':
                 self.emit("result = ")
                 self.traverse(codenode[0])
@@ -196,6 +220,10 @@ class Emitter(object):
                 self.emit("result = ")
                 self.traverse(codenode[0])
                 self.emitkln(';')
+            elif codenode['name'] == 'expect':
+                self.emit('tamsin_expect(scanner, ')
+                self.traverse(codenode[0])
+                self.emitkln(');')
             else:
                 raise NotImplementedError(repr(codenode))
         elif isinstance(codenode, AtomNode):
@@ -210,6 +238,28 @@ class Emitter(object):
                 self.emitln('result = term_concat(result, term_flatten(i%d));' % i)
                 self.emitln('result = term_concat(result, term_new_atom_from_cstring(", "));')
             self.emitln("ok = 0;")
+        elif isinstance(codenode, DeclState):
+            for local in []:  # self.current_branch.locals_:
+                self.emitln("const struct term *save_%s;" % local)
+            self.emitln("int position;")
+            self.emitln("int reset_position;")
+            self.emitln("const char *buffer;")
+            self.emitln("int buffer_size;")
+            self.emitln("")
+        elif isinstance(codenode, SaveState):
+            for local in []:  # self.current_branch.locals_:
+                self.emitln("save_%s = %s;" % (local, local))
+            self.emitln("position = scanner->position;")
+            self.emitln("reset_position = scanner->reset_position;")
+            self.emitln("buffer = scanner->buffer;")
+            self.emitln("buffer_size = scanner->size;")
+        elif isinstance(codenode, RestoreState):
+            self.emitln("scanner->position = position;")
+            self.emitln("scanner->reset_position = reset_position;")
+            self.emitln("scanner->buffer = buffer;")
+            self.emitln("scanner->size = buffer_size;")
+            for local in []:  # self.current_branch.locals_:
+                self.emitln("%s = save_%s;" % (local, local))
         else:
             raise NotImplementedError(repr(codenode))
 
