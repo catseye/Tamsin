@@ -15,6 +15,7 @@ from tamsin.codegen import (
 from tamsin.term import Atom, Constructor, Variable
 import tamsin.sysmod
 
+
 PRELUDE = r'''
 /*
  * Generated code!  Edit at your own risk!
@@ -31,6 +32,7 @@ struct scanner * scanner;
 
 int ok;
 const struct term *result;
+
 '''
 
 POSTLUDE = r'''
@@ -120,7 +122,31 @@ class Emitter(object):
         self.outfile.write(POSTLUDE)
 
     def traverse(self, codenode):
-        self.outfile.write(repr(self.codenode))
+        if isinstance(codenode, Program):
+            for arg in codenode.args:
+                self.traverse(arg)
+        elif isinstance(codenode, Prototype):
+            self.emit("void prod_%s_%s(%s);" % (
+                codenode['module'].name, codenode['prod'].name,
+                ', '.join(["const struct term *"
+                           for f in codenode['formals']])
+            ))
+        elif isinstance(codenode, Subroutine):
+            fmls = []
+            for (i, f) in enumerate(codenode['formals']):
+                fmls.append("const struct term *i%s" % i)
+            fmls = ', '.join(fmls)
+
+            self.emit("void prod_%s_%s(%s) {" %
+                (codenode['module'].name, codenode['prod'].name, fmls)
+            )
+            self.indent()
+            for arg in codenode.args:
+                self.emit("/* %r */" % arg)
+            self.outdent()
+            self.emit("}")
+        else:
+            raise NotImplementedError(repr(codenode))
 
 
 def escaped(s):

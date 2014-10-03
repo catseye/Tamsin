@@ -16,11 +16,16 @@ class CodeNode(object):
     def append(self, item):
         self.args.append(item)
 
+    def __getitem__(self, key):
+        if key in self.kwargs:
+            return self.kwargs[key]
+        return self.args[key]
+
     def __repr__(self):
         return "%s(%s, %s)" % (
             self.__class__.__name__,
-            ', '.join([repr(a) for a in self.args]),
-            ', '.join('%s=%r' % (key, self.kwargs[key]) for key in self.kwargs)
+            ', '.join([repr(a) for a in self.args]) if self.args else '',
+            ', '.join('%s=%r' % (key, self.kwargs[key]) for key in self.kwargs) if self.kwargs else ''
         )
 
 
@@ -121,7 +126,7 @@ class CodeGen(object):
         return program
 
     def gen_subroutine(self, module, prod, formals):
-        s = Subroutine(formals)
+        s = Subroutine(module=module, prod=prod, formals=formals)
         s.append(self.gen_unifier(prod, prod.branches[0]))  # becoming so wrong
         s.append(self.gen_branches(module, prod, prod.branches))            
         return s
