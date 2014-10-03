@@ -243,16 +243,10 @@ class Send(AST):
         self.pattern = pattern
 
     def __repr__(self):
-        return u"Send(%r, %r)" % (
-            self.rule,
-            self.pattern
-        )
+        return u"Send(%r, %r)" % (self.rule, self.pattern)
 
     def __str__(self):
-        return "send(%s, %s)" % (
-            self.rule,
-            self.pattern
-        )
+        return "send(%s, %s)" % (self.rule, self.pattern)
 
 
 class Set(AST):

@@ -157,12 +157,9 @@ class CodeGen(object):
 
         return Unifier(prod.all_pattern_variables)
 
-    def gen_no_match(self, module, prod, formals):
-        return NoMatch(module, prod, formals)
-
     def gen_branches(self, module, prod, branches):
         if not branches:
-            return Return(NoMatch(module, prod))
+            return NoMatch(module=module, prod=prod, formals=[])
         branch = branches[0]
         branches = branches[1:]
         test = Truth()

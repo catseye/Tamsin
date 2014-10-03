@@ -165,7 +165,7 @@ class Compiler(object):
                 self.current_branch = branch
                 self.compile_r(branch)
                 self.current_branch = None
-            
+
             self.emit('result = term_new_atom_from_cstring'
                       '("No \'%s\' production matched arguments ");' %
                       self.current_prod.name)

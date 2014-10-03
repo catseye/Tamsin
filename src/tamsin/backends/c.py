@@ -15,6 +15,7 @@ from tamsin.codegen import (
     GetVar, SetVar, Unifier, PatternMatch,
     DeclState, SaveState, RestoreState,
 )
+from tamsin.ast import AtomNode   # bah
 from tamsin.term import Atom, Constructor, Variable
 import tamsin.sysmod
 
@@ -116,8 +117,19 @@ class Emitter(object):
         self.indent_ -= 1
 
     def emit(self, *args):
+        s = "    " * self.indent_ + ''.join(args)
+        self.outfile.write(s)
+
+    def emitln(self, *args):
         s = "    " * self.indent_ + ''.join(args) + "\n"
         self.outfile.write(s)
+
+    # kontinue the line
+    def emitk(self, *args):
+        self.outfile.write(''.join(args))
+
+    def emitkln(self, *args):
+        self.outfile.write(''.join(args) + "\n")
 
     def go(self):
         self.outfile.write(PRELUDE)
@@ -129,7 +141,7 @@ class Emitter(object):
             for arg in codenode.args:
                 self.traverse(arg)
         elif isinstance(codenode, Prototype):
-            self.emit("void prod_%s_%s(%s);" % (
+            self.emitln("void prod_%s_%s(%s);" % (
                 codenode['module'].name, codenode['prod'].name,
                 ', '.join(["const struct term *"
                            for f in codenode['formals']])
@@ -140,40 +152,64 @@ class Emitter(object):
                 fmls.append("const struct term *i%s" % i)
             fmls = ', '.join(fmls)
 
-            self.emit("void prod_%s_%s(%s) {" %
+            self.emitln("void prod_%s_%s(%s) {" %
                 (codenode['module'].name, codenode['prod'].name, fmls)
             )
             self.indent()
             for arg in codenode.args:
                 self.traverse(arg)  
             self.outdent()
-            self.emit("}")
+            self.emitln("}")
         elif isinstance(codenode, Unifier):
-            self.emit("/* %r */" % codenode)
+            self.emitln("/* %r */" % codenode)
         elif isinstance(codenode, If):
             self.emit("if (")
             self.traverse(codenode[0])
-            self.emit(") {")
+            self.emitkln(") {")
+            self.indent()
             self.traverse(codenode[1])
-            self.emit("} else {")
+            self.outdent()
+            self.emitln("} else {")
+            self.indent()
             self.traverse(codenode[2])
-            self.emit("}")
+            self.outdent()
+            self.emitln("}")
         elif isinstance(codenode, Not):
-            self.emit("(!(")
+            self.emitk("(!(")
             self.traverse(codenode[0])
-            self.emit("))")
+            self.emitk("))")
         elif isinstance(codenode, Truth):
-            self.emit("1")
+            self.emitk("1")
         elif isinstance(codenode, Block):
             for arg in codenode.args:
                 self.traverse(arg)
         elif isinstance(codenode, Builtin):
-            self.emit("/* %r */" % codenode)
+            self.emitln("/* %r */" % codenode)
+            if codenode['name'] == 'print':
+                self.emit("result = ")
+                self.traverse(codenode[0])
+                self.emitkln(';')
+                self.emitln("term_fput(result, stdout);")
+                self.emitln(r'fwrite("\n", 1, 1, stdout);')
+                self.emitln("ok = 1;")
+            elif codenode['name'] == 'return':
+                self.emit("result = ")
+                self.traverse(codenode[0])
+                self.emitkln(';')
+            else:
+                raise NotImplementedError(repr(codenode))
+        elif isinstance(codenode, AtomNode):
+            self.emitk('term_new_atom_from_cstring("%s")' % codenode.text)
         elif isinstance(codenode, Return):
-            self.emit("return ")
-            self.traverse(codenode[0])
+            self.emitln("return;")
         elif isinstance(codenode, NoMatch):
-            self.emit("/* %r */" % codenode)
+            self.emitln('result = term_new_atom_from_cstring'
+                      '("No \'%s\' production matched arguments ");' %
+                      codenode['prod'].name)
+            for i in xrange(0, len(codenode['formals'])):
+                self.emitln('result = term_concat(result, term_flatten(i%d));' % i)
+                self.emitln('result = term_concat(result, term_new_atom_from_cstring(", "));')
+            self.emitln("ok = 0;")
         else:
             raise NotImplementedError(repr(codenode))
 
