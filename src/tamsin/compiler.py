@@ -6,6 +6,8 @@
 # Generates a C-language program which, when linked with -ltamsin, has
 # the same (we hope) behaviour as interpreting the input Tamsin program.
 
+# Will be DEPRECATED by tamsin.codegen and tamsin.backends.c soon, hopefully.
+
 from tamsin.ast import (
     Production, ProdBranch,
     And, Or, Not, While, Call, Send, Set, Concat, Using, On, Prodref,

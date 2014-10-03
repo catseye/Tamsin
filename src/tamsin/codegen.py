@@ -8,6 +8,10 @@ from tamsin.term import Atom, Constructor, Variable
 import tamsin.sysmod
 
 
+# TODO: is this module responsible for allocating names, or is the backend?
+# I think it should probably be this module.
+
+
 class CodeNode(object):
     def __init__(self, *args, **kwargs):
         self.args = list(args)
@@ -45,14 +49,6 @@ class Block(CodeNode):
     pass
 
 
-class GetVar(CodeNode):
-    pass
-
-
-class Unifier(CodeNode):
-    pass
-
-
 class If(CodeNode):
     pass
 
@@ -62,6 +58,18 @@ class And(CodeNode):
 
 
 class Not(CodeNode):
+    pass
+
+
+class GetVar(CodeNode):
+    pass
+
+
+class SetVar(CodeNode):
+    pass
+
+
+class Unifier(CodeNode):
     pass
 
 
@@ -97,8 +105,11 @@ class NoMatch(CodeNode):
     pass
 
 
-class SetVar(CodeNode):
+class Truth(CodeNode):
     pass
+
+
+## === ##
 
 
 class CodeGen(object):
@@ -152,13 +163,18 @@ class CodeGen(object):
     def gen_branches(self, module, prod, branches):
         if not branches:
             return Return(NoMatch(module, prod))
-        test = Not()
-        #for fml_num in xrange(0, len(branch.formals)):
-        #    self.emit("    term_match_unifier(%s, i%s, unifier) &&" %
-        #        (pat_names[fml_num], fml_num)
-        #    )
         branch = branches[0]
         branches = branches[1:]
+        test = Truth()
+        for fml_num in xrange(0, len(branch.formals)):
+            p = PatternMatch()
+            #    self.emit("    term_match_unifier(%s, i%s, unifier) &&" %
+            #        (pat_names[fml_num], fml_num)
+            #    )
+            if not test:
+                test = p
+            else:
+                test = And(test, p)
         return If(test,
             self.gen_branch(module, prod, branch),
             self.gen_branches(module, prod, branches)

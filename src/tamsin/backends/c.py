@@ -10,7 +10,10 @@ with -ltamsin.
 """
 
 from tamsin.codegen import (
-    CodeNode, Program, Prototype, Subroutine, Block, GetVar, Unifier, If
+    CodeNode, Program, Prototype, Subroutine,
+    Block, If, And, Not, Return, Builtin, Call, NoMatch, Truth,
+    GetVar, SetVar, Unifier, PatternMatch,
+    DeclState, SaveState, RestoreState,
 )
 from tamsin.term import Atom, Constructor, Variable
 import tamsin.sysmod
@@ -142,9 +145,35 @@ class Emitter(object):
             )
             self.indent()
             for arg in codenode.args:
-                self.emit("/* %r */" % arg)
+                self.traverse(arg)  
             self.outdent()
             self.emit("}")
+        elif isinstance(codenode, Unifier):
+            self.emit("/* %r */" % codenode)
+        elif isinstance(codenode, If):
+            self.emit("if (")
+            self.traverse(codenode[0])
+            self.emit(") {")
+            self.traverse(codenode[1])
+            self.emit("} else {")
+            self.traverse(codenode[2])
+            self.emit("}")
+        elif isinstance(codenode, Not):
+            self.emit("(!(")
+            self.traverse(codenode[0])
+            self.emit("))")
+        elif isinstance(codenode, Truth):
+            self.emit("1")
+        elif isinstance(codenode, Block):
+            for arg in codenode.args:
+                self.traverse(arg)
+        elif isinstance(codenode, Builtin):
+            self.emit("/* %r */" % codenode)
+        elif isinstance(codenode, Return):
+            self.emit("return ")
+            self.traverse(codenode[0])
+        elif isinstance(codenode, NoMatch):
+            self.emit("/* %r */" % codenode)
         else:
             raise NotImplementedError(repr(codenode))
 
