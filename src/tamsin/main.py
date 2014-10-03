@@ -17,7 +17,9 @@ from tamsin.parser import Parser
 from tamsin.interpreter import Interpreter
 from tamsin.desugarer import Desugarer
 from tamsin.analyzer import Analyzer
-from tamsin.compiler import Compiler
+from tamsin.compiler import Compiler  # to be replaced by...
+from tamsin.codegen import CodeGen
+from tamsin.backends.c import Emitter
 
 
 def parse(filename):
@@ -101,10 +103,10 @@ def main(args, tamsin_dir='.'):
         compiler.compile()
     elif args[0] == 'codegen':
         ast = parse_and_check_args(args[1:])
-        from tamsin.codegen import CodeGen
         generator = CodeGen(ast)
         result = generator.generate()
-        print result
+        emitter = Emitter(result, sys.stdout)
+        emitter.go()        
     elif args[0] == 'doublecompile':
         # http://www.youtube.com/watch?v=6WxJECOFg8w
         ast = parse_and_check_args(args[1:])
