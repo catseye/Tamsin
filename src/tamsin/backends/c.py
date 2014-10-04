@@ -188,6 +188,14 @@ class Emitter(object):
             self.emitk("(!(")
             self.traverse(codenode[0])
             self.emitk("))")
+        elif isinstance(codenode, And):
+            self.emitk("(")
+            self.traverse(codenode[0])
+            self.emitk(" && ")
+            self.traverse(codenode[1])
+            self.emitk(")")
+        elif isinstance(codenode, PatternMatch):
+            self.emitk("PATTERNMATCH")
         elif isinstance(codenode, Truth):
             self.emitk("1")
         elif isinstance(codenode, Falsity):

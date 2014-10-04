@@ -9,9 +9,10 @@ from tamsin.codenode import (
     CodeNode, Program, Prototype, Subroutine,
     Block, If, While, And, Not, Return, Builtin, Call, Truth, Falsity,
     DeclareLocal, GetVar, SetVar, Concat, VariableRef,
-    Unifier, PatternMatch, NoMatch,
+    Unifier, PatternMatch, NoMatch, GetMatchedVar,
     DeclState, SaveState, RestoreState,
     MkAtom, MkConstructor,
+    ScannerPushEngine, ScannerPopEngine,
 )
 from tamsin.term import Atom, Constructor, Variable
 import tamsin.sysmod
@@ -147,7 +148,7 @@ class CodeGen(object):
             else:
                 c = Call(module=prodmod, name=name)
                 for a in args:
-                    c.append(self.get_ast(a))
+                    c.append(self.gen_ast(a))
             return c
         elif isinstance(ast, ack.Send):
             return Block(

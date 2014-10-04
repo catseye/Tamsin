@@ -169,3 +169,14 @@ class MkConstructor(CodeNode):
         return "MkConstructor(%r, %r)" % (
             self.text, self.children
         )
+
+class ScannerPushEngine(CodeNode):
+    pass
+
+
+class ScannerPopEngine(CodeNode):
+    pass
+
+
+class GetMatchedVar(CodeNode):
+    pass
