@@ -23,6 +23,12 @@ import tamsin.sysmod
 class CodeGen(object):
     def __init__(self, program):
         self.program = program
+        self.name_index = 0
+
+    def new_name(self):
+        name = "temp%s" % self.name_index
+        self.name_index += 1
+        return name
 
     def generate(self):
         main = self.program.find_production(ack.Prodref('main', 'main'))

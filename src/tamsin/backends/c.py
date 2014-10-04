@@ -16,7 +16,7 @@ from tamsin.codenode import (
     Unifier, PatternMatch, NoMatch,
     DeclState, SaveState, RestoreState,
 )
-from tamsin.ast import AtomNode, VariableNode   # bah
+from tamsin.ast import AtomNode, VariableNode, PatternVariableNode, ConstructorNode   # bah
 from tamsin.term import Atom, Constructor, Variable
 import tamsin.sysmod
 
@@ -104,12 +104,6 @@ class Emitter(object):
         self.current_prod = None
         self.current_branch = None
         self.currmod = None
-        self.name_index = 0
-
-    def new_name(self):
-        name = "temp%s" % self.name_index
-        self.name_index += 1
-        return name
 
     def indent(self):
         self.indent_ += 1
@@ -248,6 +242,19 @@ class Emitter(object):
             self.emitk('term_new_atom_from_cstring("%s")' % codenode.text)
         elif isinstance(codenode, VariableNode):
             self.emitk(codenode.name)
+        elif isinstance(codenode, PatternVariableNode):
+            self.emitk(codenode.name)
+        elif isinstance(codenode, ConstructorNode):
+            #self.emitk(codenode.text)  # FIXME
+            termlist_name = self.new_name()
+            self.emitln('struct termlist *%s = NULL;' % termlist_name);
+            #for c in reversed(codenode.contents):
+            #    subname = self.compile_r(c)
+            #    self.emit('termlist_add_term(&%s, %s);' % (termlist_name, subname))
+            name = self.new_name()
+            self.emitln('const struct term *%s = term_new_constructor("%s", %s, %s);' %
+                (name, escaped(codenode.text), len(codenode.text), termlist_name)
+            )
         elif isinstance(codenode, Return):
             self.emitln("return;")
         elif isinstance(codenode, NoMatch):
