@@ -4,7 +4,7 @@
 # Distributed under a BSD-style license; see LICENSE for more information.
 
 from tamsin import ast as ack
-from tamsin.ast import AtomNode
+from tamsin.ast import AtomNode, VariableNode
 from tamsin.term import Atom, Constructor, Variable
 import tamsin.sysmod
 
@@ -75,6 +75,10 @@ class GetVar(CodeNode):
 
 
 class SetVar(CodeNode):
+    pass
+
+
+class Concat(CodeNode):
     pass
 
 
@@ -246,20 +250,15 @@ class CodeGen(object):
                 self.gen_ast(ast.rule),
                 # EMIT PATTERN ... which means generalizing the crap that is
                 # currently in the ProdBranch case up there, way up there ^^^
-                SetVar(ast.pattern, 'result')
+                SetVar(ast.pattern, GetVar('result'))
             )
         elif isinstance(ast, ack.Set):
-            self.emit("/* %r */" % ast)
-            name = self.compile_r(ast.texpr)
-            lname = self.emit_lvalue(ast.variable)
-            self.emit("%s = %s;" % (lname, name))
-            self.emit("result = %s;" % name)
-            self.emit("ok = 1;")
+            return SetVar(ast.variable, self.gen_ast(ast.texpr))
         elif isinstance(ast, ack.While):
             return Block(
                 DeclareLocal('srname', AtomNode('nil')),
                 DeclState(),
-                SetVar('ok', '1'),
+                SetVar(VariableNode('ok'), Truth()),
                 While(GetVar('ok'),
                     Block(
                         SaveState(),
@@ -270,8 +269,8 @@ class CodeGen(object):
                     )
                 ),
                 RestoreState(),
-                SetVar('result', 'srname'),
-                SetVar('ok', '1')
+                SetVar(VariableNode('result'), GetVar('srname')),
+                SetVar(VariableNode('ok'), Truth())
             )
         elif isinstance(ast, ack.Not):
             return Block(
@@ -310,13 +309,10 @@ class CodeGen(object):
                 RestoreState()
             )
         elif isinstance(ast, ack.Concat):
-            name_lhs = self.compile_r(ast.lhs);
-            name_rhs = self.compile_r(ast.rhs);
+            name_lhs = self.gen_ast(ast.lhs)
+            name_rhs = self.gen_ast(ast.rhs)
             name = self.new_name()
-            self.emit('const struct term *%s = term_concat(term_flatten(%s), term_flatten(%s));' %
-                (name, name_lhs, name_rhs)
-            )
-            return name
+            return Concat(name_lhs, name_rhs)
         elif isinstance(ast, ack.TermNode):
             return ast
         else:

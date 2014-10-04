@@ -12,11 +12,11 @@ with -ltamsin.
 from tamsin.codegen import (
     CodeNode, Program, Prototype, Subroutine,
     Block, If, While, And, Not, Return, Builtin, Call, Truth,
-    DeclareLocal, GetVar, SetVar,
+    DeclareLocal, GetVar, SetVar, Concat,
     Unifier, PatternMatch, NoMatch,
     DeclState, SaveState, RestoreState,
 )
-from tamsin.ast import AtomNode   # bah
+from tamsin.ast import AtomNode, VariableNode   # bah
 from tamsin.term import Atom, Constructor, Variable
 import tamsin.sysmod
 
@@ -194,8 +194,10 @@ class Emitter(object):
             for arg in codenode.args:
                 self.traverse(arg)
         elif isinstance(codenode, DeclareLocal):
-            self.emit("const struct term *%s = " % codenode[0])
-            self.traverse(codenode[1])
+            self.emit("const struct term *%s" % codenode[0])
+            if len(codenode.args) == 2:
+                self.emitk(' = ');
+                self.traverse(codenode[1])
             self.emitkln(';')
         elif isinstance(codenode, Call):
             self.emitln("prod_%s_%s(%s);" %
@@ -204,10 +206,24 @@ class Emitter(object):
         elif isinstance(codenode, GetVar):
             self.emitk(codenode[0])
         elif isinstance(codenode, SetVar):
-            self.emit(codenode[0])
+            self.emit('')
+            self.traverse(codenode[0])
             self.emitk(' = ')
-            self.emitk(codenode[1])
+            self.traverse(codenode[1])
             self.emitkln(';')
+
+            #name = self.compile_r(ast.texpr)
+            #lname = self.emit_lvalue(ast.variable)
+            #self.emit("%s = %s;" % (lname, name))
+            self.emitln("result = %s;" % codenode[0].name)
+            self.emitln("ok = 1;")
+
+        elif isinstance(codenode, Concat):
+            self.emit('const struct term *%s = term_concat(term_flatten(', codenode['name'])
+            self.traverse(codenode[0])
+            self.emitk('), term_flatten(')
+            self.traverse(codenode[1])
+            self.emitkln('));')
         elif isinstance(codenode, Builtin):
             if codenode['name'] == 'print':
                 self.emit("result = ")
@@ -224,10 +240,14 @@ class Emitter(object):
                 self.emit('tamsin_expect(scanner, ')
                 self.traverse(codenode[0])
                 self.emitkln(');')
+            elif codenode['name'] == 'any':
+                self.emitln('tamsin_any(scanner);')
             else:
                 raise NotImplementedError(repr(codenode))
         elif isinstance(codenode, AtomNode):
             self.emitk('term_new_atom_from_cstring("%s")' % codenode.text)
+        elif isinstance(codenode, VariableNode):
+            self.emitk(codenode.name)
         elif isinstance(codenode, Return):
             self.emitln("return;")
         elif isinstance(codenode, NoMatch):
