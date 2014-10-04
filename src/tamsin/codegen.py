@@ -7,10 +7,11 @@ from tamsin import ast as ack
 from tamsin.ast import AtomNode, VariableNode
 from tamsin.codenode import (
     CodeNode, Program, Prototype, Subroutine,
-    Block, If, While, And, Not, Return, Builtin, Call, Truth,
-    DeclareLocal, GetVar, SetVar, Concat,
+    Block, If, While, And, Not, Return, Builtin, Call, Truth, Falsity,
+    DeclareLocal, GetVar, SetVar, Concat, VariableRef,
     Unifier, PatternMatch, NoMatch,
     DeclState, SaveState, RestoreState,
+    MkAtom, MkConstructor,
 )
 from tamsin.term import Atom, Constructor, Variable
 import tamsin.sysmod
@@ -157,21 +158,21 @@ class CodeGen(object):
             return SetVar(ast.variable, self.gen_ast(ast.texpr))
         elif isinstance(ast, ack.While):
             return Block(
-                DeclareLocal('srname', AtomNode('nil')),
+                DeclareLocal('srname', MkAtom('nil')),
                 DeclState(),
-                SetVar(VariableNode('ok'), Truth()),
+                SetVar(VariableRef('ok'), Truth()),
                 While(GetVar('ok'),
                     Block(
                         SaveState(),
                         self.gen_ast(ast.rule),
                         If(GetVar('ok'),
-                            SetVar(VariableNode('srname'), GetVar('result'))
+                            SetVar(VariableRef('srname'), GetVar('result'))
                         )
                     )
                 ),
                 RestoreState(),
-                SetVar(VariableNode('result'), GetVar('srname')),
-                SetVar(VariableNode('ok'), Truth())
+                SetVar(VariableRef('result'), GetVar('srname')),
+                SetVar(VariableRef('ok'), Truth())
             )
         elif isinstance(ast, ack.Not):
             return Block(
@@ -214,8 +215,14 @@ class CodeGen(object):
             name_rhs = self.gen_ast(ast.rhs)
             name = self.new_name()
             return Concat(name_lhs, name_rhs)
-        elif isinstance(ast, ack.TermNode):
-            return ast
+        elif isinstance(ast, ack.AtomNode):
+            return MkAtom(ast.text)
+        elif isinstance(ast, ack.VariableNode):
+            return VariableRef(ast.name)
+        elif isinstance(ast, ack.PatternVariableNode):
+            return VariableRef(ast.name)
+        elif isinstance(ast, ack.ConstructorNode):
+            return MkConstructor(ast.text)
         else:
             raise NotImplementedError(repr(ast))
 

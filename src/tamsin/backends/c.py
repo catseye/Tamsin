@@ -11,12 +11,13 @@ with -ltamsin.
 
 from tamsin.codenode import (
     CodeNode, Program, Prototype, Subroutine,
-    Block, If, While, And, Not, Return, Builtin, Call, Truth,
-    DeclareLocal, GetVar, SetVar, Concat,
+    Block, If, While, And, Not, Return, Builtin, Call, Truth, Falsity,
+    DeclareLocal, GetVar, SetVar, Concat, VariableRef,
     Unifier, PatternMatch, NoMatch,
     DeclState, SaveState, RestoreState,
+    MkAtom, MkConstructor,
 )
-from tamsin.ast import AtomNode, VariableNode, PatternVariableNode, ConstructorNode   # bah
+from tamsin.ast import VariableNode, PatternVariableNode   # bah
 from tamsin.term import Atom, Constructor, Variable
 import tamsin.sysmod
 
@@ -184,6 +185,8 @@ class Emitter(object):
             self.emitk("))")
         elif isinstance(codenode, Truth):
             self.emitk("1")
+        elif isinstance(codenode, Falsity):
+            self.emitk("0")
         elif isinstance(codenode, Block):
             for arg in codenode.args:
                 self.traverse(arg)
@@ -209,7 +212,7 @@ class Emitter(object):
             #name = self.compile_r(ast.texpr)
             #lname = self.emit_lvalue(ast.variable)
             #self.emit("%s = %s;" % (lname, name))
-            self.emitln("result = %s;" % codenode[0].name)
+            self.emitln("result = %s;" % codenode[0][0])
             self.emitln("ok = 1;")
 
         elif isinstance(codenode, Concat):
@@ -238,13 +241,11 @@ class Emitter(object):
                 self.emitln('tamsin_any(scanner);')
             else:
                 raise NotImplementedError(repr(codenode))
-        elif isinstance(codenode, AtomNode):
-            self.emitk('term_new_atom_from_cstring("%s")' % codenode.text)
-        elif isinstance(codenode, VariableNode):
-            self.emitk(codenode.name)
-        elif isinstance(codenode, PatternVariableNode):
-            self.emitk(codenode.name)
-        elif isinstance(codenode, ConstructorNode):
+        elif isinstance(codenode, MkAtom):
+            self.emitk('term_new_atom_from_cstring("%s")' % codenode[0])
+        elif isinstance(codenode, VariableRef):
+            self.emitk(codenode[0])
+        elif isinstance(codenode, MkConstructor):
             #self.emitk(codenode.text)  # FIXME
             termlist_name = self.new_name()
             self.emitln('struct termlist *%s = NULL;' % termlist_name);

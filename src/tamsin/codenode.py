@@ -116,3 +116,19 @@ class NoMatch(CodeNode):
 
 class Truth(CodeNode):
     pass
+
+
+class Falsity(CodeNode):
+    pass
+
+
+class VariableRef(CodeNode):
+    pass
+
+
+class MkAtom(CodeNode):
+    pass
+
+
+class MkConstructor(CodeNode):
+    pass
