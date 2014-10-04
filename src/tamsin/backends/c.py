@@ -105,6 +105,12 @@ class Emitter(object):
         self.current_prod = None
         self.current_branch = None
         self.currmod = None
+        self.name_index = 0
+
+    def new_name(self):
+        name = "temp%s" % self.name_index
+        self.name_index += 1
+        return name
 
     def indent(self):
         self.indent_ += 1
@@ -144,16 +150,16 @@ class Emitter(object):
             ))
         elif isinstance(codenode, Subroutine):
             fmls = []
-            for (i, f) in enumerate(codenode['formals']):
+            for (i, f) in enumerate(codenode.formals):
                 fmls.append("const struct term *i%s" % i)
             fmls = ', '.join(fmls)
 
             self.emitln("void prod_%s_%s(%s) {" %
-                (codenode['module'].name, codenode['prod'].name, fmls)
+                (codenode.module.name, codenode.prod.name, fmls)
             )
             self.indent()
-            for arg in codenode.args:
-                self.traverse(arg)  
+            for children in codenode.children:
+                self.traverse(children)  
             self.outdent()
             self.emitln("}")
         elif isinstance(codenode, Unifier):
@@ -203,6 +209,7 @@ class Emitter(object):
         elif isinstance(codenode, GetVar):
             self.emitk(codenode.name)
         elif isinstance(codenode, SetVar):
+            self.emitln("/* %r */" % codenode)
             self.emit('')
             self.traverse(codenode[0])
             self.emitk(' = ')

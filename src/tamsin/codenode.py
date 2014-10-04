@@ -37,7 +37,16 @@ class Prototype(CodeNode):
 
 class Subroutine(CodeNode):
     """Represents a subroutine in a target program."""
-    pass
+    def __init__(self, module, prod, formals, children):
+        self.module = module
+        self.prod = prod
+        self.formals = formals
+        self.children = children
+
+    def __repr__(self):
+        return "Subroutine(%r, %r, %r, %r)" % (
+            self.module, self.prod, self.formals, self.children
+        )
 
 
 class Block(CodeNode):
@@ -68,6 +77,9 @@ class GetVar(CodeNode):
     """name is the name of the target-language variable."""
     def __init__(self, name):
         self.name = name
+
+    def __repr__(self):
+        return "GetVar(%r)" % (self.name)
 
 
 class SetVar(CodeNode):
@@ -131,4 +143,12 @@ class MkAtom(CodeNode):
 
 
 class MkConstructor(CodeNode):
-    pass
+    """Represents some code in the target program to make a constructor."""
+    def __init__(self, text, children):
+        self.text = text
+        self.children = children
+
+    def __repr__(self):
+        return "MkConstructor(%r, %r)" % (
+            self.text, self.children
+        )

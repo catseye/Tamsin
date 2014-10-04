@@ -19,6 +19,7 @@ import tamsin.sysmod
 
 # TODO: is this module responsible for allocating names, or is the backend?
 # I think it should probably be this module.
+# On the other hand, backend needs to be able to generate temporaries, too.
 
 
 class CodeGen(object):
@@ -27,7 +28,7 @@ class CodeGen(object):
         self.name_index = 0
 
     def new_name(self):
-        name = "temp%s" % self.name_index
+        name = "var%s" % self.name_index
         self.name_index += 1
         return name
 
@@ -52,9 +53,10 @@ class CodeGen(object):
         return program
 
     def gen_subroutine(self, module, prod, formals):
-        s = Subroutine(module=module, prod=prod, formals=formals)
-        s.append(self.gen_unifier(prod, prod.branches[0]))  # becoming so wrong
-        s.append(self.gen_branches(module, prod, prod.branches))            
+        children = []
+        s = Subroutine(module, prod, formals, children)
+        children.append(self.gen_unifier(prod, prod.branches[0]))  # becoming so wrong
+        children.append(self.gen_branches(module, prod, prod.branches))            
         return s
 
     def gen_unifier(self, prod, branch):
@@ -152,7 +154,7 @@ class CodeGen(object):
                 self.gen_ast(ast.rule),
                 # EMIT PATTERN ... which means generalizing the crap that is
                 # currently in the ProdBranch case up there, way up there ^^^
-                SetVar(ast.pattern, GetVar('result'))
+                SetVar(self.gen_ast(ast.pattern), GetVar('result'))
             )
         elif isinstance(ast, ack.Set):
             return SetVar(ast.variable, self.gen_ast(ast.texpr))
@@ -182,11 +184,11 @@ class CodeGen(object):
                 RestoreState(),
                 If(GetVar('ok'),
                     Block(
-                        SetVar('ok', '0'),
-                        self.emit(r'result = term_new_atom_from_cstring("expected anything else");')
+                        SetVar(VariableRef('ok'), Falsity()),
+                        SetVar(VariableRef('result'), MkAtom("expected anything else"))
                     ), Block(
-                        SetVar('ok', '1'),
-                        self.emit(r'result = term_new_atom_from_cstring("nil");')
+                        SetVar(VariableRef('ok'), Truth()),
+                        SetVar(VariableRef('result'), MkAtom("nil"))
                     )
                 )
             )
@@ -222,18 +224,6 @@ class CodeGen(object):
         elif isinstance(ast, ack.PatternVariableNode):
             return VariableRef(ast.name)
         elif isinstance(ast, ack.ConstructorNode):
-            return MkConstructor(ast.text)
-        else:
-            raise NotImplementedError(repr(ast))
-
-    def new_name(self):
-        return 'foo'
-
-    def emit_lvalue(self, ast):
-        """Does not actually emit anything.  (Yet.)"""
-        if isinstance(ast, TermNode):
-            return self.emit_lvalue(ast.to_term())
-        elif isinstance(ast, Variable):
-            return ast.name
+            return MkConstructor(ast.text, [])
         else:
             raise NotImplementedError(repr(ast))
