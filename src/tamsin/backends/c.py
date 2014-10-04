@@ -9,7 +9,7 @@ with -ltamsin.
 
 """
 
-from tamsin.codegen import (
+from tamsin.codenode import (
     CodeNode, Program, Prototype, Subroutine,
     Block, If, While, And, Not, Return, Builtin, Call, Truth,
     DeclareLocal, GetVar, SetVar, Concat,
