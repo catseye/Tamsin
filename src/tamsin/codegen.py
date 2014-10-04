@@ -159,7 +159,7 @@ class CodeGen(object):
                         SaveState(),
                         self.gen_ast(ast.rule),
                         If(GetVar('ok'),
-                            SetVar('srname', 'result')
+                            SetVar(VariableNode('srname'), GetVar('result'))
                         )
                     )
                 ),

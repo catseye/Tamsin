@@ -204,7 +204,7 @@ class Emitter(object):
                 (codenode['module'], codenode['name'], '')
             )
         elif isinstance(codenode, GetVar):
-            self.emitk(codenode[0])
+            self.emitk(codenode.name)
         elif isinstance(codenode, SetVar):
             self.emit('')
             self.traverse(codenode[0])

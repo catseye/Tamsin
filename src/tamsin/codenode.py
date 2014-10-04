@@ -18,22 +18,25 @@ class CodeNode(object):
         return self.args[key]
 
     def __repr__(self):
-        return "%s(%s, %s)" % (
+        return "%s(%s%s)" % (
             self.__class__.__name__,
-            ', '.join([repr(a) for a in self.args]) if self.args else '',
+            (', '.join([repr(a) for a in self.args]) + ', ') if self.args else '',
             ', '.join('%s=%r' % (key, self.kwargs[key]) for key in self.kwargs) if self.kwargs else ''
         )
 
 
 class Program(CodeNode):
+    """Represents a target program."""
     pass
 
 
 class Prototype(CodeNode):
+    """Represents a prototype for a subroutine in a target program."""
     pass
 
 
 class Subroutine(CodeNode):
+    """Represents a subroutine in a target program."""
     pass
 
 
@@ -62,7 +65,9 @@ class DeclareLocal(CodeNode):
 
 
 class GetVar(CodeNode):
-    pass
+    """name is the name of the target-language variable."""
+    def __init__(self, name):
+        self.name = name
 
 
 class SetVar(CodeNode):
