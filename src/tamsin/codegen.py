@@ -157,7 +157,7 @@ class CodeGen(object):
                 SetVar(self.gen_ast(ast.pattern), GetVar('result'))
             )
         elif isinstance(ast, ack.Set):
-            return SetVar(ast.variable, self.gen_ast(ast.texpr))
+            return SetVar(VariableRef(ast.variable.name), self.gen_ast(ast.texpr))
         elif isinstance(ast, ack.While):
             return Block(
                 DeclareLocal('srname', MkAtom('nil')),
@@ -213,10 +213,10 @@ class CodeGen(object):
                 RestoreState()
             )
         elif isinstance(ast, ack.Concat):
-            name_lhs = self.gen_ast(ast.lhs)
-            name_rhs = self.gen_ast(ast.rhs)
+            lhs = self.gen_ast(ast.lhs)
+            rhs = self.gen_ast(ast.rhs)
             name = self.new_name()
-            return Concat(name_lhs, name_rhs)
+            return Concat(name, lhs, rhs)
         elif isinstance(ast, ack.AtomNode):
             return MkAtom(ast.text)
         elif isinstance(ast, ack.VariableNode):

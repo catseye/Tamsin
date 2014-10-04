@@ -17,7 +17,6 @@ from tamsin.codenode import (
     DeclState, SaveState, RestoreState,
     MkAtom, MkConstructor,
 )
-from tamsin.ast import VariableNode, PatternVariableNode   # bah
 from tamsin.term import Atom, Constructor, Variable
 import tamsin.sysmod
 
@@ -211,22 +210,24 @@ class Emitter(object):
         elif isinstance(codenode, SetVar):
             self.emitln("/* %r */" % codenode)
             self.emit('')
-            self.traverse(codenode[0])
+            self.traverse(codenode.ref)
             self.emitk(' = ')
-            self.traverse(codenode[1])
+            self.traverse(codenode.expr)
             self.emitkln(';')
 
             #name = self.compile_r(ast.texpr)
             #lname = self.emit_lvalue(ast.variable)
             #self.emit("%s = %s;" % (lname, name))
-            self.emitln("result = %s;" % codenode[0][0])
+            self.emit("result = ")
+            self.traverse(codenode.ref)
+            self.emitkln(";")
             self.emitln("ok = 1;")
 
         elif isinstance(codenode, Concat):
-            self.emit('const struct term *%s = term_concat(term_flatten(', codenode['name'])
-            self.traverse(codenode[0])
+            self.emit('const struct term *%s = term_concat(term_flatten(', codenode.name)
+            self.traverse(codenode.lhs)
             self.emitk('), term_flatten(')
-            self.traverse(codenode[1])
+            self.traverse(codenode.rhs)
             self.emitkln('));')
         elif isinstance(codenode, Builtin):
             if codenode['name'] == 'print':

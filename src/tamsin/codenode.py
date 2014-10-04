@@ -4,6 +4,10 @@
 # Distributed under a BSD-style license; see LICENSE for more information.
 
 
+# TODO: some of these are definitely hierarchical, and some are definitely
+# not.  make the distinction.  make the latter more like 3-address-code.
+
+
 class CodeNode(object):
     def __init__(self, *args, **kwargs):
         self.args = list(args)
@@ -83,11 +87,24 @@ class GetVar(CodeNode):
 
 
 class SetVar(CodeNode):
-    pass
+    """ref is a VariableRef for the target-language variable.
+    expr is an expression."""
+    def __init__(self, ref, expr):
+        self.ref = ref
+        self.expr = expr
+
+    def __repr__(self):
+        return "SetVar(%r, %r)" % (self.ref, self.expr)
 
 
 class Concat(CodeNode):
-    pass
+    def __init__(self, name, lhs, rhs):
+        self.name = name
+        self.lhs = lhs
+        self.rhs = rhs
+
+    def __repr__(self):
+        return "Concat(%r, %r, %r)" % (self.name, self.lhs, self.rhs)
 
 
 class Unifier(CodeNode):
