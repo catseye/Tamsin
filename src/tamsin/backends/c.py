@@ -13,10 +13,11 @@ from tamsin.codenode import (
     CodeNode, Program, Prototype, Subroutine,
     Block, If, While, And, Not, Return, Builtin, Call, Truth, Falsity,
     DeclareLocal, GetVar, SetVar, Concat, VariableRef,
-    Unifier, PatternMatch, NoMatch,
+    Unifier, PatternMatch, NoMatch, GetMatchedVar,
     DeclState, SaveState, RestoreState,
     MkAtom, MkConstructor,
 )
+from tamsin.ast import PatternVariableNode
 from tamsin.term import Atom, Constructor, Variable
 import tamsin.sysmod
 
@@ -304,6 +305,12 @@ class Emitter(object):
             self.emitln("scanner->size = buffer_size;")
             for local in []:  # self.current_branch.locals_:
                 self.emitln("%s = save_%s;" % (local, local))
+        elif isinstance(codenode, GetMatchedVar):
+            ref = codenode[0]
+            assert isinstance(ref, PatternVariableNode)
+            self.emitln(
+                "const struct term *%s = unifier[%s];" % (ref.name, ref.index)
+            )
         else:
             raise NotImplementedError(repr(codenode))
 
