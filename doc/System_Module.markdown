@@ -122,7 +122,7 @@ is meant for debugging, `$:emit` does not append a newline, and is 8-bit-clean.
     = `wo
 
     -> Tests for functionality "Intepret Tamsin program (pre- & post-processed)"
-    
+
 `$:emit` is 8-bit-clean: if the atom contains unprintable characters,
 `$:emit` does not try to make them readable by UTF-8 or any other encoding.
 (`print` may or may not do this, depending on the implementation.)

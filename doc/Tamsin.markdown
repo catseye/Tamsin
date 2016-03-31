@@ -1343,7 +1343,7 @@ Here we test the `$:byte` scanner...
     ? expected 'abc' but found 'a'
 
     -> Tests for functionality "Intepret Tamsin program (pre- & post-processed)"
-    
+
 The byte scanner is 8-bit clean.  (The `0a` added to the output is the newline.)
 
     | main = (any & any & any) using $:byte.
