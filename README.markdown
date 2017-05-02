@@ -11,8 +11,8 @@ Its primary goal is to allow the rapid development of **parsers**,
 to be expressed *compactly*.  Golf your grammar!  (Or write it like a decent
 human being, if you must.)
 
-The current released version of Tamsin is 0.5; the development version is
-0.6-PRE.  As indicated by the 0.x version number, it is a **work in progress**,
+The current released version of Tamsin is 0.5-2017.0502.
+As indicated by the 0.x version number, it is a **work in progress**,
 with the usual caveat that things may change rapidly (and that version 0.6 might
 look completely different.)  See [HISTORY](https://github.com/catseye/Tamsin/blob/master/HISTORY.markdown)
 for a list of major changes.

@@ -1,8 +1,25 @@
 Tamsin Release History
 ======================
 
-0.6-PRE
--------
+0.5-2017.0502
+-------------
+
+This is an interim release, created because the tests pass here, even
+though not everything aimed for for the next release has been achieved.
+
+### language ###
+
+*   The RHS of → can be a pattern term.
+*   "Proper quoted" strings.
+
+### implementations ###
+
+*   `mini-tamsin.tamsin` is an interpreter for "Mini-Tamsin", written in Tamsin.
+*   Better error reporting.
+*   Improvements or bugfixes in the C-language implementation of `$:unquote`.
+*   Tamsin programs can handle streams on input and produce streams on output.
+*   Begun work on a better C-emitting backend.
+*   Better scanning; buffers are more sophisticated and track some state themselves.
 
 0.5
 ---
