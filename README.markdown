@@ -2,9 +2,9 @@ Tamsin
 ======
 
 Tamsin is an oddball little language that can't decide if it's a
-[meta-language](https://github.com/catseye/Tamsin/blob/master/doc/Philosophy.markdown#meta-language), a
-[programming language](https://github.com/catseye/Tamsin/blob/master/doc/Philosophy.markdown#programming-language), or a
-[rubbish lister](https://github.com/catseye/Tamsin/blob/master/doc/Philosophy.markdown#rubbish-lister).
+[meta-language](doc/Philosophy.markdown#meta-language), a
+[programming language](doc/Philosophy.markdown#programming-language), or a
+[rubbish lister](doc/Philosophy.markdown#rubbish-lister).
 
 Its primary goal is to allow the rapid development of **parsers**,
 **static analyzers**, **interpreters**, and **compilers**, and to allow them
@@ -14,7 +14,7 @@ human being, if you must.)
 The current released version of Tamsin is 0.5-2017.0502.
 As indicated by the 0.x version number, it is a **work in progress**,
 with the usual caveat that things may change rapidly (and that version 0.6 might
-look completely different.)  See [HISTORY](https://github.com/catseye/Tamsin/blob/master/HISTORY.markdown)
+look completely different.)  See [HISTORY](HISTORY.markdown)
 for a list of major changes.
 
 Code Examples
@@ -77,11 +77,11 @@ Evaluate an (admittedly trivial) S-expression based language in
     reverse(X, A) = X.
 
 Interpret a small subset of Tamsin in
-**[30 lines of code](https://github.com/catseye/Tamsin/blob/master/mains/micro-tamsin.tamsin)**
-(not counting the [included batteries](https://github.com/catseye/Tamsin/blob/master/doc/Philosophy.markdown#batteries-included).)
+**[30 lines of code](mains/micro-tamsin.tamsin)**
+(not counting the [included batteries](doc/Philosophy.markdown#batteries-included).)
 
 Compile Tamsin to C in
-**[563 lines of code](https://github.com/catseye/Tamsin/blob/master/mains/compiler.tamsin)**
+**[563 lines of code](mains/compiler.tamsin)**
 (again, not counting the included batteries.)
 
 For more information
@@ -91,7 +91,7 @@ If the above has piqued your curiosity, you may want to read the specification,
 which contains many more small examples written to demonstrate (and test) the
 syntax and behavior of Tamsin:
 
-*   [The Tamsin Language Specification](https://github.com/catseye/Tamsin/blob/master/doc/Tamsin.markdown)
+*   [The Tamsin Language Specification](doc/Tamsin.markdown)
 
 Note that this is the current development version of the specification, and
 it may differ from the examples in this document.
@@ -99,8 +99,7 @@ it may differ from the examples in this document.
 Quick Start
 -----------
 
-The Tamsin reference repository is [hosted on Github](https://github.com/catseye/Tamsin)
-with a [Mercurial mirror on Bitbucket](https://bitbucket.org/catseye/tamsin).
+The Tamsin reference repository is [hosted on Codeberg](https://codeberg.org/catseye/Tamsin).
 
 This repository contains the reference implementation of Tamsin, called
 `tamsin`, written in Python 2.7.  It can both interpret a Tamsin program and
@@ -117,15 +116,11 @@ considered a **proof of concept**.
 
 To start using `tamsin`,
 
-*   Clone the repository — `git clone https://github.com/catseye/tamsin`
+*   Clone the repository — `git clone https://codeberg.org/catseye/Tamsin`
 *   Either:
     *   Put the repo's `bin` directory on your `$PATH`, or
     *   Make a symbolic link to `bin/tamsin` somewhere already on your `$PATH`.
 *   Errr... that's it.
-
-(Or, to make those steps trivial, you could use
-[toolshelf](https://github.com/catseye/toolshelf) and run
-`toolshelf dock gh:catseye/tamsin`)
 
 Then you can run `tamsin` like so:
 
@@ -162,7 +157,7 @@ Design Goals
 License
 -------
 
-BSD-style license; see the file [LICENSE](https://github.com/catseye/Tamsin/blob/master/LICENSE).
+BSD-style license; see the file [LICENSE](LICENSE).
 
 Related work
 ------------
